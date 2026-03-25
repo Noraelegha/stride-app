@@ -786,11 +786,10 @@
 <script>
 function handleSubmit(e, successId) {
   e.preventDefault();
-  const form = e.target;
-  const email = form.querySelector('input[type="email"]').value;
-  form.style.display = 'none';
+  const email = e.target.querySelector('input[type="email"]').value;
+  window.open('https://forms.gle/UBoGQFAaHkjQL7Uq6' + email, '_blank');
+  e.target.style.display = 'none';
   document.getElementById(successId).style.display = 'block';
-  console.log('Email captured:', email);
 }
 </script>
 </body>
