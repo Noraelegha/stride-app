@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stride — Stop Guessing. Start Stepping.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+  :root {
+    --navy: #0f1623;
+    --navy-mid: #1a2535;
+    --navy-light: #243044;
+    --gold: #f0a500;
+    --gold-light: #f5c842;
+    --gold-dim: rgba(240,165,0,0.12);
+    --white: #ffffff;
+    --off-white: #f7f6f2;
+    --text-muted: rgba(255,255,255,0.5);
+    --text-secondary: rgba(255,255,255,0.72);
+    --border: rgba(255,255,255,0.08);
+    --border-gold: rgba(240,165,0,0.3);
+  }
+ 
+  html { scroll-behavior: smooth; }
+ 
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--navy);
+    color: var(--white);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+ 
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 20px 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(15,22,35,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+ 
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    display: flex; align-items: center; gap: 10px;
+    text-decoration: none; color: var(--white);
+  }
+ 
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--gold);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+ 
+  .nav-cta {
+    background: var(--gold);
+    color: var(--navy);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 10px 22px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+  .nav-cta:hover { opacity: 0.88; }
+ 
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+ 
+  .hero::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(240,165,0,0.07) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+ 
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--gold-dim);
+    border: 1px solid var(--border-gold);
+    color: var(--gold);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 16px;
+    border-radius: 100px;
+    margin-bottom: 36px;
+    letter-spacing: 0.02em;
+  }
+ 
+  .badge-dot {
+    width: 6px; height: 6px;
+    background: var(--gold);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+ 
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+ 
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(44px, 7vw, 84px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    max-width: 900px;
+    margin-bottom: 28px;
+  }
+ 
+  h1 em {
+    font-style: normal;
+    color: var(--gold);
+  }
+ 
+  .hero-sub {
+    font-size: clamp(17px, 2vw, 20px);
+    color: var(--text-secondary);
+    max-width: 540px;
+    margin-bottom: 52px;
+    font-weight: 300;
+    line-height: 1.65;
+  }
+ 
+  .hero-form {
+    display: flex; gap: 12px;
+    max-width: 480px; width: 100%;
+    margin-bottom: 24px;
+  }
+ 
+  .hero-input {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    padding: 14px 20px;
+    border-radius: 100px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .hero-input::placeholder { color: var(--text-muted); }
+  .hero-input:focus { border-color: var(--gold); }
+ 
+  .hero-btn {
+    background: var(--gold);
+    color: var(--navy);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 14px 28px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s, transform 0.15s;
+  }
+  .hero-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+ 
+  .hero-note {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+ 
+  /* SOCIAL PROOF STRIP */
+  .proof-strip {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 32px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 60px;
+    flex-wrap: wrap;
+  }
+ 
+  .proof-stat {
+    text-align: center;
+  }
+ 
+  .proof-number {
+    font-family: 'Syne', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+ 
+  .proof-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+ 
+  .proof-divider {
+    width: 1px;
+    height: 40px;
+    background: var(--border);
+  }
+ 
+  /* PROBLEM */
+  .section {
+    padding: 100px 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+ 
+  .section-label {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--gold);
+    margin-bottom: 20px;
+  }
+ 
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -1.5px;
+    margin-bottom: 24px;
+    max-width: 700px;
+  }
+ 
+  .section-body {
+    font-size: 18px;
+    color: var(--text-secondary);
+    max-width: 580px;
+    line-height: 1.75;
+    font-weight: 300;
+  }
+ 
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    margin-top: 60px;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+ 
+  .problem-card {
+    background: var(--navy-mid);
+    padding: 36px;
+  }
+ 
+  .problem-card:nth-child(1) { border-radius: 18px 0 0 0; }
+  .problem-card:nth-child(2) { border-radius: 0 18px 0 0; }
+  .problem-card:nth-child(3) { border-radius: 0 0 0 18px; }
+  .problem-card:nth-child(4) { border-radius: 0 0 18px 0; }
+ 
+  .problem-quote {
+    font-family: 'Syne', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-bottom: 12px;
+    color: rgba(255,255,255,0.9);
+  }
+ 
+  .problem-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+ 
+  /* HOW IT WORKS */
+  .how-wrapper {
+    background: var(--navy-mid);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+ 
+  .how-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 100px 24px;
+  }
+ 
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    margin-top: 64px;
+  }
+ 
+  .step {
+    padding: 40px 36px;
+    background: var(--navy);
+    position: relative;
+  }
+ 
+  .step:first-child { border-radius: 16px 0 0 16px; }
+  .step:last-child { border-radius: 0 16px 16px 0; }
+ 
+  .step-number {
+    font-family: 'Syne', sans-serif;
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--gold-dim);
+    line-height: 1;
+    margin-bottom: 28px;
+    color: rgba(240,165,0,0.15);
+  }
+ 
+  .step-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    letter-spacing: -0.3px;
+  }
+ 
+  .step-desc {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+ 
+  /* DASH INTRO */
+  .dash-section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 100px 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+ 
+  .dash-visual {
+    background: var(--navy-mid);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+ 
+  .dash-msg {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+ 
+  .dash-avatar {
+    width: 36px; height: 36px;
+    background: var(--gold);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+ 
+  .dash-bubble {
+    background: var(--navy-light);
+    border-radius: 4px 16px 16px 16px;
+    padding: 14px 18px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-width: 280px;
+  }
+ 
+  .dash-bubble strong {
+    color: var(--white);
+    font-weight: 500;
+  }
+ 
+  .user-msg {
+    display: flex;
+    justify-content: flex-end;
+  }
+ 
+  .user-bubble {
+    background: var(--gold-dim);
+    border: 1px solid var(--border-gold);
+    border-radius: 16px 4px 16px 16px;
+    padding: 12px 18px;
+    font-size: 14px;
+    color: var(--gold-light);
+    max-width: 220px;
+    line-height: 1.5;
+  }
+ 
+  .action-card {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 20px 22px;
+    margin-top: 4px;
+  }
+ 
+  .ac-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #999;
+    margin-bottom: 8px;
+  }
+ 
+  .ac-task {
+    font-size: 14px;
+    color: #111;
+    font-weight: 500;
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+ 
+  .ac-btns {
+    display: flex; gap: 8px;
+  }
+ 
+  .ac-btn-done {
+    flex: 1;
+    background: var(--navy);
+    color: var(--white);
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+ 
+  .ac-btn-help {
+    flex: 1;
+    background: transparent;
+    color: #666;
+    border: 1px solid #e5e5e5;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+ 
+  .streak-row {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+ 
+  .streak-fire { font-size: 16px; }
+ 
+  /* PERSONAS */
+  .personas {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px 100px;
+  }
+ 
+  .persona-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 56px;
+  }
+ 
+  .persona-card {
+    background: var(--navy-mid);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 32px;
+    transition: border-color 0.2s;
+  }
+  .persona-card:hover { border-color: var(--border-gold); }
+ 
+  .persona-icon {
+    font-size: 28px;
+    margin-bottom: 20px;
+    display: block;
+  }
+ 
+  .persona-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: -0.3px;
+  }
+ 
+  .persona-pain {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+ 
+  .persona-fix {
+    font-size: 13px;
+    color: var(--gold);
+    font-weight: 500;
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+ 
+  /* FINAL CTA */
+  .final-cta {
+    background: var(--navy-mid);
+    border-top: 1px solid var(--border);
+  }
+ 
+  .final-inner {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 120px 24px;
+    text-align: center;
+  }
+ 
+  .final-inner h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(36px, 5vw, 60px);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -2px;
+    margin-bottom: 24px;
+  }
+ 
+  .final-inner p {
+    font-size: 18px;
+    color: var(--text-secondary);
+    margin-bottom: 48px;
+    font-weight: 300;
+  }
+ 
+  .final-form {
+    display: flex; gap: 12px;
+    max-width: 440px;
+    margin: 0 auto 20px;
+  }
+ 
+  footer {
+    padding: 32px 40px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+ 
+  footer a { color: var(--text-muted); text-decoration: none; }
+  footer a:hover { color: var(--white); }
+ 
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    nav { padding: 16px 20px; }
+    .proof-strip { gap: 32px; padding: 32px 20px; }
+    .proof-divider { display: none; }
+    .problem-grid { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; }
+    .step:first-child, .step:last-child { border-radius: 0; }
+    .step:first-child { border-radius: 16px 16px 0 0; }
+    .step:last-child { border-radius: 0 0 16px 16px; }
+    .dash-section { grid-template-columns: 1fr; gap: 48px; }
+    .persona-grid { grid-template-columns: 1fr; }
+    .hero-form, .final-form { flex-direction: column; }
+    footer { flex-direction: column; gap: 12px; text-align: center; }
+  }
+ 
+  /* SUBMIT STATE */
+  .success-msg {
+    display: none;
+    color: var(--gold);
+    font-size: 15px;
+    font-weight: 500;
+    margin-top: 16px;
+  }
+</style>
+</head>
+<body>
+ 
+<nav>
+  <a href="#" class="logo">
+    <div class="logo-icon">⚡</div>
+    Stride
+  </a>
+  <a href="#join" class="nav-cta">Get early access</a>
+</nav>
+ 
+<!-- HERO -->
+<section class="hero">
+  <div class="badge">
+    <span class="badge-dot"></span>
+    Now in private beta · 15+ active users
+  </div>
+  <h1>Stop guessing.<br><em>Start stepping.</em></h1>
+  <p class="hero-sub">Stride turns your biggest goal into one small daily task — and checks on you until you actually do it. Think Duolingo, but for your real life.</p>
+  <form class="hero-form" id="heroForm" onsubmit="handleSubmit(event,'heroSuccess')">
+    <input class="hero-input" type="email" placeholder="Enter your email" required>
+    <button class="hero-btn" type="submit">Join the waitlist</button>
+  </form>
+  <p class="hero-note">Free to join. No spam. Ever.</p>
+  <p class="success-msg" id="heroSuccess">🔒 You're in. Dash will find you soon.</p>
+</section>
+ 
+<!-- PROOF STRIP -->
+<div class="proof-strip">
+  <div class="proof-stat">
+    <div class="proof-number">15+</div>
+    <div class="proof-label">Beta users</div>
+  </div>
+  <div class="proof-divider"></div>
+  <div class="proof-stat">
+    <div class="proof-number">82%</div>
+    <div class="proof-label">Task completion rate</div>
+  </div>
+  <div class="proof-divider"></div>
+  <div class="proof-stat">
+    <div class="proof-number">3</div>
+    <div class="proof-label">Organic referrals, week 1</div>
+  </div>
+  <div class="proof-divider"></div>
+  <div class="proof-stat">
+    <div class="proof-number">100%</div>
+    <div class="proof-label">Would download the app</div>
+  </div>
+</div>
+ 
+<!-- PROBLEM -->
+<section class="section">
+  <p class="section-label">The problem</p>
+  <h2 class="section-title">You don't have a motivation problem. You have a direction problem.</h2>
+  <p class="section-body">Everyone says "put yourself out there." But nobody tells you what that actually means. What to do today. What to do first. So you try everything, get overwhelmed, and stop.</p>
+ 
+  <div class="problem-grid">
+    <div class="problem-card">
+      <p class="problem-quote">"I'll start on Monday."</p>
+      <p class="problem-desc">The goal is still there. Monday just keeps moving further away.</p>
+    </div>
+    <div class="problem-card">
+      <p class="problem-quote">"I just need to get organised first."</p>
+      <p class="problem-desc">Organisation is the comfortable feeling of not actually starting.</p>
+    </div>
+    <div class="problem-card">
+      <p class="problem-quote">"I know what to do. I just don't do it."</p>
+      <p class="problem-desc">You don't need more information. You need someone to make the first step impossible to avoid.</p>
+    </div>
+    <div class="problem-card">
+      <p class="problem-quote">"I've tried apps. They don't stick."</p>
+      <p class="problem-desc">Most apps give you a better list. Stride gives you a push — every single day.</p>
+    </div>
+  </div>
+</section>
+ 
+<!-- HOW IT WORKS -->
+<div class="how-wrapper">
+  <div class="how-inner">
+    <p class="section-label">How it works</p>
+    <h2 class="section-title">One goal. One task. Every day.</h2>
+ 
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">01</div>
+        <h3 class="step-title">Tell Dash your goal</h3>
+        <p class="step-desc">Not a vague intention — a real goal. "Land 3 consulting clients." "Finish my book." "Relocate to London." Dash maps the route so you don't have to.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">02</div>
+        <h3 class="step-title">Get one micro-task daily</h3>
+        <p class="step-desc">Every morning, one task. Under 5 minutes. No research required. Small enough that you can't say no to it — big enough that it actually moves the needle.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">03</div>
+        <h3 class="step-title">Dash keeps you honest</h3>
+        <p class="step-desc">Miss a task and Dash notices. Go quiet and Dash shows up. Your streak is on the line — and Dash takes that personally. The goal doesn't build itself, but it does build one task at a time.</p>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<!-- DASH INTRO -->
+<div class="dash-section">
+  <div>
+    <p class="section-label">Meet Dash</p>
+    <h2 class="section-title">Not a chatbot. Your accountability engine.</h2>
+    <p class="section-body" style="margin-bottom: 28px;">Dash learns how you work. It knows when you're avoiding the task. It knows when you need a push versus when you need a smaller door. It remembers what you said your Big Prize was — and it holds you to it.</p>
+    <p class="section-body">Level 1 Dash is your cheerleader. Level 3 Dash is knocking on the glass of your phone screen. You choose which one shows up — based entirely on whether you showed up first.</p>
+  </div>
+  <div class="dash-visual">
+    <div class="dash-msg">
+      <div class="dash-avatar">⚡</div>
+      <div class="dash-bubble"><strong>Day 7.</strong> You're about 40% through Phase 1. The foundation is laid. Let's build on it. 🔒</div>
+    </div>
+    <div class="action-card">
+      <div class="ac-label">Today's task</div>
+      <div class="ac-task">Open LinkedIn and update your headline to include your specific niche. Takes 3 minutes.</div>
+      <div class="ac-btns">
+        <button class="ac-btn-done">✓ Done</button>
+        <button class="ac-btn-help">Break it down</button>
+      </div>
+    </div>
+    <div class="user-msg">
+      <div class="user-bubble">Done. Felt weird but I did it.</div>
+    </div>
+    <div class="dash-msg">
+      <div class="dash-avatar">⚡</div>
+      <div class="dash-bubble"><strong>THAT'S the one.</strong> Weird means it's new. New means it's working. 🔥 Streak locked. See you at 8 AM tomorrow.</div>
+    </div>
+    <div class="streak-row">
+      <span class="streak-fire">🔥</span>
+      <span>7 day streak · Keep going</span>
+    </div>
+  </div>
+</div>
+ 
+<!-- PERSONAS -->
+<div class="personas">
+  <p class="section-label">Who Stride is for</p>
+  <h2 class="section-title">Built for the stuck ambitious.</h2>
+ 
+  <div class="persona-grid">
+    <div class="persona-card">
+      <span class="persona-icon">🚀</span>
+      <h3 class="persona-name">The Solo-Hustler</h3>
+      <p class="persona-pain">You know you should be posting, networking, building — but you're paralysed by where to start and overwhelmed by the long game.</p>
+      <p class="persona-fix">→ Stride breaks "build an empire" into "write one sentence today."</p>
+    </div>
+    <div class="persona-card">
+      <span class="persona-icon">📚</span>
+      <h3 class="persona-name">The Overwhelmed Academic</h3>
+      <p class="persona-pain">The exam feels like a mountain. The textbook is 500 pages. Every study session starts the same way — on TikTok.</p>
+      <p class="persona-fix">→ Stride makes the mountain disappear. Just the next page.</p>
+    </div>
+    <div class="persona-card">
+      <span class="persona-icon">🔄</span>
+      <h3 class="persona-name">The Career Pivot-er</h3>
+      <p class="persona-pain">By 6 PM your willpower is at zero. You want to learn to code or switch careers — but you're too tired to plan a study session.</p>
+      <p class="persona-fix">→ Stride checks in at 6 PM. One task. You can rest after.</p>
+    </div>
+  </div>
+</div>
+ 
+<!-- FINAL CTA -->
+<div class="final-cta" id="join">
+  <div class="final-inner">
+    <h2>Your goal is still waiting.<br><em style="color: var(--gold);">So is Dash.</em></h2>
+    <p>Join the waitlist. Be first in when we launch. No spam — just Dash.</p>
+    <form class="final-form" id="finalForm" onsubmit="handleSubmit(event,'finalSuccess')">
+      <input class="hero-input" type="email" placeholder="Your email address" required>
+      <button class="hero-btn" type="submit">Join waitlist</button>
+    </form>
+    <p class="hero-note" style="margin-top:16px;">Free to join. Early access members get Pro features at launch.</p>
+    <p class="success-msg" id="finalSuccess">🔒 Locked in. Dash will find you.</p>
+  </div>
+</div>
+ 
+<footer>
+  <span>© 2026 Stride. All rights reserved.</span>
+  <span>Built in Lagos. 🇳🇬</span>
+</footer>
+ 
+<script>
+function handleSubmit(e, successId) {
+  e.preventDefault();
+  const form = e.target;
+  const email = form.querySelector('input[type="email"]').value;
+  form.style.display = 'none';
+  document.getElementById(successId).style.display = 'block';
+  console.log('Email captured:', email);
+}
+</script>
+</body>
+</html>
