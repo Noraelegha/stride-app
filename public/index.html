@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stride — Stop Guessing. Start Stepping.</title>
+<title>Stride: Stop Guessing. Start Stepping.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
 <style>
@@ -46,8 +46,7 @@
  
   .logo {
     font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 22px;
+    font-weight: 800; font-size: 22px;
     letter-spacing: -0.5px;
     display: flex; align-items: center; gap: 10px;
     text-decoration: none; color: var(--white);
@@ -55,24 +54,18 @@
  
   .logo-icon {
     width: 32px; height: 32px;
-    background: var(--gold);
-    border-radius: 8px;
+    background: var(--gold); border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
     font-size: 16px;
   }
  
   .nav-cta {
-    background: var(--gold);
-    color: var(--navy);
+    background: var(--gold); color: var(--navy);
     font-family: 'DM Sans', sans-serif;
-    font-weight: 500;
-    font-size: 14px;
-    padding: 10px 22px;
-    border-radius: 100px;
-    border: none;
-    cursor: pointer;
-    text-decoration: none;
-    transition: opacity 0.2s;
+    font-weight: 500; font-size: 14px;
+    padding: 10px 22px; border-radius: 100px;
+    border: none; cursor: pointer;
+    text-decoration: none; transition: opacity 0.2s;
   }
   .nav-cta:hover { opacity: 0.88; }
  
@@ -83,8 +76,7 @@
     align-items: center; justify-content: center;
     text-align: center;
     padding: 120px 24px 80px;
-    position: relative;
-    overflow: hidden;
+    position: relative; overflow: hidden;
   }
  
   .hero::before {
@@ -101,19 +93,14 @@
     display: inline-flex; align-items: center; gap: 8px;
     background: var(--gold-dim);
     border: 1px solid var(--border-gold);
-    color: var(--gold);
-    font-size: 13px;
-    font-weight: 500;
-    padding: 7px 16px;
-    border-radius: 100px;
-    margin-bottom: 36px;
-    letter-spacing: 0.02em;
+    color: var(--gold); font-size: 13px; font-weight: 500;
+    padding: 7px 16px; border-radius: 100px;
+    margin-bottom: 36px; letter-spacing: 0.02em;
   }
  
   .badge-dot {
     width: 6px; height: 6px;
-    background: var(--gold);
-    border-radius: 50%;
+    background: var(--gold); border-radius: 50%;
     animation: pulse 2s infinite;
   }
  
@@ -125,155 +112,153 @@
   h1 {
     font-family: 'Syne', sans-serif;
     font-size: clamp(44px, 7vw, 84px);
-    font-weight: 800;
-    line-height: 1.05;
-    letter-spacing: -2px;
-    max-width: 900px;
+    font-weight: 800; line-height: 1.05;
+    letter-spacing: -2px; max-width: 900px;
     margin-bottom: 28px;
   }
  
-  h1 em {
-    font-style: normal;
-    color: var(--gold);
-  }
+  h1 em { font-style: normal; color: var(--gold); }
  
   .hero-sub {
     font-size: clamp(17px, 2vw, 20px);
     color: var(--text-secondary);
-    max-width: 540px;
-    margin-bottom: 52px;
-    font-weight: 300;
-    line-height: 1.65;
+    max-width: 540px; margin-bottom: 52px;
+    font-weight: 300; line-height: 1.65;
   }
  
+  /* FORM */
   .hero-form {
-    display: flex; gap: 12px;
-    max-width: 480px; width: 100%;
-    margin-bottom: 24px;
+    display: flex; flex-direction: column; gap: 10px;
+    max-width: 420px; width: 100%; margin-bottom: 20px;
   }
+ 
+  .form-row { display: flex; gap: 10px; }
  
   .hero-input {
     flex: 1;
+    min-width: 0;
     background: rgba(255,255,255,0.06);
     border: 1px solid var(--border);
     color: var(--white);
     font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    padding: 14px 20px;
-    border-radius: 100px;
-    outline: none;
-    transition: border-color 0.2s;
+    font-size: 15px; padding: 14px 20px;
+    border-radius: 100px; outline: none;
+    transition: border-color 0.2s; width: 100%;
   }
   .hero-input::placeholder { color: var(--text-muted); }
   .hero-input:focus { border-color: var(--gold); }
  
   .hero-btn {
-    background: var(--gold);
-    color: var(--navy);
+    background: var(--gold); color: var(--navy);
     font-family: 'DM Sans', sans-serif;
-    font-weight: 600;
-    font-size: 15px;
-    padding: 14px 28px;
-    border-radius: 100px;
-    border: none;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: opacity 0.2s, transform 0.15s;
+    font-weight: 600; font-size: 15px;
+    padding: 14px 28px; border-radius: 100px;
+    border: none; cursor: pointer; white-space: nowrap;
+    transition: opacity 0.2s, transform 0.15s; width: 100%;
+    margin-top: 4px;
   }
   .hero-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .hero-btn:disabled { opacity: 0.5; cursor: default; transform: none; }
  
-  .hero-note {
-    font-size: 13px;
-    color: var(--text-muted);
+  .hero-note { font-size: 13px; color: var(--text-muted); }
+ 
+  /* COMMUNITY BUTTON */
+  .community-btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: rgba(37,211,102,0.12);
+    border: 1px solid rgba(37,211,102,0.3);
+    color: #25D366;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 500;
+    padding: 11px 22px; border-radius: 100px;
+    text-decoration: none; margin-top: 16px;
+    transition: background 0.2s;
+  }
+  .community-btn:hover { background: rgba(37,211,102,0.2); }
+  .community-icon { font-size: 18px; }
+ 
+  /* SUCCESS STATE */
+  .success-state {
+    display: none;
+    flex-direction: column; align-items: center; gap: 16px;
+    text-align: center;
+  }
+  .success-icon {
+    width: 64px; height: 64px;
+    background: var(--gold); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+  }
+  .success-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 800;
+    color: var(--white);
+  }
+  .success-sub {
+    font-size: 14px; color: var(--text-secondary);
+    max-width: 340px; line-height: 1.6;
   }
  
-  /* SOCIAL PROOF STRIP */
+  /* PROOF STRIP */
   .proof-strip {
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
     padding: 32px 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 60px;
-    flex-wrap: wrap;
+    display: flex; align-items: center;
+    justify-content: center; gap: 60px; flex-wrap: wrap;
   }
  
-  .proof-stat {
-    text-align: center;
-  }
+  .proof-stat { text-align: center; }
  
   .proof-number {
     font-family: 'Syne', sans-serif;
-    font-size: 36px;
-    font-weight: 700;
-    color: var(--gold);
-    line-height: 1;
-    margin-bottom: 6px;
+    font-size: 36px; font-weight: 700;
+    color: var(--gold); line-height: 1; margin-bottom: 6px;
   }
  
   .proof-label {
-    font-size: 13px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    font-size: 13px; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.08em;
   }
  
   .proof-divider {
-    width: 1px;
-    height: 40px;
-    background: var(--border);
+    width: 1px; height: 40px; background: var(--border);
   }
  
-  /* PROBLEM */
+  /* SECTIONS */
   .section {
     padding: 100px 24px;
-    max-width: 1100px;
-    margin: 0 auto;
+    max-width: 1100px; margin: 0 auto;
   }
  
   .section-label {
-    font-size: 12px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--gold);
-    margin-bottom: 20px;
+    font-size: 12px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--gold); margin-bottom: 20px;
   }
  
   .section-title {
     font-family: 'Syne', sans-serif;
     font-size: clamp(32px, 4vw, 52px);
-    font-weight: 700;
-    line-height: 1.1;
-    letter-spacing: -1.5px;
-    margin-bottom: 24px;
+    font-weight: 700; line-height: 1.1;
+    letter-spacing: -1.5px; margin-bottom: 24px;
     max-width: 700px;
   }
  
   .section-body {
-    font-size: 18px;
-    color: var(--text-secondary);
-    max-width: 580px;
-    line-height: 1.75;
-    font-weight: 300;
+    font-size: 18px; color: var(--text-secondary);
+    max-width: 580px; line-height: 1.75; font-weight: 300;
   }
  
+  /* PROBLEM */
   .problem-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2px;
-    margin-top: 60px;
-    border-radius: 20px;
-    overflow: hidden;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 2px; margin-top: 60px;
+    border-radius: 20px; overflow: hidden;
     border: 1px solid var(--border);
   }
  
-  .problem-card {
-    background: var(--navy-mid);
-    padding: 36px;
-  }
- 
+  .problem-card { background: var(--navy-mid); padding: 36px; }
   .problem-card:nth-child(1) { border-radius: 18px 0 0 0; }
   .problem-card:nth-child(2) { border-radius: 0 18px 0 0; }
   .problem-card:nth-child(3) { border-radius: 0 0 0 18px; }
@@ -281,17 +266,12 @@
  
   .problem-quote {
     font-family: 'Syne', sans-serif;
-    font-size: 17px;
-    font-weight: 600;
-    line-height: 1.4;
-    margin-bottom: 12px;
-    color: rgba(255,255,255,0.9);
+    font-size: 17px; font-weight: 600; line-height: 1.4;
+    margin-bottom: 12px; color: rgba(255,255,255,0.9);
   }
  
   .problem-desc {
-    font-size: 14px;
-    color: var(--text-muted);
-    line-height: 1.65;
+    font-size: 14px; color: var(--text-muted); line-height: 1.65;
   }
  
   /* HOW IT WORKS */
@@ -301,231 +281,151 @@
     border-bottom: 1px solid var(--border);
   }
  
-  .how-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 100px 24px;
-  }
+  .how-inner { max-width: 1100px; margin: 0 auto; padding: 100px 24px; }
  
   .steps {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2px;
-    margin-top: 64px;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 2px; margin-top: 64px;
   }
  
   .step {
-    padding: 40px 36px;
-    background: var(--navy);
-    position: relative;
+    padding: 40px 36px; background: var(--navy); position: relative;
   }
- 
   .step:first-child { border-radius: 16px 0 0 16px; }
   .step:last-child { border-radius: 0 16px 16px 0; }
  
   .step-number {
     font-family: 'Syne', sans-serif;
-    font-size: 48px;
-    font-weight: 800;
-    color: var(--gold-dim);
-    line-height: 1;
-    margin-bottom: 28px;
-    color: rgba(240,165,0,0.15);
+    font-size: 48px; font-weight: 800;
+    color: rgba(240,165,0,0.15); line-height: 1; margin-bottom: 28px;
   }
  
   .step-title {
     font-family: 'Syne', sans-serif;
-    font-size: 20px;
-    font-weight: 700;
-    margin-bottom: 14px;
-    letter-spacing: -0.3px;
+    font-size: 20px; font-weight: 700;
+    margin-bottom: 14px; letter-spacing: -0.3px;
   }
  
   .step-desc {
-    font-size: 15px;
-    color: var(--text-secondary);
-    line-height: 1.7;
-    font-weight: 300;
+    font-size: 15px; color: var(--text-secondary);
+    line-height: 1.7; font-weight: 300;
   }
  
   /* DASH INTRO */
   .dash-section {
-    max-width: 1100px;
-    margin: 0 auto;
+    max-width: 1100px; margin: 0 auto;
     padding: 100px 24px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 80px;
-    align-items: center;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 80px; align-items: center;
   }
  
   .dash-visual {
     background: var(--navy-mid);
     border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    border-radius: 24px; padding: 32px;
+    display: flex; flex-direction: column; gap: 16px;
   }
  
-  .dash-msg {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-  }
+  .dash-msg { display: flex; gap: 12px; align-items: flex-start; }
  
   .dash-avatar {
-    width: 36px; height: 36px;
-    background: var(--gold);
+    width: 36px; height: 36px; background: var(--gold);
     border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-    flex-shrink: 0;
+    font-size: 18px; flex-shrink: 0;
   }
  
   .dash-bubble {
     background: var(--navy-light);
     border-radius: 4px 16px 16px 16px;
-    padding: 14px 18px;
-    font-size: 14px;
-    color: var(--text-secondary);
-    line-height: 1.6;
-    max-width: 280px;
+    padding: 14px 18px; font-size: 14px;
+    color: var(--text-secondary); line-height: 1.6; max-width: 280px;
   }
  
-  .dash-bubble strong {
-    color: var(--white);
-    font-weight: 500;
-  }
+  .dash-bubble strong { color: var(--white); font-weight: 500; }
  
-  .user-msg {
-    display: flex;
-    justify-content: flex-end;
-  }
+  .user-msg { display: flex; justify-content: flex-end; }
  
   .user-bubble {
     background: var(--gold-dim);
     border: 1px solid var(--border-gold);
     border-radius: 16px 4px 16px 16px;
-    padding: 12px 18px;
-    font-size: 14px;
-    color: var(--gold-light);
-    max-width: 220px;
-    line-height: 1.5;
+    padding: 12px 18px; font-size: 14px;
+    color: var(--gold-light); max-width: 220px; line-height: 1.5;
   }
  
   .action-card {
-    background: var(--white);
-    border-radius: 16px;
-    padding: 20px 22px;
-    margin-top: 4px;
+    background: var(--white); border-radius: 16px;
+    padding: 20px 22px; margin-top: 4px;
   }
  
   .ac-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #999;
-    margin-bottom: 8px;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: #999; margin-bottom: 8px;
   }
  
   .ac-task {
-    font-size: 14px;
-    color: #111;
-    font-weight: 500;
-    line-height: 1.5;
-    margin-bottom: 16px;
+    font-size: 14px; color: #111; font-weight: 500;
+    line-height: 1.5; margin-bottom: 16px;
   }
  
-  .ac-btns {
-    display: flex; gap: 8px;
-  }
+  .ac-btns { display: flex; gap: 8px; }
  
   .ac-btn-done {
-    flex: 1;
-    background: var(--navy);
-    color: var(--white);
-    border: none;
-    border-radius: 10px;
-    padding: 10px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
+    flex: 1; background: var(--navy); color: var(--white);
+    border: none; border-radius: 10px; padding: 10px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
     display: flex; align-items: center; justify-content: center; gap: 6px;
   }
  
   .ac-btn-help {
-    flex: 1;
-    background: transparent;
-    color: #666;
-    border: 1px solid #e5e5e5;
-    border-radius: 10px;
-    padding: 10px;
-    font-size: 13px;
-    cursor: pointer;
+    flex: 1; background: transparent; color: #666;
+    border: 1px solid #e5e5e5; border-radius: 10px;
+    padding: 10px; font-size: 13px; cursor: pointer;
   }
  
   .streak-row {
     display: flex; align-items: center; justify-content: center; gap: 8px;
-    margin-top: 20px;
-    padding-top: 16px;
+    margin-top: 20px; padding-top: 16px;
     border-top: 1px solid var(--border);
-    font-size: 13px;
-    color: var(--text-muted);
+    font-size: 13px; color: var(--text-muted);
   }
  
   .streak-fire { font-size: 16px; }
  
   /* PERSONAS */
   .personas {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 0 24px 100px;
+    max-width: 1100px; margin: 0 auto; padding: 0 24px 100px;
   }
  
   .persona-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-top: 56px;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 16px; margin-top: 56px;
   }
  
   .persona-card {
-    background: var(--navy-mid);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 36px 32px;
+    background: var(--navy-mid); border: 1px solid var(--border);
+    border-radius: 20px; padding: 36px 32px;
     transition: border-color 0.2s;
   }
   .persona-card:hover { border-color: var(--border-gold); }
  
-  .persona-icon {
-    font-size: 28px;
-    margin-bottom: 20px;
-    display: block;
-  }
+  .persona-icon { font-size: 28px; margin-bottom: 20px; display: block; }
  
   .persona-name {
     font-family: 'Syne', sans-serif;
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 12px;
-    letter-spacing: -0.3px;
+    font-size: 18px; font-weight: 700;
+    margin-bottom: 12px; letter-spacing: -0.3px;
   }
  
   .persona-pain {
-    font-size: 14px;
-    color: var(--text-muted);
-    line-height: 1.7;
-    margin-bottom: 20px;
+    font-size: 14px; color: var(--text-muted);
+    line-height: 1.7; margin-bottom: 20px;
   }
  
   .persona-fix {
-    font-size: 13px;
-    color: var(--gold);
-    font-weight: 500;
+    font-size: 13px; color: var(--gold); font-weight: 500;
     display: flex; align-items: flex-start; gap: 8px;
   }
  
@@ -536,40 +436,32 @@
   }
  
   .final-inner {
-    max-width: 700px;
-    margin: 0 auto;
-    padding: 120px 24px;
-    text-align: center;
+    max-width: 700px; margin: 0 auto;
+    padding: 120px 24px; text-align: center;
   }
  
   .final-inner h2 {
     font-family: 'Syne', sans-serif;
     font-size: clamp(36px, 5vw, 60px);
-    font-weight: 800;
-    line-height: 1.08;
-    letter-spacing: -2px;
-    margin-bottom: 24px;
+    font-weight: 800; line-height: 1.08;
+    letter-spacing: -2px; margin-bottom: 24px;
   }
  
   .final-inner p {
-    font-size: 18px;
-    color: var(--text-secondary);
-    margin-bottom: 48px;
-    font-weight: 300;
+    font-size: 18px; color: var(--text-secondary);
+    margin-bottom: 48px; font-weight: 300;
   }
  
   .final-form {
-    display: flex; gap: 12px;
-    max-width: 440px;
-    margin: 0 auto 20px;
+    display: flex; flex-direction: column; gap: 10px;
+    max-width: 420px; width: 100%; margin: 0 auto 20px;
   }
  
   footer {
     padding: 32px 40px;
     border-top: 1px solid var(--border);
     display: flex; justify-content: space-between; align-items: center;
-    font-size: 13px;
-    color: var(--text-muted);
+    font-size: 13px; color: var(--text-muted);
   }
  
   footer a { color: var(--text-muted); text-decoration: none; }
@@ -587,18 +479,24 @@
     .step:last-child { border-radius: 0 0 16px 16px; }
     .dash-section { grid-template-columns: 1fr; gap: 48px; }
     .persona-grid { grid-template-columns: 1fr; }
-    .hero-form, .final-form { flex-direction: column; }
+    .form-row { flex-direction: column; }
     footer { flex-direction: column; gap: 12px; text-align: center; }
   }
  
-  /* SUBMIT STATE */
-  .success-msg {
-    display: none;
-    color: var(--gold);
-    font-size: 15px;
-    font-weight: 500;
-    margin-top: 16px;
+  /* LOADING STATE */
+  .btn-loading { position: relative; color: transparent !important; }
+  .btn-loading::after {
+    content: '';
+    position: absolute;
+    width: 18px; height: 18px;
+    border: 2px solid rgba(15,22,35,0.3);
+    border-top-color: var(--navy);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
   }
+  @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -618,13 +516,31 @@
     Now in private beta · 15+ active users
   </div>
   <h1>Stop guessing.<br><em>Start stepping.</em></h1>
-  <p class="hero-sub">Stride turns your biggest goal into one small daily task — and checks on you until you actually do it. Think Duolingo, but for your real life.</p>
-  <form class="hero-form" id="heroForm" onsubmit="handleSubmit(event,'heroSuccess')">
-    <input class="hero-input" type="email" placeholder="Enter your email" required>
-    <button class="hero-btn" type="submit">Join the waitlist</button>
-  </form>
-  <p class="hero-note">Free to join. No spam. Ever.</p>
-  <p class="success-msg" id="heroSuccess">🔒 You're in. Dash will find you soon.</p>
+  <p class="hero-sub">Stride turns your biggest goal into one small daily task that checks on you until you actually do it. Think Duolingo, but for your real life.</p>
+ 
+  <div id="heroFormWrap">
+    <form class="hero-form" id="heroForm" onsubmit="handleSubmit(event,'heroSuccess','heroFormWrap')">
+      <input class="hero-input" type="text" id="heroName" placeholder="Your name" required>
+      <input class="hero-input" type="email" id="heroEmail" placeholder="Your email address" required>
+      <input class="hero-input" type="text" id="heroGoal" placeholder="What goal are you working toward?" required>
+      <button class="hero-btn" type="submit">Join the waitlist</button>
+    </form>
+    <p class="hero-note" style="margin-top:12px">Free to join. No spam. Ever.</p>
+    <a href="https://chat.whatsapp.com/DDE9BOhMmauCnTkkpFxY5A" target="_blank" class="community-btn">
+      <span class="community-icon">💬</span>
+      Join the Stride community on WhatsApp
+    </a>
+  </div>
+ 
+  <div class="success-state" id="heroSuccess">
+    <div class="success-icon">⚡</div>
+    <div class="success-title">You are locked in.</div>
+    <div class="success-sub">Dash has your briefing. You will hear from us before anyone else when Stride opens early access.</div>
+    <a href="https://chat.whatsapp.com/DDE9BOhMmauCnTkkpFxY5A" target="_blank" class="community-btn">
+      <span class="community-icon">💬</span>
+      Join the Stride community while you wait
+    </a>
+  </div>
 </section>
  
 <!-- PROOF STRIP -->
@@ -640,13 +556,13 @@
   </div>
   <div class="proof-divider"></div>
   <div class="proof-stat">
-    <div class="proof-number">3</div>
-    <div class="proof-label">Organic referrals, week 1</div>
+    <div class="proof-number">100+</div>
+    <div class="proof-label">Daily tasks delivered</div>
   </div>
   <div class="proof-divider"></div>
   <div class="proof-stat">
-    <div class="proof-number">100%</div>
-    <div class="proof-label">Would download the app</div>
+    <div class="proof-number">Built</div>
+    <div class="proof-label">From real user feedback</div>
   </div>
 </div>
  
@@ -671,7 +587,7 @@
     </div>
     <div class="problem-card">
       <p class="problem-quote">"I've tried apps. They don't stick."</p>
-      <p class="problem-desc">Most apps give you a better list. Stride gives you a push — every single day.</p>
+      <p class="problem-desc">Most apps give you a better list. Stride gives you a push. Every single day.</p>
     </div>
   </div>
 </section>
@@ -686,17 +602,17 @@
       <div class="step">
         <div class="step-number">01</div>
         <h3 class="step-title">Tell Dash your goal</h3>
-        <p class="step-desc">Not a vague intention — a real goal. "Land 3 consulting clients." "Finish my book." "Relocate to London." Dash maps the route so you don't have to.</p>
+        <p class="step-desc">Not a vague intention. A real goal. "Land 3 consulting clients." "Finish my book." "Relocate to London." Dash maps the route so you don't have to.</p>
       </div>
       <div class="step">
         <div class="step-number">02</div>
         <h3 class="step-title">Get one micro-task daily</h3>
-        <p class="step-desc">Every morning, one task. Under 5 minutes. No research required. Small enough that you can't say no to it — big enough that it actually moves the needle.</p>
+        <p class="step-desc">Every day, one task. Under 5 minutes. No research required. Small enough that you can't say no to it and big enough that it actually moves the needle.</p>
       </div>
       <div class="step">
         <div class="step-number">03</div>
         <h3 class="step-title">Dash keeps you honest</h3>
-        <p class="step-desc">Miss a task and Dash notices. Go quiet and Dash shows up. Your streak is on the line — and Dash takes that personally. The goal doesn't build itself, but it does build one task at a time.</p>
+        <p class="step-desc">Miss a task and Dash notices. Go quiet and Dash shows up. Your streak is on the line and Dash takes that personally. The goal doesn't build itself, but it does build one task at a time.</p>
       </div>
     </div>
   </div>
@@ -707,8 +623,8 @@
   <div>
     <p class="section-label">Meet Dash</p>
     <h2 class="section-title">Not a chatbot. Your accountability engine.</h2>
-    <p class="section-body" style="margin-bottom: 28px;">Dash learns how you work. It knows when you're avoiding the task. It knows when you need a push versus when you need a smaller door. It remembers what you said your Big Prize was — and it holds you to it.</p>
-    <p class="section-body">Level 1 Dash is your cheerleader. Level 3 Dash is knocking on the glass of your phone screen. You choose which one shows up — based entirely on whether you showed up first.</p>
+    <p class="section-body" style="margin-bottom: 28px;">Dash learns how you work. It knows when you're avoiding the task. It knows when you need a push versus when you need a smaller door. It remembers what you said your Big Prize was and it holds you to it.</p>
+    <p class="section-body">Level 1 Dash is your cheerleader. Level 3 Dash is knocking on the glass of your phone screen. You choose which one shows up based entirely on whether you showed up first.</p>
   </div>
   <div class="dash-visual">
     <div class="dash-msg">
@@ -728,7 +644,7 @@
     </div>
     <div class="dash-msg">
       <div class="dash-avatar">⚡</div>
-      <div class="dash-bubble"><strong>THAT'S the one.</strong> Weird means it's new. New means it's working. 🔥 Streak locked. See you at 8 AM tomorrow.</div>
+      <div class="dash-bubble"><strong>THAT'S the one.</strong> Weird means it's new. New means it's working. 🔥 Streak locked.</div>
     </div>
     <div class="streak-row">
       <span class="streak-fire">🔥</span>
@@ -746,20 +662,20 @@
     <div class="persona-card">
       <span class="persona-icon">🚀</span>
       <h3 class="persona-name">The Solo-Hustler</h3>
-      <p class="persona-pain">You know you should be posting, networking, building — but you're paralysed by where to start and overwhelmed by the long game.</p>
+      <p class="persona-pain">You know you should be posting, networking, building but you're paralysed by where to start and overwhelmed by the long game.</p>
       <p class="persona-fix">→ Stride breaks "build an empire" into "write one sentence today."</p>
     </div>
     <div class="persona-card">
       <span class="persona-icon">📚</span>
       <h3 class="persona-name">The Overwhelmed Academic</h3>
-      <p class="persona-pain">The exam feels like a mountain. The textbook is 500 pages. Every study session starts the same way — on TikTok.</p>
+      <p class="persona-pain">The exam feels like a mountain. The textbook is 500 pages. Every study session starts the same way. On TikTok.</p>
       <p class="persona-fix">→ Stride makes the mountain disappear. Just the next page.</p>
     </div>
     <div class="persona-card">
       <span class="persona-icon">🔄</span>
       <h3 class="persona-name">The Career Pivot-er</h3>
-      <p class="persona-pain">By 6 PM your willpower is at zero. You want to learn to code or switch careers — but you're too tired to plan a study session.</p>
-      <p class="persona-fix">→ Stride checks in at 6 PM. One task. You can rest after.</p>
+      <p class="persona-pain">By the end of the day your willpower is at zero. You want to switch careers or learn a new skill but you're too tired to know where to start.</p>
+      <p class="persona-fix">→ Stride gives you one task. You can rest after.</p>
     </div>
   </div>
 </div>
@@ -768,13 +684,31 @@
 <div class="final-cta" id="join">
   <div class="final-inner">
     <h2>Your goal is still waiting.<br><em style="color: var(--gold);">So is Dash.</em></h2>
-    <p>Join the waitlist. Be first in when we launch. No spam — just Dash.</p>
-    <form class="final-form" id="finalForm" onsubmit="handleSubmit(event,'finalSuccess')">
-      <input class="hero-input" type="email" placeholder="Your email address" required>
-      <button class="hero-btn" type="submit">Join waitlist</button>
-    </form>
-    <p class="hero-note" style="margin-top:16px;">Free to join. Early access members get Pro features at launch.</p>
-    <p class="success-msg" id="finalSuccess">🔒 Locked in. Dash will find you.</p>
+    <p>Join the waitlist. Be first in when we launch. No spam. Just Dash.</p>
+ 
+    <div id="finalFormWrap">
+      <form class="final-form" id="finalForm" onsubmit="handleSubmit(event,'finalSuccess','finalFormWrap')">
+        <input class="hero-input" type="text" placeholder="Your name" required>
+        <input class="hero-input" type="email" placeholder="Your email address" required>
+        <input class="hero-input" type="text" placeholder="What goal are you working toward?" required>
+        <button class="hero-btn" type="submit">Join waitlist</button>
+      </form>
+      <p class="hero-note" style="margin-top:16px;">Free to join. Early access members get 14 days of full Pro access at launch.</p>
+      <a href="https://chat.whatsapp.com/DDE9BOhMmauCnTkkpFxY5A" target="_blank" class="community-btn" style="margin-top:16px">
+        <span class="community-icon">💬</span>
+        Already joined? Come meet the community
+      </a>
+    </div>
+ 
+    <div class="success-state" id="finalSuccess" style="margin:0 auto">
+      <div class="success-icon">⚡</div>
+      <div class="success-title">Locked in. Dash will find you.</div>
+      <div class="success-sub">You will hear from us before anyone else. While you wait, join the community where early members are already building daily.</div>
+      <a href="https://chat.whatsapp.com/DDE9BOhMmauCnTkkpFxY5A" target="_blank" class="community-btn">
+        <span class="community-icon">💬</span>
+        Join the Stride community
+      </a>
+    </div>
   </div>
 </div>
  
@@ -784,28 +718,73 @@
 </footer>
  
 <script>
-function handleSubmit(e, successId) {
+// HOW TO CONNECT YOUR GOOGLE FORM:
+// 1. Open your Google Form in edit mode
+// 2. Click the three dots (top right) and select "Get pre-filled link"
+// 3. Fill in a dummy email and submit to get the link
+// 4. From that link, copy the form action URL (ends in /formResponse)
+//    and the email field entry ID (looks like entry.XXXXXXXXXX)
+// 5. Replace GOOGLE_FORM_ACTION_URL and GOOGLE_FORM_EMAIL_ENTRY below
+ 
+// HOW TO CONNECT YOUR GOOGLE FORM:
+// 1. In your Google Form editor, add fields: Name, Email, Goal
+// 2. Click three dots > Get pre-filled link. Fill dummy values and submit.
+// 3. From the resulting URL, copy the form action (the part before /viewform, add /formResponse)
+//    and each field entry ID (entry.XXXXXXXXXX) from the URL parameters.
+// 4. Replace the four placeholders below.
+ 
+var GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfQXAW8ZQ8DdweRsz8_FPCY7ironeA8cfgEScXfcs5HOc2KBA/formResponse';
+var ENTRY_NAME    = 'entry.1837281532'; // Name field
+var ENTRY_EMAIL   = 'entry.1150471511'; // Email field
+var ENTRY_GOAL    = 'entry.1632672492'; // Goal field
+ 
+function handleSubmit(e, successId, wrapId) {
   e.preventDefault();
-  const form = e.target;
-  const email = form.querySelector('input[type="email"]').value;
-  const googleFormURL = 'https://docs.google.com/forms/d/e/1FAIpQLSfQXAW8ZQ8DdweRsz8_FPCY7ironeA8cfgEScXfcs5HOc2KBA/formResponse';
-  const iframe = document.createElement('iframe');
+  var form = e.target;
+  var btn = form.querySelector('button[type="submit"]');
+  var inputs = form.querySelectorAll('input');
+  var name = '', email = '', goal = '';
+ 
+  inputs.forEach(function(input) {
+    var p = input.placeholder.toLowerCase();
+    if (p.includes('name')) name = input.value;
+    else if (input.type === 'email') email = input.value;
+    else if (p.includes('goal')) goal = input.value;
+  });
+ 
+  btn.textContent = 'Locking you in...';
+  btn.disabled = true;
+  btn.style.opacity = '0.8';
+ 
+  var iframe = document.createElement('iframe');
   iframe.style.display = 'none';
-  iframe.name = 'hidden_iframe';
+  iframe.name = 'hidden_iframe_' + Date.now();
   document.body.appendChild(iframe);
-  const hiddenForm = document.createElement('form');
-  hiddenForm.method = 'POST';
-  hiddenForm.action = googleFormURL;
-  hiddenForm.target = 'hidden_iframe';
-  const input = document.createElement('input');
-  input.type = 'hidden';
-  input.name = 'entry.1150471511';
-  input.value = email;
-  hiddenForm.appendChild(input);
-  document.body.appendChild(hiddenForm);
-  hiddenForm.submit();
-  form.style.display = 'none';
-  document.getElementById(successId).style.display = 'block';
+ 
+  var gForm = document.createElement('form');
+  gForm.method = 'POST';
+  gForm.action = GOOGLE_FORM_URL;
+  gForm.target = iframe.name;
+ 
+  [[ENTRY_NAME, name],[ENTRY_EMAIL, email],[ENTRY_GOAL, goal]].forEach(function(pair) {
+    var inp = document.createElement('input');
+    inp.type = 'hidden';
+    inp.name = pair[0];
+    inp.value = pair[1];
+    gForm.appendChild(inp);
+  });
+ 
+  document.body.appendChild(gForm);
+  gForm.submit();
+ 
+  setTimeout(function() {
+    var wrap = document.getElementById(wrapId);
+    var success = document.getElementById(successId);
+    if (wrap) wrap.style.display = 'none';
+    if (success) success.style.display = 'flex';
+    try { document.body.removeChild(gForm); } catch(err) {}
+    try { document.body.removeChild(iframe); } catch(err) {}
+  }, 800);
 }
 </script>
 </body>
