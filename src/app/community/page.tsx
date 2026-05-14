@@ -1,101 +1,78 @@
 'use client'
-import { Users, Flame } from 'lucide-react'
 import BottomNav from '@/components/BottomNav'
 
-const members = [
-  { name: 'Nora',      streak: 7,  persona: 'Solo-Hustler' },
-  { name: 'Ruth',      streak: 11, persona: 'Career Pivot' },
-  { name: 'Nimi',      streak: 9,  persona: 'Learner' },
-  { name: 'Abimbola',  streak: 6,  persona: 'Solo-Hustler' },
-  { name: 'Melody',    streak: 4,  persona: 'Learner' },
-  { name: 'Susan',     streak: 3,  persona: 'Solo-Hustler' },
-  { name: 'Benjamin',  streak: 2,  persona: 'Learner' },
-  { name: 'Patricia',  streak: 1,  persona: 'Solo-Hustler' },
+const MEMBERS = [
+  { name: 'Nora (you)', initial: 'N', color: '#F5A623', streak: 7 },
+  { name: 'Ruth',       initial: 'R', color: '#4A9EDB', streak: 11 },
+  { name: 'Melody',     initial: 'M', color: '#9B59B6', streak: 9 },
+  { name: 'Abimbola',   initial: 'A', color: '#E67E22', streak: 5 },
 ]
 
 export default function CommunityPage() {
   return (
-    <div className="screen" style={{ background: '#0f1623' }}>
-      {/* Header */}
-      <div style={{ background: '#1a1a2e', padding: '52px 20px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <h1 style={{ color: 'white', fontSize: '22px', fontWeight: 900, marginBottom: '4px' }}>Community</h1>
-        <p style={{ color: '#94a3b8', fontSize: '13px' }}>Everyone showing up this week</p>
+    <div className="screen" style={{ background: '#f5f5f7' }}>
+      <div style={{ background: '#1a1a2e', padding: '52px 22px 20px', flexShrink: 0 }}>
+        <h1 style={{ color: '#fff', fontSize: '22px', fontWeight: 900, marginBottom: '3px' }}>Community</h1>
+        <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '12px' }}>People building alongside you</p>
       </div>
 
-      <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
-        {/* Stats */}
-        <div style={{
-          background: '#1a1a2e', borderRadius: '16px', padding: '20px',
-          border: '1px solid rgba(255,255,255,0.08)',
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px',
-        }}>
-          {[
-            { label: 'Active this week', value: '8', emoji: '👥' },
-            { label: 'Tasks completed', value: '147', emoji: '✅' },
-            { label: 'Best streak', value: '11d', emoji: '🔥' },
-            { label: 'Bonus tasks', value: '12', emoji: '⚡' },
-          ].map(stat => (
-            <div key={stat.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '24px' }}>{stat.emoji}</div>
-              <div style={{ color: 'white', fontWeight: 900, fontSize: '24px', lineHeight: 1.2 }}>{stat.value}</div>
-              <div style={{ color: '#94a3b8', fontSize: '11px', marginTop: '2px' }}>{stat.label}</div>
-            </div>
-          ))}
+        {/* This week's numbers */}
+        <div style={{ background: '#fff', borderRadius: '16px', padding: '16px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
+            This Week&apos;s Numbers
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {[
+              { num: '147', ico: '✅', lbl: 'Tasks done',    color: '#F5A623' },
+              { num: '11',  ico: '🔥', lbl: 'Best streak',   color: '#1a1a2e' },
+              { num: '12',  ico: '⚡', lbl: 'Bonus tasks',   color: '#1a1a2e' },
+              { num: '18',  ico: '👥', lbl: 'Active users',  color: '#1a1a2e' },
+            ].map((s, i) => (
+              <div key={i} style={{ textAlign: 'center', padding: '8px' }}>
+                <div style={{ fontSize: '26px', fontWeight: 900, color: s.color }}>{s.num}</div>
+                <div style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '2px' }}>
+                  <span>{s.ico}</span> {s.lbl}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Dash message */}
-        <div style={{
-          background: 'rgba(245,166,35,0.08)',
-          border: '1px solid rgba(245,166,35,0.2)',
-          borderRadius: '14px', padding: '16px',
-        }}>
-          <p style={{ color: '#F5A623', fontSize: '14px', lineHeight: 1.6 }}>
+        <div style={{ background: '#1a1a2e', borderRadius: '13px', padding: '14px' }}>
+          <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '4px' }}>DASH</div>
+          <p style={{ fontSize: '13px', color: '#fff', lineHeight: 1.55, margin: 0 }}>
             147 tasks. 147 times someone chose their goal over the excuse. That is not a group chat. That is a movement. 🔒
           </p>
-          <p style={{ color: '#94a3b8', fontSize: '12px', marginTop: '8px' }}>— Dash ⚡</p>
         </div>
 
-        {/* Leaderboard */}
-        <div>
-          <h3 style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '12px' }}>
-            Streak Leaderboard
-          </h3>
+        {/* Top streaks leaderboard */}
+        <div style={{ background: '#fff', borderRadius: '16px', padding: '16px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
+            Top Streaks This Week
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {members.sort((a, b) => b.streak - a.streak).map((member, i) => (
-              <div key={member.name} style={{
-                background: '#1a1a2e', borderRadius: '12px', padding: '14px 16px',
-                border: i === 0 ? '1.5px solid rgba(245,166,35,0.4)' : '1px solid rgba(255,255,255,0.06)',
-                display: 'flex', alignItems: 'center', gap: '12px',
-              }}>
-                <span style={{
-                  color: i === 0 ? '#F5A623' : '#94a3b8',
-                  fontWeight: 700, fontSize: '14px', width: '20px',
-                }}>
-                  {i + 1}
-                </span>
+            {MEMBERS.map((m, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
-                  width: '36px', height: '36px',
-                  background: i === 0 ? 'rgba(245,166,35,0.15)' : 'rgba(255,255,255,0.06)',
-                  borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: i === 0 ? '#F5A623' : '#94a3b8', fontWeight: 800, fontSize: '14px',
+                  width: '38px', height: '38px', background: m.color,
+                  borderRadius: '50%', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontSize: '14px', fontWeight: 800, color: '#fff',
                 }}>
-                  {member.name[0]}
+                  {m.initial}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: 'white', fontWeight: 600, fontSize: '14px' }}>{member.name}</div>
-                  <div style={{ color: '#94a3b8', fontSize: '12px' }}>{member.persona}</div>
-                </div>
+                <div style={{ flex: 1, fontSize: '14px', fontWeight: 600, color: '#1a1a2e' }}>{m.name}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Flame size={14} color="#F5A623" fill="#F5A623" />
-                  <span style={{ color: '#F5A623', fontWeight: 800, fontSize: '15px' }}>{member.streak}</span>
+                  <span style={{ fontSize: '14px' }}>🔥</span>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#1a1a2e' }}>{m.streak}</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
       </div>
-
       <BottomNav />
     </div>
   )

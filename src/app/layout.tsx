@@ -3,15 +3,15 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Stride — Stop Guessing. Start Stepping.',
-  description: 'Your AI accountability companion that turns your biggest goal into daily wins.',
-  manifest: '/manifest.json',
+  description: 'Your AI accountability companion.',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+  },
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>

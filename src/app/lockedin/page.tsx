@@ -1,119 +1,114 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Zap, Check } from 'lucide-react'
 
 export default function LockedInPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
-  const [confetti, setConfetti] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('stride_user')
     if (stored) setUser(JSON.parse(stored))
-    setTimeout(() => setConfetti(true), 300)
   }, [])
-
-  const colors = ['#F5A623', '#22c55e', '#ffffff', '#60a5fa', '#f472b6']
 
   return (
     <div style={{
-      flex: 1,
-      background: 'linear-gradient(160deg, #0f3d1a 0%, #0f1623 60%)',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '40px 24px',
-      minHeight: '100vh',
-      position: 'relative',
-      overflow: 'hidden',
-      textAlign: 'center',
+      flex: 1, minHeight: '100vh',
+      background: '#4CAF50',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', padding: '32px 24px 40px',
+      textAlign: 'center', gap: '18px', position: 'relative', overflow: 'hidden',
     }}>
-      {/* Confetti */}
-      {confetti && Array.from({ length: 30 }).map((_, i) => (
-        <div key={i} style={{
-          position: 'absolute',
-          top: '-20px',
-          left: `${Math.random() * 100}%`,
-          width: `${6 + Math.random() * 8}px`,
-          height: `${6 + Math.random() * 8}px`,
-          background: colors[i % colors.length],
-          borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-          animation: `confettiFall ${1.5 + Math.random() * 2}s ease-in ${Math.random() * 1.5}s both`,
-          pointerEvents: 'none',
-        }} />
-      ))}
-
-      {/* Check circle */}
+      {/* Badge */}
       <div style={{
-        width: '80px',
-        height: '80px',
-        background: '#22c55e',
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: '24px',
-        animation: 'fadeIn 0.5s ease',
-      }}>
-        <Check size={40} color="white" strokeWidth={3} />
+        background: '#fff', borderRadius: '20px', padding: '7px 18px',
+        fontSize: '13px', fontWeight: 800, color: '#4CAF50', display: 'inline-block',
+      }}>GOOD JOB! 🎉</div>
+
+      {/* Confetti + circle */}
+      <div style={{ position: 'relative', width: '100px', height: '100px' }}>
+        {/* Confetti dots */}
+        {[
+          { bg: '#F5A623', left: '4%',  top: '20%', delay: '0s', size: 7 },
+          { bg: '#fff',    left: '85%', top: '10%', delay: '.3s', size: 5 },
+          { bg: '#fff',    left: '18%', top: '5%',  delay: '.6s', size: 9 },
+          { bg: '#F5A623', left: '75%', top: '30%', delay: '.9s', size: 5 },
+          { bg: '#fff',    left: '50%', top: '2%',  delay: '.45s', size: 7 },
+          { bg: '#F5A623', left: '30%', top: '80%', delay: '1s', size: 5 },
+          { bg: '#fff',    left: '70%', top: '75%', delay: '.75s', size: 9 },
+        ].map((c, i) => (
+          <div key={i} className="cd" style={{
+            background: c.bg, left: c.left, top: c.top,
+            animationDelay: c.delay, width: c.size, height: c.size,
+            borderRadius: i === 2 || i === 6 ? '2px' : '50%',
+          }} />
+        ))}
+        {/* Main circle */}
+        <div style={{
+          width: '96px', height: '96px',
+          background: 'rgba(255,255,255,0.25)',
+          borderRadius: '50%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          animation: 'cel .5s ease-in-out infinite alternate',
+        }}>
+          <svg viewBox="0 0 24 24" fill="white" width="44" height="44">
+            <polygon points="13,2 3,14 12,14 11,22 21,10 12,10" />
+          </svg>
+        </div>
       </div>
 
-      <h1 style={{
-        fontSize: '28px',
-        fontWeight: 900,
-        color: 'white',
-        marginBottom: '12px',
-        animation: 'fadeIn 0.5s ease 0.2s both',
-      }}>
-        Dash has the briefing.
-      </h1>
+      <div style={{ fontSize: '28px', fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>
+        You are locked in. 🔒
+      </div>
+      <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, maxWidth: '300px' }}>
+        Dash has your full briefing. The trail is set. Your first task is ready now.
+      </div>
 
-      <p style={{
-        color: '#94a3b8',
-        fontSize: '15px',
-        lineHeight: 1.6,
-        marginBottom: '32px',
-        animation: 'fadeIn 0.5s ease 0.4s both',
+      {/* What happens next */}
+      <div style={{
+        background: 'rgba(255,255,255,0.18)', borderRadius: '16px',
+        padding: '16px', width: '100%', textAlign: 'left',
+        border: '1px solid rgba(255,255,255,0.25)',
       }}>
-        Your first task drops tomorrow at 8 AM.
-        No more guessing. Just one step at a time.
-      </p>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
+          What happens next
+        </div>
+        {[
+          { icon: '🕐', text: 'Your first task is waiting on the home screen' },
+          { icon: '✓',  text: 'Complete it and your streak starts' },
+          { icon: '⚡', text: 'Dash checks in at 8 AM and 8 PM' },
+        ].map((item, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: i < 2 ? '9px' : 0 }}>
+            <span style={{ fontSize: '14px', width: '18px', textAlign: 'center', color: '#fff', fontWeight: item.icon === '✓' ? 700 : 400 }}>{item.icon}</span>
+            <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)' }}>{item.text}</span>
+          </div>
+        ))}
+      </div>
 
       {/* Goal card */}
-      {user && (
-        <div style={{
-          background: 'rgba(255,255,255,0.07)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          borderRadius: '16px',
-          padding: '20px',
-          width: '100%',
-          marginBottom: '32px',
-          animation: 'fadeIn 0.5s ease 0.5s both',
-          textAlign: 'left',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <Zap size={18} color="#F5A623" fill="#F5A623" />
-            <span style={{ color: '#F5A623', fontSize: '13px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>
-              Your goal is locked in
-            </span>
-          </div>
-          <p style={{ color: 'white', fontSize: '15px', fontWeight: 600, lineHeight: 1.5 }}>
-            {user.goal || 'Your goal has been saved.'}
-          </p>
-          {user.bigPrize && (
-            <p style={{ color: '#94a3b8', fontSize: '13px', marginTop: '8px' }}>
-              The prize: {user.bigPrize}
-            </p>
-          )}
+      <div style={{
+        background: 'rgba(255,255,255,0.18)', borderRadius: '16px',
+        padding: '15px', width: '100%', textAlign: 'left',
+        border: '1px solid rgba(255,255,255,0.25)',
+      }}>
+        <div style={{ marginBottom: '10px' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '3px' }}>Your goal</div>
+          <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>{user?.goal || 'Build a personal brand on LinkedIn'}</div>
         </div>
-      )}
+        <div>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '3px' }}>Your big prize</div>
+          <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>{user?.bigPrize || 'Land 3 high-paying consulting clients'}</div>
+        </div>
+      </div>
 
       <button
-        className="gold-btn"
         onClick={() => router.push('/home')}
-        style={{ animation: 'fadeIn 0.5s ease 0.7s both' }}
+        style={{
+          background: '#fff', color: '#4CAF50', border: 'none',
+          padding: '14px 40px', borderRadius: '50px',
+          fontSize: '15px', fontWeight: 700, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: '8px',
+        }}
       >
         See my first task ⚡
       </button>

@@ -1,50 +1,114 @@
 'use client'
-import { Bell, Flame, Zap, Trophy, CheckCircle } from 'lucide-react'
 import BottomNav from '@/components/BottomNav'
 
 const alerts = [
-  { icon: Trophy,      color: '#F5A623', title: 'Streak shield earned!',  sub: '5 consecutive days. It protects your streak automatically if you miss a day.',       time: '2h ago', unread: true },
-  { icon: Flame,       color: '#F5A623', title: '7-day streak!',          sub: 'You are in the top tier of people who say they will do something and actually do it.', time: '8h ago', unread: true },
-  { icon: Zap,         color: '#60a5fa', title: 'Daily task ready',       sub: 'Your task for today is waiting. Dash is watching the clock. 👀',                      time: '8 AM',   unread: false },
-  { icon: CheckCircle, color: '#22c55e', title: 'Bonus task completed!',  sub: 'Extra mile taken. That is the version of you we are building.',                       time: 'Yesterday', unread: false },
-  { icon: Flame,       color: '#F5A623', title: '5-day streak!',          sub: 'Halfway to your next shield. Keep going.',                                            time: '2d ago', unread: false },
+  {
+    ico: '🛡️',
+    bg: '#eef4ff',
+    title: 'Streak shield earned!',
+    body: '5 consecutive days. You earned a shield. It will protect your streak automatically if you ever miss a day.',
+    time: 'Today',
+    unread: true,
+  },
+  {
+    ico: '🔥',
+    bg: '#fff4ec',
+    title: '7-day streak milestone!',
+    body: 'You just hit 7 days in a row. Top 20% of Stride users. Streak shield earned. 🛡',
+    time: 'Just now',
+    unread: true,
+  },
+  {
+    ico: '⚡',
+    bg: '#f3eeff',
+    title: 'Dash has your task ready',
+    body: 'Your Day 7 task is waiting. 5 minutes. The consulting clients are watching. 👀',
+    time: '8:00 AM',
+    unread: true,
+  },
+  {
+    ico: '📊',
+    bg: '#edfaf3',
+    title: 'Weekly report ready',
+    body: 'Your Week 1 report is ready. 6 of 7 tasks completed. 86% score.',
+    time: 'Yesterday, 7 PM',
+    unread: false,
+  },
+  {
+    ico: '💪',
+    bg: '#fffbec',
+    title: 'Bonus task completed',
+    body: 'You went deeper on Day 6. That is the kind of energy that wins.',
+    time: '2 days ago',
+    unread: false,
+  },
 ]
 
 export default function AlertsPage() {
   return (
-    <div className="screen" style={{ background: '#0f1623' }}>
-      <div style={{ background: '#1a1a2e', padding: '52px 20px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <h1 style={{ color: 'white', fontSize: '22px', fontWeight: 900, marginBottom: '4px' }}>Alerts</h1>
-        <p style={{ color: '#94a3b8', fontSize: '13px' }}>Updates from Dash</p>
+    <div className="screen" style={{ background: '#f5f5f7' }}>
+
+      {/* Dark header */}
+      <div style={{ background: '#1a1a2e', padding: '52px 22px 22px', flexShrink: 0 }}>
+        <h1 style={{ fontSize: '26px', fontWeight: 900, color: '#fff', margin: 0 }}>Alerts</h1>
       </div>
 
-      <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {alerts.map((alert, i) => {
-          const Icon = alert.icon
-          return (
-            <div key={i} style={{
-              background: '#1a1a2e', borderRadius: '14px', padding: '16px',
-              border: alert.unread ? `1.5px solid rgba(245,166,35,0.25)` : '1px solid rgba(255,255,255,0.06)',
-              display: 'flex', gap: '14px', alignItems: 'flex-start',
-              borderLeft: alert.unread ? `3px solid ${alert.color}` : undefined,
+      {/* Alert list */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {alerts.map((a, i) => (
+          <div
+            key={i}
+            style={{
+              background: '#fff',
+              borderRadius: '16px',
+              padding: '14px 16px',
+              display: 'flex',
+              gap: '13px',
+              alignItems: 'flex-start',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+              position: 'relative',
+            }}
+          >
+            {/* Icon circle */}
+            <div style={{
+              width: 42, height: 42,
+              background: a.bg,
+              borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '19px',
+              flexShrink: 0,
             }}>
-              <div style={{
-                width: '40px', height: '40px', borderRadius: '50%',
-                background: `rgba(${alert.color === '#F5A623' ? '245,166,35' : alert.color === '#22c55e' ? '34,197,94' : '96,165,250'},0.12)`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                <Icon size={18} color={alert.color} />
+              {a.ico}
+            </div>
+
+            {/* Content */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e', lineHeight: 1.3, marginBottom: '4px', paddingRight: a.unread ? '14px' : '0' }}>
+                {a.title}
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <p style={{ color: 'white', fontWeight: 700, fontSize: '14px' }}>{alert.title}</p>
-                  <span style={{ color: '#94a3b8', fontSize: '11px', flexShrink: 0, marginLeft: '8px' }}>{alert.time}</span>
-                </div>
-                <p style={{ color: '#94a3b8', fontSize: '13px', lineHeight: 1.5 }}>{alert.sub}</p>
+              <div style={{ fontSize: '12px', color: '#666', lineHeight: 1.55, marginBottom: '6px' }}>
+                {a.body}
+              </div>
+              <div style={{ fontSize: '11px', color: '#bbb' }}>
+                {a.time}
               </div>
             </div>
-          )
-        })}
+
+            {/* Unread dot */}
+            {a.unread && (
+              <div style={{
+                position: 'absolute',
+                top: '14px',
+                right: '14px',
+                width: '8px',
+                height: '8px',
+                background: '#1a1a2e',
+                borderRadius: '50%',
+                flexShrink: 0,
+              }} />
+            )}
+          </div>
+        ))}
       </div>
 
       <BottomNav />

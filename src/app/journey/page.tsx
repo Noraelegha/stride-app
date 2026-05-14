@@ -1,14 +1,14 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Zap, Target, Flame, CheckCircle, Calendar } from 'lucide-react'
 import BottomNav from '@/components/BottomNav'
 
-const mockTasks = [
-  { day: 7, task: 'Update LinkedIn headline with your niche', status: 'done', date: 'Today' },
-  { day: 6, task: 'Write and schedule 3 social posts for the week', status: 'done', date: 'Yesterday' },
-  { day: 5, task: 'Reach out to 2 potential collaborators', status: 'done', date: '2 days ago' },
-  { day: 4, task: 'Record a 60-second intro video for your profile', status: 'missed', date: '3 days ago' },
-  { day: 3, task: 'Join 2 relevant LinkedIn groups and comment', status: 'done', date: '4 days ago' },
+const RECENT_TASKS = [
+  { day: 23, task: 'Changed LinkedIn headline to target niche',     done: true },
+  { day: 22, task: 'Published first thought leadership post',        done: true },
+  { day: 21, task: 'Missed',                                         done: false },
+  { day: 20, task: 'Connected with 5 people in consulting niche',    done: true },
+  { day: 19, task: 'Updated LinkedIn banner image',                  done: true },
+  { day: 18, task: 'Wrote first draft of LinkedIn bio',              done: true },
 ]
 
 export default function JourneyPage() {
@@ -20,89 +20,72 @@ export default function JourneyPage() {
   }, [])
 
   return (
-    <div className="screen" style={{ background: '#0f1623' }}>
-      {/* Header */}
-      <div style={{ background: '#1a1a2e', padding: '52px 20px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <h1 style={{ color: 'white', fontSize: '22px', fontWeight: 900, marginBottom: '4px' }}>Your Journey</h1>
-        <p style={{ color: '#94a3b8', fontSize: '13px' }}>Everything you have built so far</p>
+    <div className="screen" style={{ background: '#f5f5f7' }}>
+      <div style={{ background: '#1a1a2e', padding: '52px 22px 20px', flexShrink: 0 }}>
+        <h1 style={{ color: '#fff', fontSize: '22px', fontWeight: 900, marginBottom: '3px' }}>Your journey</h1>
+        <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '12px' }}>
+          {user?.goal || 'Build a personal brand on LinkedIn'}
+        </p>
       </div>
 
-      <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
-        {/* Phase progress */}
-        <div style={{ background: '#1a1a2e', borderRadius: '16px', padding: '20px', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-            <Target size={16} color="#F5A623" />
-            <span style={{ color: '#F5A623', fontSize: '13px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>
-              Phase 1 — Foundation
-            </span>
-          </div>
+        {/* Phase card */}
+        <div style={{ background: '#fff', borderRadius: '16px', padding: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ color: '#94a3b8', fontSize: '13px' }}>Progress toward Phase 2</span>
-            <span style={{ color: '#F5A623', fontWeight: 800 }}>42%</span>
+            <span style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e' }}>Phase 1: Foundation</span>
+            <span style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e' }}>42%</span>
           </div>
-          <div style={{ height: '8px', background: 'rgba(255,255,255,0.08)', borderRadius: '4px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: '42%', background: 'linear-gradient(90deg, #F5A623, #d4891e)', borderRadius: '4px' }} />
+          <div style={{ height: '5px', background: '#eee', borderRadius: '3px', marginBottom: '8px' }}>
+            <div style={{ height: '100%', width: '42%', background: '#1a1a2e', borderRadius: '3px' }} />
           </div>
-          <p style={{ color: '#94a3b8', fontSize: '12px', marginTop: '8px' }}>
-            {user?.goal || 'Building your personal brand'}
-          </p>
+          <div style={{ fontSize: '12px', color: '#888' }}>
+            You are 42% through Phase 1. The finish line is closer than it feels.
+          </div>
         </div>
 
-        {/* Stats grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        {/* Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
           {[
-            { icon: CheckCircle, label: 'Tasks done', value: '24', color: '#22c55e' },
-            { icon: Flame, label: 'Best streak', value: '9 days', color: '#F5A623' },
-            { icon: Zap, label: 'Bonus tasks', value: '3', color: '#60a5fa' },
-            { icon: Calendar, label: 'Days active', value: '7', color: '#f472b6' },
-          ].map(({ icon: Icon, label, value, color }) => (
-            <div key={label} style={{
-              background: '#1a1a2e', borderRadius: '14px', padding: '16px',
-              border: '1px solid rgba(255,255,255,0.08)',
-            }}>
-              <Icon size={18} color={color} style={{ marginBottom: '8px' }} />
-              <div style={{ color: 'white', fontWeight: 800, fontSize: '22px' }}>{value}</div>
-              <div style={{ color: '#94a3b8', fontSize: '12px' }}>{label}</div>
+            { ico: '🔥', num: user?.streak || 7,  lbl: 'streak' },
+            { ico: '✅', num: 23,                  lbl: 'done' },
+            { ico: '📊', num: '84%',               lbl: 'score' },
+          ].map((s, i) => (
+            <div key={i} style={{ background: '#fff', borderRadius: '14px', padding: '12px', textAlign: 'center' }}>
+              <div style={{ fontSize: '18px' }}>{s.ico}</div>
+              <div style={{ fontSize: '20px', fontWeight: 900, color: '#1a1a2e' }}>{s.num}</div>
+              <div style={{ fontSize: '11px', color: '#888' }}>{s.lbl}</div>
             </div>
           ))}
         </div>
 
-        {/* Task history */}
-        <div>
-          <h3 style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '12px' }}>
-            Task History
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {mockTasks.map((task) => (
-              <div key={task.day} style={{
-                background: '#1a1a2e',
-                borderRadius: '12px',
-                padding: '14px 16px',
-                border: '1px solid rgba(255,255,255,0.06)',
-                display: 'flex',
-                gap: '12px',
-                alignItems: 'flex-start',
+        {/* Recent tasks */}
+        <div style={{ background: '#fff', borderRadius: '16px', padding: '16px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a2e', marginBottom: '12px' }}>Recent Tasks</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+            {RECENT_TASKS.map((t, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'flex-start', gap: '12px',
+                padding: '11px 0',
+                borderTop: i > 0 ? '1px solid #f5f5f5' : undefined,
               }}>
                 <div style={{
-                  width: '24px', height: '24px', borderRadius: '50%',
-                  background: task.status === 'done' ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
-                  border: `1.5px solid ${task.status === 'done' ? '#22c55e' : 'rgba(255,255,255,0.15)'}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  fontSize: '12px',
+                  width: '22px', height: '22px', borderRadius: '6px',
+                  background: t.done ? '#e8f5e9' : '#ffeaea',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, fontSize: '13px',
                 }}>
-                  {task.status === 'done' ? '✓' : '·'}
+                  {t.done ? '✓' : '✗'}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ color: 'white', fontSize: '14px', lineHeight: 1.4 }}>{task.task}</p>
-                  <p style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>Day {task.day} — {task.date}</p>
+                  <div style={{ fontSize: '13px', color: t.done ? '#1a1a2e' : '#e74c3c', lineHeight: 1.4 }}>{t.task}</div>
+                  <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>Day {t.day}</div>
                 </div>
               </div>
             ))}
           </div>
         </div>
       </div>
-
       <BottomNav />
     </div>
   )
