@@ -1,261 +1,230 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ChevronRight, ChevronDown } from 'lucide-react'
 import BottomNav from '@/components/BottomNav'
+
+const COACH_OPTIONS = [
+  { id: 'tough',     emoji: '💪', label: 'No-nonsense coach',     sub: 'Direct. Unfiltered. Pure execution.' },
+  { id: 'strategic', emoji: '🤝', label: 'Strategic partner',     sub: 'Professional. ROI-focused.' },
+  { id: 'friend',    emoji: '😏', label: 'Sarcastic best friend', sub: 'Jokes with accountability.' },
+  { id: 'mentor',    emoji: '🧘', label: 'Gentle mentor',         sub: 'Encouragement first.' },
+]
 
 export default function ProfilePage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const [editCoach, setEditCoach] = useState(false)
+  const [morningTime, setMorningTime] = useState('08:00')
+  const [eveningTime, setEveningTime] = useState('20:00')
+  const [savedMsg, setSavedMsg] = useState('')
 
   useEffect(() => {
     const stored = localStorage.getItem('stride_user')
-    if (stored) setUser(JSON.parse(stored))
+    if (stored) {
+      const u = JSON.parse(stored)
+      setUser(u)
+      if (u.morningReminder) setMorningTime(u.morningReminder)
+      if (u.eveningReminder) setEveningTime(u.eveningReminder)
+    }
   }, [])
 
-  const coachLabels: Record<string, string> = {
-    tough: 'No-Nonsense Coach', strategic: 'Strategic Partner',
-    friend: 'Sarcastic Best Friend', mentor: 'Gentle Mentor',
+  const saveUser = (updates: any) => {
+    const updated = { ...user, ...updates }
+    setUser(updated)
+    localStorage.setItem('stride_user', JSON.stringify(updated))
+    setSavedMsg('Saved')
+    setTimeout(() => setSavedMsg(''), 1800)
   }
 
-  const personaLabels: Record<string, string> = {
-    builder: 'Solo-Hustler', learner: 'Learner', changer: 'Career Pivot',
+  const handleCoachSelect = (id: string) => {
+    saveUser({ coachStyle: id })
+    setEditCoach(false)
   }
+
+  const handleSignOut = () => {
+    localStorage.removeItem('stride_user')
+    router.push('/')
+  }
+
+  const coachLabel = COACH_OPTIONS.find(c => c.id === user?.coachStyle)
+
+  if (!user) return null
 
   return (
     <div className="screen" style={{ background: '#f5f5f7' }}>
-      {/* Dark header */}
+
+      {/* Header */}
       <div style={{ background: '#1a1a2e', padding: '52px 22px 24px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '18px' }}>
-          <div style={{
-            width: '52px', height: '52px', background: '#F5A623',
-            borderRadius: '50%', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', fontSize: '20px', fontWeight: 900, color: '#1a1a2e',
-          }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
+          <div style={{ width: 52, height: 52, background: '#F5A623', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, color: '#1a1a2e', flexShrink: 0 }}>
             {(user?.name || 'N')[0].toUpperCase()}
           </div>
-
           <div>
-            {/* FIXED NAME BUG */}
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#fff' }}>
-              {user?.name || 'Nora'}
-            </div>
-
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>
-              {personaLabels[user?.persona] || 'Solo-Hustler'} · Day {user?.streak || 23}
+            <div style={{ fontSize: '18px', fontWeight: 800, color: '#fff' }}>{user?.name || 'Nora'}</div>
+            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.45)', marginTop: '2px' }}>
+              {user?.persona === 'builder' ? 'Solo-Hustler' : user?.persona === 'learner' ? 'Learner' : 'Career Pivot'} · Day 23
             </div>
           </div>
+          {savedMsg && (
+            <div style={{ marginLeft: 'auto', background: '#22c55e', color: '#fff', fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: '20px' }}>
+              {savedMsg}
+            </div>
+          )}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+        {/* Stats */}
+        <div style={{ display: 'flex', gap: '10px' }}>
           {[
-            { ico: '🔥', num: user?.streak || 7,  lbl: 'streak' },
-            { ico: '✅', num: 23,                  lbl: 'tasks' },
-            { ico: '📊', num: '84%',               lbl: 'score' },
+            { val: user?.streak || 7, lbl: 'streak',  ico: '🔥' },
+            { val: 23,                lbl: 'tasks',   ico: '✅' },
+            { val: '84%',             lbl: 'score',   ico: '📊' },
           ].map((s, i) => (
-            <div key={i} style={{
-              background: 'rgba(255,255,255,0.1)', borderRadius: '12px',
-              padding: '10px', textAlign: 'center',
-            }}>
-              <div style={{ fontSize: '16px' }}>{s.ico}</div>
-              <div style={{ fontSize: '18px', fontWeight: 800, color: '#fff' }}>{s.num}</div>
-              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)' }}>{s.lbl}</div>
+            <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,.1)', borderRadius: '12px', padding: '11px', textAlign: 'center' }}>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: '#fff' }}>{s.val}</div>
+              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,.45)', marginTop: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                <span>{s.ico}</span><span>{s.lbl}</span>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '14px 18px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
-      >
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
         {/* Active goal */}
         <div style={{ background: '#fff', borderRadius: '16px', padding: '16px' }}>
-          <div
-            style={{
-              fontSize: '11px',
-              fontWeight: 700,
-              color: '#aaa',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              marginBottom: '8px',
-            }}
-          >
-            Active Goal
+          <div style={{ fontSize: '10px', fontWeight: 700, color: '#888', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '6px' }}>Active Goal</div>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: '#1a1a2e', marginBottom: '5px' }}>{user?.goal || 'Build a personal brand on LinkedIn'}</div>
+          <div style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '12px' }}>
+            <span>🎯</span>
+            <span>Big Prize: {user?.bigPrize || 'Land 3 high-paying consulting clients'}</span>
           </div>
-
-          <div
-            style={{
-              fontSize: '15px',
-              fontWeight: 700,
-              color: '#1a1a2e',
-              marginBottom: '6px',
-            }}
-          >
-            {user?.goal || 'Build a personal brand on LinkedIn'}
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#1a1a2e', marginBottom: '5px' }}>Phase 1: Foundation</div>
+          <div style={{ height: '4px', background: '#f0f0f0', borderRadius: '2px' }}>
+            <div style={{ width: '42%', height: '100%', background: '#1a1a2e', borderRadius: '2px' }} />
           </div>
-
-          <div style={{ fontSize: '13px', color: '#888', marginBottom: '12px' }}>
-            🎯 Big Prize: {user?.bigPrize || 'Land 3 high-paying consulting clients'}
-          </div>
-
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px' }}>
-            Phase 1: Foundation
-          </div>
-
-          <div style={{ height: '4px', background: '#eee', borderRadius: '2px', marginBottom: '4px' }}>
-            <div style={{ height: '100%', width: '42%', background: '#F5A623', borderRadius: '2px' }} />
-          </div>
-
-          <div style={{ fontSize: '12px', color: '#aaa' }}>42%</div>
+          <div style={{ fontSize: '11px', color: '#888', marginTop: '4px', textAlign: 'right' }}>42%</div>
         </div>
 
         {/* Dash settings */}
         <div style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden' }}>
-          <div
-            style={{
-              padding: '14px 16px 8px',
-              fontSize: '11px',
-              fontWeight: 700,
-              color: '#aaa',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-            }}
-          >
+          <div style={{ fontSize: '10px', fontWeight: 700, color: '#888', letterSpacing: '.08em', textTransform: 'uppercase', padding: '14px 16px 8px' }}>
             Dash Settings
           </div>
 
-          {[
-            {
-              ico: '🧑‍💼',
-              label: 'Coach style',
-              sub: 'How Dash pushes you',
-              val: coachLabels[user?.coachStyle] || 'Strategic Partner',
-            },
-            {
-              ico: '🔔',
-              label: 'Reminders',
-              sub: '8 AM and 8 PM daily',
-              val: 'On',
-            },
-          ].map((row, i) => (
-            <div
-              key={i}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '13px 16px',
-                borderTop: '1px solid #f5f5f5',
-              }}
-            >
-              <span style={{ fontSize: '20px' }}>{row.ico}</span>
-
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a2e' }}>
-                  {row.label}
-                </div>
-
-                <div style={{ fontSize: '11px', color: '#aaa' }}>
-                  {row.sub}
-                </div>
+          {/* Coach style — tappable */}
+          <div
+            onClick={() => setEditCoach(!editCoach)}
+            style={{ borderTop: '1px solid #f5f5f5', cursor: 'pointer' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 16px' }}>
+              <div style={{ width: 34, height: 34, background: '#f5f5f7', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>
+                {coachLabel?.emoji || '🎭'}
               </div>
-
-              <div style={{ fontSize: '13px', color: '#888', fontWeight: 500 }}>
-                {row.val}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a2e' }}>Coach style</div>
+                <div style={{ fontSize: '11px', color: '#888' }}>How Dash pushes you</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '12px', color: '#888' }}>{coachLabel?.label || 'Strategic Partner'}</span>
+                {editCoach ? <ChevronDown size={14} color="#ccc" /> : <ChevronRight size={14} color="#ccc" />}
               </div>
             </div>
-          ))}
+
+            {/* Expandable coach options */}
+            {editCoach && (
+              <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}
+                onClick={e => e.stopPropagation()}>
+                {COACH_OPTIONS.map(c => (
+                  <div
+                    key={c.id}
+                    onClick={() => handleCoachSelect(c.id)}
+                    style={{
+                      border: `1.5px solid ${user?.coachStyle === c.id ? '#1a1a2e' : '#eee'}`,
+                      borderRadius: '12px', padding: '11px 14px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      background: user?.coachStyle === c.id ? '#f5f5fa' : '#fff',
+                    }}
+                  >
+                    <span style={{ fontSize: '18px' }}>{c.emoji}</span>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{c.label}</div>
+                      <div style={{ fontSize: '11px', color: '#888' }}>{c.sub}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Morning reminder */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 16px', borderTop: '1px solid #f5f5f5' }}>
+            <div style={{ width: 34, height: 34, background: '#fff8ec', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>
+              🌅
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a2e' }}>Morning check-in</div>
+              <div style={{ fontSize: '11px', color: '#888' }}>When your task drops daily</div>
+            </div>
+            <input
+              type="time"
+              value={morningTime}
+              onChange={e => { setMorningTime(e.target.value); saveUser({ morningReminder: e.target.value }) }}
+              style={{ border: '1px solid #eee', borderRadius: '8px', padding: '5px 8px', fontSize: '13px', color: '#1a1a2e', background: '#fafafa', cursor: 'pointer', outline: 'none' }}
+            />
+          </div>
+
+          {/* Evening reminder */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 16px', borderTop: '1px solid #f5f5f5' }}>
+            <div style={{ width: 34, height: 34, background: '#eef4ff', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>
+              🌙
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a2e' }}>Evening nudge</div>
+              <div style={{ fontSize: '11px', color: '#888' }}>Reminder if task not done</div>
+            </div>
+            <input
+              type="time"
+              value={eveningTime}
+              onChange={e => { setEveningTime(e.target.value); saveUser({ eveningReminder: e.target.value }) }}
+              style={{ border: '1px solid #eee', borderRadius: '8px', padding: '5px 8px', fontSize: '13px', color: '#1a1a2e', background: '#fafafa', cursor: 'pointer', outline: 'none' }}
+            />
+          </div>
         </div>
 
         {/* Account */}
         <div style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden' }}>
-          <div
-            style={{
-              padding: '14px 16px 8px',
-              fontSize: '11px',
-              fontWeight: 700,
-              color: '#aaa',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-            }}
-          >
+          <div style={{ fontSize: '10px', fontWeight: 700, color: '#888', letterSpacing: '.08em', textTransform: 'uppercase', padding: '14px 16px 8px' }}>
             Account
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '13px 16px',
-              borderTop: '1px solid #f5f5f5',
-            }}
-          >
-            <span style={{ fontSize: '20px' }}>👤</span>
-
-            <div style={{ fontSize: '14px', color: '#4A9EDB', fontWeight: 500 }}>
-              {user?.name?.toLowerCase() || 'nora'}@example.com
-            </div>
+          {/* Email — editable */}
+          <div style={{ padding: '12px 16px', borderTop: '1px solid #f5f5f5' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Email</div>
+            <input
+              type="email"
+              value={user?.email || ''}
+              onChange={e => saveUser({ email: e.target.value })}
+              placeholder="Add your email for weekly reports"
+              style={{ width: '100%', border: '1.5px solid #eee', borderRadius: '10px', padding: '10px 12px', fontSize: '14px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', background: '#fafafa' }}
+            />
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '13px 16px',
-              borderTop: '1px solid #f5f5f5',
-            }}
-          >
-            <span style={{ fontSize: '20px' }}>⚡</span>
-
+          {/* Upgrade to Pro */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 16px', borderTop: '1px solid #f5f5f5' }}>
+            <div style={{ width: 34, height: 34, background: '#1a1a2e', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>⚡</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e' }}>
-                Upgrade to Pro
-              </div>
-
-              <div style={{ fontSize: '11px', color: '#aaa' }}>
-                3 goals · Infinite memory · Analytics
-              </div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e' }}>Upgrade to Pro</div>
+              <div style={{ fontSize: '11px', color: '#888' }}>3 goals · Infinite memory · Analytics</div>
             </div>
-
-            <div
-              style={{
-                background: '#1a1a2e',
-                color: '#fff',
-                padding: '5px 10px',
-                borderRadius: '8px',
-                fontSize: '12px',
-                fontWeight: 700,
-              }}
-            >
-              $12/mo →
-            </div>
+            <div style={{ background: '#1a1a2e', color: '#fff', fontSize: '12px', fontWeight: 700, padding: '5px 10px', borderRadius: '8px' }}>$12/mo ›</div>
           </div>
         </div>
 
         <button
-          onClick={() => {
-            localStorage.removeItem('stride_user')
-            router.push('/')
-          }}
-          style={{
-            background: 'none',
-            border: '1.5px solid #eee',
-            borderRadius: '14px',
-            padding: '13px',
-            fontSize: '14px',
-            color: '#888',
-            cursor: 'pointer',
-            width: '100%',
-          }}
+          onClick={handleSignOut}
+          style={{ background: 'none', border: 'none', color: '#f44', fontSize: '14px', cursor: 'pointer', padding: '8px 0', textAlign: 'left' }}
         >
           Sign out
         </button>

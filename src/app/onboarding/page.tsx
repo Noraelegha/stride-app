@@ -3,10 +3,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 const TIME_OPTIONS = [
-  { id: '5',  label: '5 minutes',  sub: 'A quick daily win' },
-  { id: '15', label: '15 minutes', sub: 'A focused session' },
-  { id: '30', label: '30 minutes', sub: 'A real slot for this' },
-  { id: '60', label: '1 hour+',    sub: 'Fully committed' },
+  { id: 'under10', emoji: '⏰', label: 'Under 10 minutes' },
+  { id: '10to30',  emoji: '🕔', label: '10 to 30 minutes' },
+  { id: '30to60',  emoji: '🕘', label: '30 minutes to 1 hour' },
+  { id: '60plus',  emoji: '🔥', label: '1 hour or more' },
 ]
 
 const COACH_OPTIONS = [
@@ -23,6 +23,7 @@ export default function OnboardingPage() {
 
   const [data, setData] = useState({
     name: '',
+    email: '',
     persona: '',
     goal: '',
     certSkill: '',
@@ -54,11 +55,26 @@ export default function OnboardingPage() {
   }
 
   const canContinue = () => {
-    if (step === 1) return data.name.trim().length >= 2
+    if (step === 1) {
+      return data.name.trim().length >= 2 && /\S+@\S+\.\S+/.test(data.email)
+    }
     if (step === 2) return !!data.persona
-    if (step === 3) return !!data.goal.trim()
-    if (step === 4) return !!data.prior
-    if (step === 5) return !!data.bigPrize.trim() && !!data.hasDeadline
+    if (step === 3) {
+      if (!data.goal.trim()) return false
+      if (data.persona === 'builder') return !!data.domain
+      if (data.persona === 'learner') return data.certSkill.trim().length > 0
+      if (data.persona === 'changer') return data.changerRole.trim().length > 0
+      return true
+    }
+    if (step === 4) {
+      if (!data.prior) return false
+      if (data.prior === 'zero') return data.priorChips.length > 0
+      if (data.prior === 'started' || data.prior === 'reset') return data.priorDetail.trim().length > 10
+      return true
+    }
+    if (step === 5) {
+      return data.bigPrize.trim().length > 0 && !!data.hasDeadline && data.personalWhy.trim().length > 5
+    }
     if (step === 6) return !!data.coachStyle
     if (step === 7) return !!data.dailyTime
     return true
@@ -81,14 +97,14 @@ export default function OnboardingPage() {
   return (
     <div className="ob-screen">
 
-      {/* ── STEP 1: Name ── */}
+      {/* STEP 1 — Name + Email */}
       {step === 1 && (
         <>
           <div className="ob-head">
             <div className="ob-prog">{dots}</div>
             <div className="ob-step">Step 1 of {totalSteps}</div>
             <div className="ob-title">What should Dash call you?</div>
-            <div className="ob-sub">Your name makes every message feel personal.</div>
+            <div className="ob-sub">Your name and email make every message personal.</div>
           </div>
           <div className="ob-body">
             <textarea
@@ -98,6 +114,17 @@ export default function OnboardingPage() {
               onChange={e => set('name', e.target.value)}
               style={{ resize: 'none' }}
             />
+            <div className="ob-lbl" style={{ marginTop: '8px' }}>Email address</div>
+            <textarea
+              className="ob-ta" rows={1}
+              placeholder="you@example.com"
+              value={data.email}
+              onChange={e => set('email', e.target.value)}
+              style={{ resize: 'none' }}
+            />
+            <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>
+              Used for your weekly reports and progress updates from Dash.
+            </div>
           </div>
           <div className="ob-foot">
             <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(2)}>
@@ -107,7 +134,7 @@ export default function OnboardingPage() {
         </>
       )}
 
-      {/* ── STEP 2: Persona ── */}
+      {/* STEP 2 — Persona */}
       {step === 2 && (
         <>
           <div className="ob-head">
@@ -144,7 +171,7 @@ export default function OnboardingPage() {
         </>
       )}
 
-      {/* ── STEP 3: Goal (persona-specific) ── */}
+      {/* STEP 3 — Goal */}
       {step === 3 && (
         <>
           <div className="ob-head">
@@ -168,7 +195,7 @@ export default function OnboardingPage() {
               onChange={e => set('goal', e.target.value)}
             />
 
-            {/* BUILDER: domain chips */}
+            {/* BUILDER */}
             {data.persona === 'builder' && (
               <>
                 <div className="ob-lbl">What space are you building in?</div>
@@ -193,7 +220,7 @@ export default function OnboardingPage() {
               </>
             )}
 
-            {/* LEARNER: two text fields */}
+            {/* LEARNER */}
             {data.persona === 'learner' && (
               <>
                 <div className="ob-lbl">What are you getting certified or skilled in?</div>
@@ -214,7 +241,7 @@ export default function OnboardingPage() {
               </>
             )}
 
-            {/* CHANGER: role + background */}
+            {/* CHANGER */}
             {data.persona === 'changer' && (
               <>
                 <div className="ob-lbl">What industry or role are you moving toward?</div>
@@ -227,7 +254,7 @@ export default function OnboardingPage() {
                 <div className="ob-lbl">Briefly describe your background</div>
                 <textarea
                   className="ob-ta" rows={1}
-                  placeholder="e.g. Currently in banking, recent graduate, no tech background..."
+                  placeholder="e.g. Currently in banking, recent graduate..."
                   value={data.changerBackground}
                   onChange={e => set('changerBackground', e.target.value)}
                   style={{ resize: 'none' }}
@@ -243,7 +270,7 @@ export default function OnboardingPage() {
         </>
       )}
 
-      {/* ── STEP 4: Prior progress with icons ── */}
+      {/* STEP 4 — Prior progress */}
       {step === 4 && (
         <>
           <div className="ob-head">
@@ -253,7 +280,6 @@ export default function OnboardingPage() {
             <div className="ob-title">Where are you right now?</div>
             <div className="ob-sub">Dash needs your starting point to build the right map.</div>
           </div>
-
           <div className="ob-body">
             {[
               { id: 'zero',    emoji: '🆕', label: 'Starting from zero',               sub: 'Nothing set up yet' },
@@ -297,6 +323,9 @@ export default function OnboardingPage() {
                   value={data.priorDetail}
                   onChange={e => set('priorDetail', e.target.value)}
                 />
+                <div style={{ fontSize: '11px', color: '#aaa' }}>
+                  The more specific you are, the better Dash picks up exactly where you left off.
+                </div>
               </>
             )}
 
@@ -305,14 +334,16 @@ export default function OnboardingPage() {
                 <div className="ob-lbl">What has not worked so far?</div>
                 <textarea
                   className="ob-ta" rows={3}
-                  placeholder="e.g. Tried posting every day for a month but got no engagement."
+                  placeholder="e.g. Tried posting every day for a month but got no engagement. Took an online course but never applied it."
                   value={data.priorDetail}
                   onChange={e => set('priorDetail', e.target.value)}
                 />
+                <div style={{ fontSize: '11px', color: '#aaa' }}>
+                  This helps Dash avoid repeating what already failed.
+                </div>
               </>
             )}
           </div>
-
           <div className="ob-foot">
             <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(5)}>
               Continue
@@ -321,7 +352,7 @@ export default function OnboardingPage() {
         </>
       )}
 
-      {/* ── STEP 5: Big prize + deadline ── */}
+      {/* STEP 5 — Big prize + deadline */}
       {step === 5 && (
         <>
           <div className="ob-head">
@@ -331,37 +362,33 @@ export default function OnboardingPage() {
             <div className="ob-title">If you pull this off, what actually changes?</div>
             <div className="ob-sub">This is what Dash reminds you of when you want to quit.</div>
           </div>
-
           <div className="ob-body">
             <textarea
-              className="ob-ta"
-              rows={3}
+              className="ob-ta" rows={3}
               placeholder="e.g. Land 3 high-paying consulting clients"
               value={data.bigPrize}
               onChange={e => set('bigPrize', e.target.value)}
             />
 
             <div className="ob-lbl">Does this goal have a deadline?</div>
-
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               {[
                 { id: 'yes', emoji: '📅', label: 'Yes, it does' },
-                { id: 'no', emoji: '🔄', label: 'No, ongoing goal' },
+                { id: 'no',  emoji: '🔄', label: 'No, ongoing goal' },
               ].map(opt => (
                 <div
                   key={opt.id}
                   onClick={() => set('hasDeadline', opt.id)}
                   style={{
                     border: `1.5px solid ${data.hasDeadline === opt.id ? '#1a1a2e' : '#eee'}`,
-                    borderRadius: '14px',
-                    padding: '14px 10px',
-                    cursor: 'pointer',
+                    borderRadius: '14px', padding: '14px 10px', cursor: 'pointer',
                     textAlign: 'center' as const,
                     background: data.hasDeadline === opt.id ? '#f5f5fa' : '#fff',
+                    transition: 'all 0.15s',
                   }}
                 >
                   <div style={{ fontSize: '22px', marginBottom: '5px' }}>{opt.emoji}</div>
-                  <div style={{ fontSize: '13px', fontWeight: 600 }}>{opt.label}</div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{opt.label}</div>
                 </div>
               ))}
             </div>
@@ -374,21 +401,19 @@ export default function OnboardingPage() {
                   className="ob-ta"
                   value={data.deadline}
                   onChange={e => set('deadline', e.target.value)}
+                  style={{ cursor: 'pointer' }}
                 />
               </>
             )}
 
             <div className="ob-lbl">In your own words, why does this matter?</div>
-
             <textarea
-              className="ob-ta"
-              rows={3}
+              className="ob-ta" rows={3}
               placeholder="Not the outcome. The reason behind it."
               value={data.personalWhy}
               onChange={e => set('personalWhy', e.target.value)}
             />
           </div>
-
           <div className="ob-foot">
             <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(6)}>
               Continue
@@ -397,7 +422,7 @@ export default function OnboardingPage() {
         </>
       )}
 
-      {/* ── STEP 6: Coach style ── */}
+      {/* STEP 6 — Coach style */}
       {step === 6 && (
         <>
           <div className="ob-head">
@@ -407,7 +432,6 @@ export default function OnboardingPage() {
             <div className="ob-title">How do you want Dash to push you?</div>
             <div className="ob-sub">Be honest. This shapes every message you receive.</div>
           </div>
-
           <div className="ob-body">
             {COACH_OPTIONS.map(c => (
               <div
@@ -423,7 +447,6 @@ export default function OnboardingPage() {
               </div>
             ))}
           </div>
-
           <div className="ob-foot">
             <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(7)}>
               Continue
@@ -432,7 +455,7 @@ export default function OnboardingPage() {
         </>
       )}
 
-      {/* ── STEP 7: Daily time ── */}
+      {/* STEP 7 — Daily time */}
       {step === 7 && (
         <>
           <div className="ob-head">
@@ -442,14 +465,8 @@ export default function OnboardingPage() {
             <div className="ob-title">On a typical day, how much time do you actually have?</div>
             <div className="ob-sub">Dash uses this to size your tasks. No judgment, no commitment.</div>
           </div>
-
           <div className="ob-body">
-            {[
-              { id: 'under10', emoji: '⏰', label: 'Under 10 minutes' },
-              { id: '10to30',  emoji: '🕔', label: '10 to 30 minutes' },
-              { id: '30to60',  emoji: '🕘', label: '30 minutes to 1 hour' },
-              { id: '60plus',  emoji: '🔥', label: '1 hour or more' },
-            ].map(t => (
+            {TIME_OPTIONS.map(t => (
               <div
                 key={t.id}
                 className={`ob-opt${data.dailyTime === t.id ? ' sel' : ''}`}
@@ -462,7 +479,6 @@ export default function OnboardingPage() {
               </div>
             ))}
           </div>
-
           <div className="ob-foot">
             <button className="ob-btn" disabled={!canContinue()} onClick={handleFinish}>
               Lock it in 🔒

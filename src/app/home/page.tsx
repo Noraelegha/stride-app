@@ -28,7 +28,6 @@ export default function HomePage() {
     setUser(JSON.parse(stored))
     setIsBeforeNoon(new Date().getHours() < 12)
 
-    // NEW — show locked if coming from unfreeze
     const dayLocked = localStorage.getItem('stride_day_locked')
     if (dayLocked === 'true') {
       setPanel('locked')
@@ -36,7 +35,14 @@ export default function HomePage() {
     }
   }, [router])
 
-  // 7-day week strip — Sun to Sat of current week
+  const getGreeting = () => {
+    const h = new Date().getHours()
+    if (h >= 5  && h < 12) return { text: 'Good morning',   emoji: '🌞' }
+    if (h >= 12 && h < 17) return { text: 'Good afternoon', emoji: '☀️' }
+    if (h >= 17 && h < 21) return { text: 'Good evening',   emoji: '🌅' }
+    return                         { text: 'Good night',     emoji: '🌙' }
+  }
+
   const now = new Date()
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const weekDates = Array.from({ length: 7 }, (_, i) => {
@@ -49,7 +55,6 @@ export default function HomePage() {
     }
   })
 
-  // Drag — RIGHT = done (SRP), LEFT = hint
   const startDrag = (x: number) => {
     if (panel !== 'task') return
     drag.current = { active: true, startX: x, curX: x }
@@ -63,9 +68,7 @@ export default function HomePage() {
       cardRef.current.style.transition = 'none'
     }
     const r = Math.min(Math.abs(dx) / 100, 1)
-    // Right swipe (dx>0) reveals green Done on RIGHT
     if (bgDoneRef.current) bgDoneRef.current.style.opacity = dx > 0 ? String(r) : '0'
-    // Left swipe (dx<0) reveals Hint on LEFT
     if (bgHintRef.current) bgHintRef.current.style.opacity = dx < 0 ? String(r) : '0'
   }
   const endDrag = () => {
@@ -73,7 +76,6 @@ export default function HomePage() {
     drag.current.active = false
     const dx = drag.current.curX - drag.current.startX
     if (dx > 80) {
-      // Swipe RIGHT = Done → SRP
       if (cardRef.current) {
         cardRef.current.style.transition = 'transform .28s ease-in, opacity .28s'
         cardRef.current.style.transform = 'translateX(500px) rotate(20deg)'
@@ -84,7 +86,6 @@ export default function HomePage() {
         if (bgDoneRef.current) bgDoneRef.current.style.opacity = '0'
       }, 300)
     } else if (dx < -80) {
-      // Swipe LEFT = Hint
       if (cardRef.current) {
         cardRef.current.style.transition = 'transform .28s ease-in, opacity .28s'
         cardRef.current.style.transform = 'translateX(-500px) rotate(-20deg)'
@@ -111,6 +112,7 @@ export default function HomePage() {
   }
 
   const canSubmit = !!pickedChip && (!showWall || !!pickedWall)
+
   const handleSubmit = () => {
     setIsBeforeNoon(new Date().getHours() < 12)
     setPanel('streakShow')
@@ -118,7 +120,6 @@ export default function HomePage() {
 
   if (!user) return null
 
-  // Full-screen streak reveal after submit
   if (panel === 'streakShow') {
     return (
       <div style={{ flex: 1, minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 28px', textAlign: 'center', gap: '14px' }}>
@@ -163,11 +164,13 @@ export default function HomePage() {
   return (
     <div className="screen" style={{ background: '#f5f5f7' }}>
 
-      {/* Dark header */}
+      {/* Header */}
       <div style={{ background: '#1a1a2e', padding: '52px 22px 18px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '11px' }}>
           <div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.45)', marginBottom: '2px' }}>Good morning 🌞</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.45)', marginBottom: '2px' }}>
+              {getGreeting().text} {getGreeting().emoji}
+            </div>
             <div style={{ fontSize: '21px', fontWeight: 800, color: '#fff' }}>Hi, {user.name || 'Nora'}</div>
           </div>
           <div style={{ width: 40, height: 40, background: '#F5A623', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15, color: '#1a1a2e' }}>
@@ -221,10 +224,10 @@ export default function HomePage() {
               <div style={{ fontSize: '12px', color: '#888' }}>See all</div>
             </div>
 
-            {/* Swipe zone — overflow hidden keeps everything inside */}
+            {/* Swipe zone */}
             <div style={{ position: 'relative', height: '320px', overflow: 'hidden', borderRadius: '20px' }}>
 
-              {/* BG: Right swipe = Done (green on right) */}
+              {/* BG: Right swipe = Done (green, label on right) */}
               <div ref={bgDoneRef} style={{
                 position: 'absolute', inset: 0, background: '#4CAF50', borderRadius: '20px',
                 display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
@@ -233,7 +236,7 @@ export default function HomePage() {
                 <div style={{ color: '#fff', fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 7 }}>✅ Done!</div>
               </div>
 
-              {/* BG: Left swipe = Hint (neutral on left) */}
+              {/* BG: Left swipe = Hint (neutral, label on left) */}
               <div ref={bgHintRef} style={{
                 position: 'absolute', inset: 0, background: '#f0f0f5', border: '1.5px solid #ddd',
                 borderRadius: '20px', display: 'flex', alignItems: 'center',
@@ -416,7 +419,7 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* LOCKED — stays inside card */}
+              {/* LOCKED */}
               {panel === 'locked' && (
                 <div style={{
                   position: 'absolute', inset: 0, background: '#fff',
@@ -435,7 +438,7 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* TUTORIAL — right = done, left = help */}
+              {/* TUTORIAL */}
               {showTut && panel === 'task' && (
                 <div
                   onClick={() => setShowTut(false)}
@@ -447,11 +450,11 @@ export default function HomePage() {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{ fontSize: '22px', color: '#F5A623' }}>←</span>
-                    <span style={{ color: '#fff', fontSize: '14px', fontWeight: 500 }}>Swipe left for done</span>
+                    <span style={{ color: '#fff', fontSize: '14px', fontWeight: 500 }}>Swipe left for help</span>
                   </div>
                   <div style={{ width: '40px', height: '1.5px', background: 'rgba(255,255,255,.2)' }} />
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ color: '#fff', fontSize: '14px', fontWeight: 500 }}>Swipe right for help</span>
+                    <span style={{ color: '#fff', fontSize: '14px', fontWeight: 500 }}>Swipe right for done</span>
                     <span style={{ fontSize: '22px', color: '#F5A623' }}>→</span>
                   </div>
                   <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.4)', marginTop: '6px' }}>Tap anywhere to dismiss</div>
