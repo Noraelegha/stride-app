@@ -5,10 +5,10 @@ import { ChevronRight, ChevronDown } from 'lucide-react'
 import BottomNav from '@/components/BottomNav'
 
 const COACH_OPTIONS = [
-  { id: 'tough',     emoji: '💪', label: 'No-nonsense coach',     sub: 'Direct. Unfiltered. Pure execution.' },
-  { id: 'strategic', emoji: '🤝', label: 'Strategic partner',     sub: 'Professional. ROI-focused.' },
-  { id: 'friend',    emoji: '😏', label: 'Sarcastic best friend', sub: 'Jokes with accountability.' },
-  { id: 'mentor',    emoji: '🧘', label: 'Gentle mentor',         sub: 'Encouragement first.' },
+  { id: 'tough', emoji: '💪', label: 'No-nonsense coach', sub: 'Direct. Unfiltered. Pure execution.' },
+  { id: 'strategic', emoji: '🤝', label: 'Strategic partner', sub: 'Professional. ROI-focused.' },
+  { id: 'friend', emoji: '😏', label: 'Sarcastic best friend', sub: 'Jokes with accountability.' },
+  { id: 'mentor', emoji: '🧘', label: 'Gentle mentor', sub: 'Encouragement first.' },
 ]
 
 export default function ProfilePage() {
@@ -21,9 +21,12 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const stored = localStorage.getItem('stride_user')
+
     if (stored) {
       const u = JSON.parse(stored)
+
       setUser(u)
+
       if (u.morningReminder) setMorningTime(u.morningReminder)
       if (u.eveningReminder) setEveningTime(u.eveningReminder)
     }
@@ -31,9 +34,16 @@ export default function ProfilePage() {
 
   const saveUser = (updates: any) => {
     const updated = { ...user, ...updates }
+
     setUser(updated)
-    localStorage.setItem('stride_user', JSON.stringify(updated))
+
+    localStorage.setItem(
+      'stride_user',
+      JSON.stringify(updated)
+    )
+
     setSavedMsg('Saved')
+
     setTimeout(() => setSavedMsg(''), 1800)
   }
 
@@ -47,27 +57,90 @@ export default function ProfilePage() {
     router.push('/')
   }
 
-  const coachLabel = COACH_OPTIONS.find(c => c.id === user?.coachStyle)
+  const coachLabel = COACH_OPTIONS.find(
+    c => c.id === user?.coachStyle
+  )
 
   if (!user) return null
 
   return (
-    <div className="screen" style={{ background: '#f5f5f7' }}>
+    <div
+      className="screen"
+      style={{ background: '#f5f5f7' }}
+    >
 
       {/* Header */}
-      <div style={{ background: '#1a1a2e', padding: '52px 22px 24px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
-          <div style={{ width: 52, height: 52, background: '#F5A623', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, color: '#1a1a2e', flexShrink: 0 }}>
+      <div
+        style={{
+          background: '#1a1a2e',
+          padding: '52px 22px 24px',
+          flexShrink: 0,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            marginBottom: '16px',
+          }}
+        >
+          <div
+            style={{
+              width: 52,
+              height: 52,
+              background: '#F5A623',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 800,
+              fontSize: 20,
+              color: '#1a1a2e',
+              flexShrink: 0,
+            }}
+          >
             {(user?.name || 'N')[0].toUpperCase()}
           </div>
+
           <div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#fff' }}>{user?.name || 'Nora'}</div>
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.45)', marginTop: '2px' }}>
-              {user?.persona === 'builder' ? 'Solo-Hustler' : user?.persona === 'learner' ? 'Learner' : 'Career Pivot'} · Day 23
+            <div
+              style={{
+                fontSize: '18px',
+                fontWeight: 800,
+                color: '#fff',
+              }}
+            >
+              {user?.name || 'Nora'}
+            </div>
+
+            <div
+              style={{
+                fontSize: '12px',
+                color: 'rgba(255,255,255,.45)',
+                marginTop: '2px',
+              }}
+            >
+              {user?.persona === 'builder'
+                ? 'Solo-Hustler'
+                : user?.persona === 'learner'
+                ? 'Learner'
+                : 'Career Pivot'} · Day 23
             </div>
           </div>
+
           {savedMsg && (
-            <div style={{ marginLeft: 'auto', background: '#22c55e', color: '#fff', fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: '20px' }}>
+            <div
+              style={{
+                marginLeft: 'auto',
+                background: '#22c55e',
+                color: '#fff',
+                fontSize: '12px',
+                fontWeight: 700,
+                padding: '4px 12px',
+                borderRadius: '20px',
+              }}
+            >
               {savedMsg}
             </div>
           )}
@@ -76,81 +149,302 @@ export default function ProfilePage() {
         {/* Stats */}
         <div style={{ display: 'flex', gap: '10px' }}>
           {[
-            { val: user?.streak || 7, lbl: 'streak',  ico: '🔥' },
-            { val: 23,                lbl: 'tasks',   ico: '✅' },
-            { val: '84%',             lbl: 'score',   ico: '📊' },
+            { val: user?.streak || 7, lbl: 'streak', ico: '🔥' },
+            { val: 23, lbl: 'tasks', ico: '✅' },
+            { val: '84%', lbl: 'score', ico: '📊' },
           ].map((s, i) => (
-            <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,.1)', borderRadius: '12px', padding: '11px', textAlign: 'center' }}>
-              <div style={{ fontSize: '20px', fontWeight: 800, color: '#fff' }}>{s.val}</div>
-              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,.45)', marginTop: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                <span>{s.ico}</span><span>{s.lbl}</span>
+            <div
+              key={i}
+              style={{
+                flex: 1,
+                background: 'rgba(255,255,255,.1)',
+                borderRadius: '12px',
+                padding: '11px',
+                textAlign: 'center',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '20px',
+                  fontWeight: 800,
+                  color: '#fff',
+                }}
+              >
+                {s.val}
+              </div>
+
+              <div
+                style={{
+                  fontSize: '10px',
+                  color: 'rgba(255,255,255,.45)',
+                  marginTop: '2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '3px',
+                }}
+              >
+                <span>{s.ico}</span>
+                <span>{s.lbl}</span>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '14px 18px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
 
         {/* Active goal */}
-        <div style={{ background: '#fff', borderRadius: '16px', padding: '16px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 700, color: '#888', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '6px' }}>Active Goal</div>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: '#1a1a2e', marginBottom: '5px' }}>{user?.goal || 'Build a personal brand on LinkedIn'}</div>
-          <div style={{ fontSize: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '12px' }}>
+        <div
+          style={{
+            background: '#fff',
+            borderRadius: '16px',
+            padding: '16px',
+          }}
+        >
+          <div
+            style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              color: '#888',
+              letterSpacing: '.08em',
+              textTransform: 'uppercase',
+              marginBottom: '6px',
+            }}
+          >
+            Active Goal
+          </div>
+
+          <div
+            style={{
+              fontSize: '15px',
+              fontWeight: 700,
+              color: '#1a1a2e',
+              marginBottom: '5px',
+            }}
+          >
+            {user?.goal || 'Build a personal brand on LinkedIn'}
+          </div>
+
+          <div
+            style={{
+              fontSize: '12px',
+              color: '#888',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              marginBottom: '12px',
+            }}
+          >
             <span>🎯</span>
-            <span>Big Prize: {user?.bigPrize || 'Land 3 high-paying consulting clients'}</span>
+            <span>
+              Big Prize: {user?.bigPrize || 'Land 3 high-paying consulting clients'}
+            </span>
           </div>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#1a1a2e', marginBottom: '5px' }}>Phase 1: Foundation</div>
-          <div style={{ height: '4px', background: '#f0f0f0', borderRadius: '2px' }}>
-            <div style={{ width: '42%', height: '100%', background: '#1a1a2e', borderRadius: '2px' }} />
+
+          <div
+            style={{
+              fontSize: '12px',
+              fontWeight: 700,
+              color: '#1a1a2e',
+              marginBottom: '5px',
+            }}
+          >
+            Phase 1: Foundation
           </div>
-          <div style={{ fontSize: '11px', color: '#888', marginTop: '4px', textAlign: 'right' }}>42%</div>
+
+          <div
+            style={{
+              height: '4px',
+              background: '#f0f0f0',
+              borderRadius: '2px',
+            }}
+          >
+            <div
+              style={{
+                width: '42%',
+                height: '100%',
+                background: '#1a1a2e',
+                borderRadius: '2px',
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              fontSize: '11px',
+              color: '#888',
+              marginTop: '4px',
+              textAlign: 'right',
+            }}
+          >
+            42%
+          </div>
         </div>
 
         {/* Dash settings */}
-        <div style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden' }}>
-          <div style={{ fontSize: '10px', fontWeight: 700, color: '#888', letterSpacing: '.08em', textTransform: 'uppercase', padding: '14px 16px 8px' }}>
+        <div
+          style={{
+            background: '#fff',
+            borderRadius: '16px',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              color: '#888',
+              letterSpacing: '.08em',
+              textTransform: 'uppercase',
+              padding: '14px 16px 8px',
+            }}
+          >
             Dash Settings
           </div>
 
-          {/* Coach style — tappable */}
+          {/* Coach style */}
           <div
             onClick={() => setEditCoach(!editCoach)}
-            style={{ borderTop: '1px solid #f5f5f5', cursor: 'pointer' }}
+            style={{
+              borderTop: '1px solid #f5f5f5',
+              cursor: 'pointer',
+            }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 16px' }}>
-              <div style={{ width: 34, height: 34, background: '#f5f5f7', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '13px 16px',
+              }}
+            >
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  background: '#f5f5f7',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '16px',
+                  flexShrink: 0,
+                }}
+              >
                 {coachLabel?.emoji || '🎭'}
               </div>
+
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a2e' }}>Coach style</div>
-                <div style={{ fontSize: '11px', color: '#888' }}>How Dash pushes you</div>
+                <div
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#1a1a2e',
+                  }}
+                >
+                  Coach style
+                </div>
+
+                <div
+                  style={{
+                    fontSize: '11px',
+                    color: '#888',
+                  }}
+                >
+                  How Dash pushes you
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ fontSize: '12px', color: '#888' }}>{coachLabel?.label || 'Strategic Partner'}</span>
-                {editCoach ? <ChevronDown size={14} color="#ccc" /> : <ChevronRight size={14} color="#ccc" />}
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '12px',
+                    color: '#888',
+                  }}
+                >
+                  {coachLabel?.label || 'Strategic Partner'}
+                </span>
+
+                {editCoach ? (
+                  <ChevronDown size={14} color="#ccc" />
+                ) : (
+                  <ChevronRight size={14} color="#ccc" />
+                )}
               </div>
             </div>
 
             {/* Expandable coach options */}
             {editCoach && (
-              <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}
-                onClick={e => e.stopPropagation()}>
+              <div
+                style={{
+                  padding: '0 12px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                }}
+                onClick={e => e.stopPropagation()}
+              >
                 {COACH_OPTIONS.map(c => (
                   <div
                     key={c.id}
                     onClick={() => handleCoachSelect(c.id)}
                     style={{
-                      border: `1.5px solid ${user?.coachStyle === c.id ? '#1a1a2e' : '#eee'}`,
-                      borderRadius: '12px', padding: '11px 14px', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      background: user?.coachStyle === c.id ? '#f5f5fa' : '#fff',
+                      border: `1.5px solid ${
+                        user?.coachStyle === c.id
+                          ? '#1a1a2e'
+                          : '#eee'
+                      }`,
+                      borderRadius: '12px',
+                      padding: '11px 14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      background:
+                        user?.coachStyle === c.id
+                          ? '#f5f5fa'
+                          : '#fff',
                     }}
                   >
-                    <span style={{ fontSize: '18px' }}>{c.emoji}</span>
+                    <span style={{ fontSize: '18px' }}>
+                      {c.emoji}
+                    </span>
+
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{c.label}</div>
-                      <div style={{ fontSize: '11px', color: '#888' }}>{c.sub}</div>
+                      <div
+                        style={{
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          color: '#1a1a2e',
+                        }}
+                      >
+                        {c.label}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: '11px',
+                          color: '#888',
+                        }}
+                      >
+                        {c.sub}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -159,72 +453,269 @@ export default function ProfilePage() {
           </div>
 
           {/* Morning reminder */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 16px', borderTop: '1px solid #f5f5f5' }}>
-            <div style={{ width: 34, height: 34, background: '#fff8ec', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '13px 16px',
+              borderTop: '1px solid #f5f5f5',
+            }}
+          >
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                background: '#fff8ec',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px',
+                flexShrink: 0,
+              }}
+            >
               🌅
             </div>
+
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a2e' }}>Morning check-in</div>
-              <div style={{ fontSize: '11px', color: '#888' }}>When your task drops daily</div>
+              <div
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: '#1a1a2e',
+                }}
+              >
+                Morning check-in
+              </div>
+
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: '#888',
+                }}
+              >
+                When your task drops daily
+              </div>
             </div>
+
             <input
               type="time"
               value={morningTime}
-              onChange={e => { setMorningTime(e.target.value); saveUser({ morningReminder: e.target.value }) }}
-              style={{ border: '1px solid #eee', borderRadius: '8px', padding: '5px 8px', fontSize: '13px', color: '#1a1a2e', background: '#fafafa', cursor: 'pointer', outline: 'none' }}
+              onChange={e => {
+                setMorningTime(e.target.value)
+                saveUser({
+                  morningReminder: e.target.value,
+                })
+              }}
+              style={{
+                border: '1px solid #eee',
+                borderRadius: '8px',
+                padding: '5px 8px',
+                fontSize: '13px',
+                color: '#1a1a2e',
+                background: '#fafafa',
+                cursor: 'pointer',
+                outline: 'none',
+              }}
             />
           </div>
 
           {/* Evening reminder */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 16px', borderTop: '1px solid #f5f5f5' }}>
-            <div style={{ width: 34, height: 34, background: '#eef4ff', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '13px 16px',
+              borderTop: '1px solid #f5f5f5',
+            }}
+          >
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                background: '#eef4ff',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px',
+                flexShrink: 0,
+              }}
+            >
               🌙
             </div>
+
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a2e' }}>Evening nudge</div>
-              <div style={{ fontSize: '11px', color: '#888' }}>Reminder if task not done</div>
+              <div
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: '#1a1a2e',
+                }}
+              >
+                Evening nudge
+              </div>
+
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: '#888',
+                }}
+              >
+                Reminder if task not done
+              </div>
             </div>
+
             <input
               type="time"
               value={eveningTime}
-              onChange={e => { setEveningTime(e.target.value); saveUser({ eveningReminder: e.target.value }) }}
-              style={{ border: '1px solid #eee', borderRadius: '8px', padding: '5px 8px', fontSize: '13px', color: '#1a1a2e', background: '#fafafa', cursor: 'pointer', outline: 'none' }}
+              onChange={e => {
+                setEveningTime(e.target.value)
+                saveUser({
+                  eveningReminder: e.target.value,
+                })
+              }}
+              style={{
+                border: '1px solid #eee',
+                borderRadius: '8px',
+                padding: '5px 8px',
+                fontSize: '13px',
+                color: '#1a1a2e',
+                background: '#fafafa',
+                cursor: 'pointer',
+                outline: 'none',
+              }}
             />
           </div>
         </div>
 
         {/* Account */}
-        <div style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden' }}>
-          <div style={{ fontSize: '10px', fontWeight: 700, color: '#888', letterSpacing: '.08em', textTransform: 'uppercase', padding: '14px 16px 8px' }}>
+        <div
+          style={{
+            background: '#fff',
+            borderRadius: '16px',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              color: '#888',
+              letterSpacing: '.08em',
+              textTransform: 'uppercase',
+              padding: '14px 16px 8px',
+            }}
+          >
             Account
           </div>
 
-          {/* Email — editable */}
-          <div style={{ padding: '12px 16px', borderTop: '1px solid #f5f5f5' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Email</div>
-            <input
-              type="email"
-              value={user?.email || ''}
-              onChange={e => saveUser({ email: e.target.value })}
-              placeholder="Add your email for weekly reports"
-              style={{ width: '100%', border: '1.5px solid #eee', borderRadius: '10px', padding: '10px 12px', fontSize: '14px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', background: '#fafafa' }}
-            />
+          {/* Email — read only */}
+          <div
+            style={{
+              padding: '12px 16px',
+              borderTop: '1px solid #f5f5f5',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#888',
+                textTransform: 'uppercase',
+                letterSpacing: '.06em',
+                marginBottom: '6px',
+              }}
+            >
+              Email
+            </div>
+
+            <div
+              style={{
+                fontSize: '14px',
+                color: '#1a1a2e',
+                padding: '2px 0',
+              }}
+            >
+              {user?.email || '—'}
+            </div>
           </div>
 
           {/* Upgrade to Pro */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 16px', borderTop: '1px solid #f5f5f5' }}>
-            <div style={{ width: 34, height: 34, background: '#1a1a2e', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>⚡</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e' }}>Upgrade to Pro</div>
-              <div style={{ fontSize: '11px', color: '#888' }}>3 goals · Infinite memory · Analytics</div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '13px 16px',
+              borderTop: '1px solid #f5f5f5',
+            }}
+          >
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                background: '#1a1a2e',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px',
+                flexShrink: 0,
+              }}
+            >
+              ⚡
             </div>
-            <div style={{ background: '#1a1a2e', color: '#fff', fontSize: '12px', fontWeight: 700, padding: '5px 10px', borderRadius: '8px' }}>$12/mo ›</div>
+
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  color: '#1a1a2e',
+                }}
+              >
+                Upgrade to Pro
+              </div>
+
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: '#888',
+                }}
+              >
+                3 goals · Infinite memory · Analytics
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: '#1a1a2e',
+                color: '#fff',
+                fontSize: '12px',
+                fontWeight: 700,
+                padding: '5px 10px',
+                borderRadius: '8px',
+              }}
+            >
+              $12/mo ›
+            </div>
           </div>
         </div>
 
         <button
           onClick={handleSignOut}
-          style={{ background: 'none', border: 'none', color: '#f44', fontSize: '14px', cursor: 'pointer', padding: '8px 0', textAlign: 'left' }}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#f44',
+            fontSize: '14px',
+            cursor: 'pointer',
+            padding: '8px 0',
+            textAlign: 'left',
+          }}
         >
           Sign out
         </button>
