@@ -35,7 +35,7 @@ export default function SplashPage() {
 
     try {
       const { data, error: dbError } = await supabase
-        .from('users')
+        .from('stride_users')
         .select('*')
         .eq('email', email.toLowerCase().trim())
         .single()
