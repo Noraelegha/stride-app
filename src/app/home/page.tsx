@@ -27,7 +27,6 @@ export default function HomePage() {
     if (!stored) { router.push('/onboarding'); return }
     setUser(JSON.parse(stored))
     setIsBeforeNoon(new Date().getHours() < 12)
-
     const dayLocked = localStorage.getItem('stride_day_locked')
     if (dayLocked === 'true') {
       setPanel('locked')
@@ -120,6 +119,9 @@ export default function HomePage() {
 
   if (!user) return null
 
+  const currentDay = (user.tasksDone || 0) + 1
+  const currentStreak = user.streak || 0
+
   if (panel === 'streakShow') {
     return (
       <div style={{ flex: 1, minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 28px', textAlign: 'center', gap: '14px' }}>
@@ -130,10 +132,10 @@ export default function HomePage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '22px' }}>🔥</span>
-          <span style={{ fontSize: '32px', fontWeight: 900, color: '#1a1a2e' }}>{(user?.streak || 7) + 1} days</span>
+          <span style={{ fontSize: '32px', fontWeight: 900, color: '#1a1a2e' }}>{currentStreak + 1} days</span>
         </div>
         <p style={{ fontSize: '15px', color: '#555', lineHeight: 1.6, maxWidth: '300px', margin: 0 }}>
-          {(user?.streak || 7) + 1} days. You are in the top tier of people who say they will do something and actually do it. Dash sees you. 🏆
+          {currentStreak + 1} days. You are in the top tier of people who say they will do something and actually do it. Dash sees you. 🏆
         </p>
         {isBeforeNoon && (
           <div style={{ background: '#f9f9f9', border: '1px solid #eee', borderRadius: '16px', padding: '16px', width: '100%', maxWidth: '320px', textAlign: 'left' }}>
@@ -163,22 +165,19 @@ export default function HomePage() {
 
   return (
     <div className="screen" style={{ background: '#f5f5f7' }}>
-
-      {/* Header */}
       <div style={{ background: '#1a1a2e', padding: '52px 22px 18px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '11px' }}>
           <div>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.45)', marginBottom: '2px' }}>
               {getGreeting().text} {getGreeting().emoji}
             </div>
-            <div style={{ fontSize: '21px', fontWeight: 800, color: '#fff' }}>Hi, {user.name || 'Nora'}</div>
+            <div style={{ fontSize: '21px', fontWeight: 800, color: '#fff' }}>Hi, {user.name || 'there'}</div>
           </div>
           <div style={{ width: 40, height: 40, background: '#F5A623', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15, color: '#1a1a2e' }}>
-            {(user.name || 'N')[0].toUpperCase()}
+            {(user.name || 'S')[0].toUpperCase()}
           </div>
         </div>
 
-        {/* 7-day week strip */}
         <div style={{ display: 'flex', gap: '4px', marginBottom: '11px' }}>
           {weekDates.map((d, i) => (
             <div key={i} style={{
@@ -196,38 +195,33 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* Streak + phase */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,.1)', borderRadius: '16px', padding: '5px 11px' }}>
             <span>🔥</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{user.streak || 7} days</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{currentStreak} days</span>
             <span style={{ fontSize: 10, color: 'rgba(255,255,255,.45)' }}>streak</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>Phase 1</span>
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>Phase {user.phase || 1}</span>
             <div style={{ width: 54, height: 3, background: 'rgba(255,255,255,.12)', borderRadius: 2 }}>
-              <div style={{ width: '42%', height: '100%', background: '#F5A623', borderRadius: 2 }} />
+              <div style={{ width: `${user.score || 0}%`, height: '100%', background: '#F5A623', borderRadius: 2 }} />
             </div>
-            <strong style={{ fontSize: 10, color: '#F5A623' }}>42%</strong>
+            <strong style={{ fontSize: 10, color: '#F5A623' }}>{user.score || 0}%</strong>
           </div>
         </div>
       </div>
 
-      {/* Scrollable body */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
         <div style={{ padding: '15px 18px', display: 'flex', flexDirection: 'column', gap: '13px' }}>
 
-          {/* Today's task */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '9px' }}>
               <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e' }}>Today&apos;s task</div>
               <div style={{ fontSize: '12px', color: '#888' }}>See all</div>
             </div>
 
-            {/* Swipe zone */}
             <div style={{ position: 'relative', height: '320px', overflow: 'hidden', borderRadius: '20px' }}>
 
-              {/* BG: Right swipe = Done (green, label on right) */}
               <div ref={bgDoneRef} style={{
                 position: 'absolute', inset: 0, background: '#4CAF50', borderRadius: '20px',
                 display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
@@ -236,7 +230,6 @@ export default function HomePage() {
                 <div style={{ color: '#fff', fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 7 }}>✅ Done!</div>
               </div>
 
-              {/* BG: Left swipe = Hint (neutral, label on left) */}
               <div ref={bgHintRef} style={{
                 position: 'absolute', inset: 0, background: '#f0f0f5', border: '1.5px solid #ddd',
                 borderRadius: '20px', display: 'flex', alignItems: 'center',
@@ -245,7 +238,6 @@ export default function HomePage() {
                 <div style={{ color: '#888', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 7 }}>💡 Help</div>
               </div>
 
-              {/* TASK CARD */}
               {panel === 'task' && (
                 <div
                   ref={cardRef}
@@ -263,15 +255,19 @@ export default function HomePage() {
                     zIndex: 2, display: 'flex', flexDirection: 'column', gap: '8px',
                   }}
                 >
-                  <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>Day 7 ⚡</div>
+                  <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>
+                    Day {currentDay} ⚡
+                  </div>
                   <div style={{ background: '#f9f9f9', borderRadius: '9px', borderBottomLeftRadius: '2px', padding: '8px 10px' }}>
                     <div style={{ fontSize: '8px', fontWeight: 700, color: '#1a1a2e', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '2px' }}>Dash</div>
-                    <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.45, margin: 0 }}>Day 7 and you are still here. That already puts you ahead of most. Let&apos;s make it count. 🔥</p>
+                    <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.45, margin: 0 }}>
+                      Day {currentDay} and you are still here. That already puts you ahead of most. Let&apos;s make it count. 🔥
+                    </p>
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: 500, color: '#1a1a2e', lineHeight: 1.45, flex: 1 }}>
-                    Open LinkedIn and send a connection request to 3 people in your consulting niche. Just the request. No message needed.
+                    {user.goal ? `Work on: ${user.goal}` : 'Your personalised task is loading. Check back soon.'}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#bbb' }}>~5 minutes</div>
+                  <div style={{ fontSize: '11px', color: '#bbb' }}>~{user.dailyTime === 'under10' ? '5' : user.dailyTime === '10to30' ? '15' : '30'} minutes</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'auto' }}>
                     <span style={{ fontSize: '9px', color: '#ddd' }}>← Help</span>
                     <span style={{ fontSize: '9px', color: '#ddd' }}>Done →</span>
@@ -279,7 +275,6 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* HINT PANEL */}
               {panel === 'hint' && (
                 <div style={{
                   position: 'absolute', inset: 0, background: '#fff',
@@ -294,9 +289,9 @@ export default function HomePage() {
                     </p>
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: 500, color: '#1a1a2e', lineHeight: 1.45, flex: 1 }}>
-                    Open LinkedIn and look at ONE person&apos;s profile in your consulting niche. Do not send anything. Just look. That is it.
+                    Pick the smallest possible action related to your goal and spend just 5 minutes on it. That is it.
                   </div>
-                  <div style={{ fontSize: '11px', color: '#bbb' }}>~2 minutes</div>
+                  <div style={{ fontSize: '11px', color: '#bbb' }}>~5 minutes</div>
                   <button
                     onClick={() => setPanel('srp')}
                     style={{ background: '#1a1a2e', border: 'none', padding: '13px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer', marginTop: 'auto' }}
@@ -306,7 +301,6 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* SRP — fades in inside swipe zone */}
               <div style={{
                 position: 'absolute', inset: 0, background: '#fff',
                 borderRadius: '20px', border: '1.5px solid #1a1a2e',
@@ -318,12 +312,12 @@ export default function HomePage() {
                 zIndex: panel === 'srp' ? 20 : 0,
               }}>
                 <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>Dash</div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e', lineHeight: 1.3 }}>How did it go with the LinkedIn connections?</div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e', lineHeight: 1.3 }}>How did it go today?</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {[
-                    { id: 'nailed',  ico: '✅', lbl: 'Sent all 3. Nailed it.',   wall: false },
-                    { id: 'partial', ico: '⏱',  lbl: 'Only managed 1 or 2',     wall: false },
-                    { id: 'other',   ico: '💬', lbl: 'Something else happened.', wall: true  },
+                    { id: 'nailed',  ico: '✅', lbl: 'Nailed it. Done fully.',   wall: false },
+                    { id: 'partial', ico: '⏱',  lbl: 'Partial — ran out of time', wall: false },
+                    { id: 'other',   ico: '💬', lbl: 'Something else happened.',  wall: true  },
                   ].map(c => (
                     <div
                       key={c.id}
@@ -386,7 +380,6 @@ export default function HomePage() {
                 </button>
               </div>
 
-              {/* BONUS PANEL */}
               {panel === 'bonus' && (
                 <div style={{
                   position: 'absolute', inset: 0, background: '#fff',
@@ -399,27 +392,16 @@ export default function HomePage() {
                     <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.45, margin: 0 }}>You are on a roll. Build on what you just did. Expires at midnight.</p>
                   </div>
                   <div style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a2e', lineHeight: 1.45, flex: 1 }}>
-                    Leave a meaningful comment on the post of one person you just connected with. One sentence. That is it.
+                    Go one level deeper on what you just completed. Ten more minutes. That is all.
                   </div>
-                  <div style={{ fontSize: '11px', color: '#bbb' }}>~5 minutes</div>
+                  <div style={{ fontSize: '11px', color: '#bbb' }}>~10 minutes</div>
                   <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
-                    <button
-                      onClick={() => { setBonusCompleted(false); setPanel('locked') }}
-                      style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '12px', borderRadius: '13px', fontSize: '13px', color: '#888', cursor: 'pointer' }}
-                    >
-                      Skip
-                    </button>
-                    <button
-                      onClick={() => { setBonusCompleted(true); setPanel('locked') }}
-                      style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '12px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}
-                    >
-                      ✓ Done
-                    </button>
+                    <button onClick={() => { setBonusCompleted(false); setPanel('locked') }} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '12px', borderRadius: '13px', fontSize: '13px', color: '#888', cursor: 'pointer' }}>Skip</button>
+                    <button onClick={() => { setBonusCompleted(true); setPanel('locked') }} style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '12px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>✓ Done</button>
                   </div>
                 </div>
               )}
 
-              {/* LOCKED */}
               {panel === 'locked' && (
                 <div style={{
                   position: 'absolute', inset: 0, background: '#fff',
@@ -430,7 +412,7 @@ export default function HomePage() {
                   <div style={{ fontSize: '44px' }}>🔒</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '22px' }}>🔥</span>
-                    <span style={{ fontSize: '28px', fontWeight: 900, color: '#1a1a2e' }}>{(user?.streak || 7) + 1} days</span>
+                    <span style={{ fontSize: '28px', fontWeight: 900, color: '#1a1a2e' }}>{currentStreak + 1} days</span>
                   </div>
                   <p style={{ color: '#555', fontSize: '15px', margin: 0, fontWeight: 500 }}>
                     {bonusCompleted ? 'Bonus locked. Extra mile taken today.' : 'Streak locked. The goal is moving.'}
@@ -438,7 +420,6 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* TUTORIAL */}
               {showTut && panel === 'task' && (
                 <div
                   onClick={() => setShowTut(false)}
@@ -463,13 +444,12 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Your progress */}
           <div>
             <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e', marginBottom: '9px' }}>Your progress</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '9px' }}>
               <div style={{ background: '#fff', borderRadius: '16px', padding: '14px' }}>
                 <div style={{ fontSize: '22px', marginBottom: '5px' }}>🔥</div>
-                <div style={{ fontSize: '22px', fontWeight: 800, color: '#F5A623' }}>7</div>
+                <div style={{ fontSize: '22px', fontWeight: 800, color: '#F5A623' }}>{currentStreak}</div>
                 <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>Day streak</div>
               </div>
               <div style={{ background: '#fff', borderRadius: '16px', padding: '14px' }}>
@@ -480,22 +460,22 @@ export default function HomePage() {
                     </svg>
                   </span>
                 </div>
-                <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1a2e' }}>23</div>
+                <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1a2e' }}>{user.tasksDone || 0}</div>
                 <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>Tasks done</div>
               </div>
               <div style={{ background: '#fff', borderRadius: '16px', padding: '14px' }}>
                 <div style={{ fontSize: '22px', marginBottom: '5px' }}>📊</div>
-                <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1a2e' }}>84%</div>
+                <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1a2e' }}>{user.score ? `${user.score}%` : '0%'}</div>
                 <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>Score</div>
               </div>
               <div style={{ background: '#fff', borderRadius: '16px', padding: '14px' }}>
                 <div style={{ fontSize: '22px', color: '#FF9500', marginBottom: '5px' }}>⚡</div>
-                <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1a2e' }}>3</div>
+                <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1a2e' }}>{user.bonusTasks || 0}</div>
                 <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>Bonus tasks</div>
               </div>
               <div style={{ background: '#fff', borderRadius: '16px', padding: '14px', borderLeft: '3px solid #4A9EDB' }}>
                 <div style={{ fontSize: '22px', marginBottom: '5px' }}>💧</div>
-                <div style={{ fontSize: '22px', fontWeight: 800, color: '#4A9EDB' }}>1</div>
+                <div style={{ fontSize: '22px', fontWeight: 800, color: '#4A9EDB' }}>{user.shields || 0}</div>
                 <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>Shields left</div>
               </div>
             </div>

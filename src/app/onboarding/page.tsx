@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
 const TIME_OPTIONS = [
   { id: 'under10', emoji: '⏰', label: 'Under 10 minutes' },
@@ -55,9 +56,7 @@ export default function OnboardingPage() {
   }
 
   const canContinue = () => {
-    if (step === 1) {
-      return data.name.trim().length >= 2 && /\S+@\S+\.\S+/.test(data.email)
-    }
+    if (step === 1) return data.name.trim().length >= 2 && /\S+@\S+\.\S+/.test(data.email)
     if (step === 2) return !!data.persona
     if (step === 3) {
       if (!data.goal.trim()) return false
@@ -72,21 +71,52 @@ export default function OnboardingPage() {
       if (data.prior === 'started' || data.prior === 'reset') return data.priorDetail.trim().length > 10
       return true
     }
-    if (step === 5) {
-      return data.bigPrize.trim().length > 0 && !!data.hasDeadline && data.personalWhy.trim().length > 5
-    }
+    if (step === 5) return data.bigPrize.trim().length > 0 && !!data.hasDeadline && data.personalWhy.trim().length > 5
     if (step === 6) return !!data.coachStyle
     if (step === 7) return !!data.dailyTime
     return true
   }
 
-  const handleFinish = () => {
-    localStorage.setItem('stride_user', JSON.stringify({
+  const handleFinish = async () => {
+    const userData = {
       ...data,
       streak: 0,
       phase: 1,
+      tasksDone: 0,
+      score: 0,
+      bonusTasks: 0,
+      shields: 0,
       joinedAt: new Date().toISOString(),
-    }))
+    }
+
+    localStorage.setItem('stride_user', JSON.stringify(userData))
+
+    try {
+      await supabase.from('stride_users').insert({
+        email: data.email.toLowerCase().trim(),
+        name: data.name,
+        persona: data.persona,
+        goal: data.goal,
+        big_prize: data.bigPrize,
+        personal_why: data.personalWhy,
+        coach_style: data.coachStyle,
+        daily_time: data.dailyTime,
+        domain: data.domain,
+        prior: data.prior,
+        prior_detail: data.priorDetail,
+        has_deadline: data.hasDeadline,
+        deadline: data.deadline || null,
+        streak: 0,
+        phase: 1,
+        tasks_done: 0,
+        score: 0,
+        bonus_tasks: 0,
+        shields: 0,
+      })
+    } catch (e) {
+      console.error('Supabase save failed:', e)
+    }
+
     router.push('/lockedin')
   }
 
@@ -97,13 +127,13 @@ export default function OnboardingPage() {
   return (
     <div className="ob-screen">
 
-      {/* STEP 1 — Name + Email */}
       {step === 1 && (
         <>
           <div className="ob-head">
             <div className="ob-prog">{dots}</div>
             <div className="ob-step">Step 1 of {totalSteps}</div>
             <div className="ob-title">What should Dash call you?</div>
+            <div className="ob-sub">Your name and email make every message personal.</div>
           </div>
           <div className="ob-body">
             <textarea
@@ -123,14 +153,11 @@ export default function OnboardingPage() {
             />
           </div>
           <div className="ob-foot">
-            <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(2)}>
-              Continue
-            </button>
+            <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(2)}>Continue</button>
           </div>
         </>
       )}
 
-      {/* STEP 2 — Persona */}
       {step === 2 && (
         <>
           <div className="ob-head">
@@ -146,28 +173,18 @@ export default function OnboardingPage() {
               { id: 'learner', emoji: '📚', label: 'Studying or learning', sub: 'Exam, certification, new skill' },
               { id: 'changer', emoji: '🔄', label: 'Changing direction',   sub: 'New career, new chapter' },
             ].map(p => (
-              <div
-                key={p.id}
-                className={`ob-opt${data.persona === p.id ? ' sel' : ''}`}
-                onClick={() => set('persona', p.id)}
-              >
+              <div key={p.id} className={`ob-opt${data.persona === p.id ? ' sel' : ''}`} onClick={() => set('persona', p.id)}>
                 <div className="oi">{p.emoji}</div>
-                <div>
-                  <div className="ol">{p.label}</div>
-                  <div className="os">{p.sub}</div>
-                </div>
+                <div><div className="ol">{p.label}</div><div className="os">{p.sub}</div></div>
               </div>
             ))}
           </div>
           <div className="ob-foot">
-            <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(3)}>
-              Continue
-            </button>
+            <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(3)}>Continue</button>
           </div>
         </>
       )}
 
-      {/* STEP 3 — Goal */}
       {step === 3 && (
         <>
           <div className="ob-head">
@@ -181,92 +198,49 @@ export default function OnboardingPage() {
             <textarea
               className="ob-ta" rows={3}
               placeholder={
-                data.persona === 'learner'
-                  ? 'e.g. Get my Google Project Management certificate by June'
-                  : data.persona === 'changer'
-                  ? 'e.g. Land a UX design role in a tech company by Q3'
-                  : 'e.g. Grow my Instagram following in the food photography niche'
+                data.persona === 'learner' ? 'e.g. Get my Google Project Management certificate by June'
+                : data.persona === 'changer' ? 'e.g. Land a UX design role in a tech company by Q3'
+                : 'e.g. Grow my Instagram following in the food photography niche'
               }
               value={data.goal}
               onChange={e => set('goal', e.target.value)}
             />
-
-            {/* BUILDER */}
             {data.persona === 'builder' && (
               <>
                 <div className="ob-lbl">What space are you building in?</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px' }}>
                   {['Social media', 'Freelancing', 'E-commerce', 'Consulting', 'Content creation', 'Service business', 'Other'].map(c => (
-                    <button
-                      key={c}
-                      className={`ob-chip${data.domain === c ? ' sel' : ''}`}
-                      onClick={() => set('domain', c)}
-                    >{c}</button>
+                    <button key={c} className={`ob-chip${data.domain === c ? ' sel' : ''}`} onClick={() => set('domain', c)}>{c}</button>
                   ))}
                 </div>
                 {data.domain === 'Other' && (
-                  <textarea
-                    className="ob-ta" rows={1}
-                    placeholder="Describe the space you are building in..."
-                    value={data.customDomain}
-                    onChange={e => set('customDomain', e.target.value)}
-                    style={{ resize: 'none', borderColor: '#F5A623', marginTop: '4px' }}
-                  />
+                  <textarea className="ob-ta" rows={1} placeholder="Describe your space..." value={data.customDomain} onChange={e => set('customDomain', e.target.value)} style={{ resize: 'none', borderColor: '#F5A623', marginTop: '4px' }} />
                 )}
               </>
             )}
-
-            {/* LEARNER */}
             {data.persona === 'learner' && (
               <>
                 <div className="ob-lbl">What are you getting certified or skilled in?</div>
-                <textarea
-                  className="ob-ta" rows={2}
-                  placeholder="e.g. Google Project Management, IELTS, Python, ACCA..."
-                  value={data.certSkill}
-                  onChange={e => set('certSkill', e.target.value)}
-                />
+                <textarea className="ob-ta" rows={2} placeholder="e.g. Google Project Management, IELTS, Python, ACCA..." value={data.certSkill} onChange={e => set('certSkill', e.target.value)} />
                 <div className="ob-lbl">Any specific exam, institution, or body?</div>
-                <textarea
-                  className="ob-ta" rows={1}
-                  placeholder="e.g. PMI, NMC, Coursera, self-study..."
-                  value={data.certBody}
-                  onChange={e => set('certBody', e.target.value)}
-                  style={{ resize: 'none' }}
-                />
+                <textarea className="ob-ta" rows={1} placeholder="e.g. PMI, NMC, Coursera, self-study..." value={data.certBody} onChange={e => set('certBody', e.target.value)} style={{ resize: 'none' }} />
               </>
             )}
-
-            {/* CHANGER */}
             {data.persona === 'changer' && (
               <>
                 <div className="ob-lbl">What industry or role are you moving toward?</div>
-                <textarea
-                  className="ob-ta" rows={2}
-                  placeholder="e.g. UX design, nursing in the UK, remote tech work..."
-                  value={data.changerRole}
-                  onChange={e => set('changerRole', e.target.value)}
-                />
+                <textarea className="ob-ta" rows={2} placeholder="e.g. UX design, nursing in the UK, remote tech work..." value={data.changerRole} onChange={e => set('changerRole', e.target.value)} />
                 <div className="ob-lbl">Briefly describe your background</div>
-                <textarea
-                  className="ob-ta" rows={1}
-                  placeholder="e.g. Currently in banking, recent graduate..."
-                  value={data.changerBackground}
-                  onChange={e => set('changerBackground', e.target.value)}
-                  style={{ resize: 'none' }}
-                />
+                <textarea className="ob-ta" rows={1} placeholder="e.g. Currently in banking, recent graduate..." value={data.changerBackground} onChange={e => set('changerBackground', e.target.value)} style={{ resize: 'none' }} />
               </>
             )}
           </div>
           <div className="ob-foot">
-            <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(4)}>
-              Continue
-            </button>
+            <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(4)}>Continue</button>
           </div>
         </>
       )}
 
-      {/* STEP 4 — Prior progress */}
       {step === 4 && (
         <>
           <div className="ob-head">
@@ -282,73 +256,42 @@ export default function OnboardingPage() {
               { id: 'started', emoji: '⏸️', label: 'Started but stuck',                sub: 'Made some progress, lost momentum' },
               { id: 'reset',   emoji: '🔄', label: 'Been at it a while, need a reset', sub: 'Tried different things, nothing stuck' },
             ].map(opt => (
-              <div
-                key={opt.id}
-                className={`ob-opt${data.prior === opt.id ? ' sel' : ''}`}
-                onClick={() => { set('prior', opt.id); set('priorDetail', '') }}
-              >
+              <div key={opt.id} className={`ob-opt${data.prior === opt.id ? ' sel' : ''}`} onClick={() => { set('prior', opt.id); set('priorDetail', '') }}>
                 <div className="oi">{opt.emoji}</div>
-                <div>
-                  <div className="ol">{opt.label}</div>
-                  <div className="os">{opt.sub}</div>
-                </div>
+                <div><div className="ol">{opt.label}</div><div className="os">{opt.sub}</div></div>
               </div>
             ))}
-
             {data.prior === 'zero' && (
               <>
                 <div className="ob-lbl">What do you currently have in place?</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px' }}>
                   {['No accounts set up', 'Have accounts, no content', 'Have an idea only', 'Completely blank'].map(chip => (
-                    <button
-                      key={chip}
-                      className={`ob-chip${data.priorChips.includes(chip) ? ' sel' : ''}`}
-                      onClick={() => toggleChip(chip)}
-                    >{chip}</button>
+                    <button key={chip} className={`ob-chip${data.priorChips.includes(chip) ? ' sel' : ''}`} onClick={() => toggleChip(chip)}>{chip}</button>
                   ))}
                 </div>
               </>
             )}
-
             {data.prior === 'started' && (
               <>
                 <div className="ob-lbl">Tell Dash where you got to</div>
-                <textarea
-                  className="ob-ta" rows={3}
-                  placeholder="e.g. I have 200 Instagram followers in the fitness niche, post occasionally but have not grown in 4 months."
-                  value={data.priorDetail}
-                  onChange={e => set('priorDetail', e.target.value)}
-                />
-                <div style={{ fontSize: '11px', color: '#aaa' }}>
-                  The more specific you are, the better Dash picks up exactly where you left off.
-                </div>
+                <textarea className="ob-ta" rows={3} placeholder="e.g. I have 200 Instagram followers, post occasionally but have not grown in 4 months." value={data.priorDetail} onChange={e => set('priorDetail', e.target.value)} />
+                <div style={{ fontSize: '11px', color: '#aaa' }}>The more specific you are, the better Dash picks up exactly where you left off.</div>
               </>
             )}
-
             {data.prior === 'reset' && (
               <>
                 <div className="ob-lbl">What has not worked so far?</div>
-                <textarea
-                  className="ob-ta" rows={3}
-                  placeholder="e.g. Tried posting every day for a month but got no engagement. Took an online course but never applied it."
-                  value={data.priorDetail}
-                  onChange={e => set('priorDetail', e.target.value)}
-                />
-                <div style={{ fontSize: '11px', color: '#aaa' }}>
-                  This helps Dash avoid repeating what already failed.
-                </div>
+                <textarea className="ob-ta" rows={3} placeholder="e.g. Tried posting every day for a month but got no engagement." value={data.priorDetail} onChange={e => set('priorDetail', e.target.value)} />
+                <div style={{ fontSize: '11px', color: '#aaa' }}>This helps Dash avoid repeating what already failed.</div>
               </>
             )}
           </div>
           <div className="ob-foot">
-            <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(5)}>
-              Continue
-            </button>
+            <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(5)}>Continue</button>
           </div>
         </>
       )}
 
-      {/* STEP 5 — Big prize + deadline */}
       {step === 5 && (
         <>
           <div className="ob-head">
@@ -359,66 +302,32 @@ export default function OnboardingPage() {
             <div className="ob-sub">This is what Dash reminds you of when you want to quit.</div>
           </div>
           <div className="ob-body">
-            <textarea
-              className="ob-ta" rows={3}
-              placeholder="e.g. Land 3 high-paying consulting clients"
-              value={data.bigPrize}
-              onChange={e => set('bigPrize', e.target.value)}
-            />
-
+            <textarea className="ob-ta" rows={3} placeholder="e.g. Land 3 high-paying consulting clients" value={data.bigPrize} onChange={e => set('bigPrize', e.target.value)} />
             <div className="ob-lbl">Does this goal have a deadline?</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              {[
-                { id: 'yes', emoji: '📅', label: 'Yes, it does' },
-                { id: 'no',  emoji: '🔄', label: 'No, ongoing goal' },
-              ].map(opt => (
-                <div
-                  key={opt.id}
-                  onClick={() => set('hasDeadline', opt.id)}
-                  style={{
-                    border: `1.5px solid ${data.hasDeadline === opt.id ? '#1a1a2e' : '#eee'}`,
-                    borderRadius: '14px', padding: '14px 10px', cursor: 'pointer',
-                    textAlign: 'center' as const,
-                    background: data.hasDeadline === opt.id ? '#f5f5fa' : '#fff',
-                    transition: 'all 0.15s',
-                  }}
-                >
+              {[{ id: 'yes', emoji: '📅', label: 'Yes, it does' }, { id: 'no', emoji: '🔄', label: 'No, ongoing goal' }].map(opt => (
+                <div key={opt.id} onClick={() => set('hasDeadline', opt.id)}
+                  style={{ border: `1.5px solid ${data.hasDeadline === opt.id ? '#1a1a2e' : '#eee'}`, borderRadius: '14px', padding: '14px 10px', cursor: 'pointer', textAlign: 'center' as const, background: data.hasDeadline === opt.id ? '#f5f5fa' : '#fff', transition: 'all 0.15s' }}>
                   <div style={{ fontSize: '22px', marginBottom: '5px' }}>{opt.emoji}</div>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{opt.label}</div>
                 </div>
               ))}
             </div>
-
             {data.hasDeadline === 'yes' && (
               <>
                 <div className="ob-lbl">When is the deadline?</div>
-                <input
-                  type="date"
-                  className="ob-ta"
-                  value={data.deadline}
-                  onChange={e => set('deadline', e.target.value)}
-                  style={{ cursor: 'pointer' }}
-                />
+                <input type="date" className="ob-ta" value={data.deadline} onChange={e => set('deadline', e.target.value)} style={{ cursor: 'pointer' }} />
               </>
             )}
-
             <div className="ob-lbl">In your own words, why does this matter?</div>
-            <textarea
-              className="ob-ta" rows={3}
-              placeholder="Not the outcome. The reason behind it."
-              value={data.personalWhy}
-              onChange={e => set('personalWhy', e.target.value)}
-            />
+            <textarea className="ob-ta" rows={3} placeholder="Not the outcome. The reason behind it." value={data.personalWhy} onChange={e => set('personalWhy', e.target.value)} />
           </div>
           <div className="ob-foot">
-            <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(6)}>
-              Continue
-            </button>
+            <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(6)}>Continue</button>
           </div>
         </>
       )}
 
-      {/* STEP 6 — Coach style */}
       {step === 6 && (
         <>
           <div className="ob-head">
@@ -430,28 +339,18 @@ export default function OnboardingPage() {
           </div>
           <div className="ob-body">
             {COACH_OPTIONS.map(c => (
-              <div
-                key={c.id}
-                className={`ob-opt${data.coachStyle === c.id ? ' sel' : ''}`}
-                onClick={() => set('coachStyle', c.id)}
-              >
+              <div key={c.id} className={`ob-opt${data.coachStyle === c.id ? ' sel' : ''}`} onClick={() => set('coachStyle', c.id)}>
                 <div className="oi">{c.emoji}</div>
-                <div>
-                  <div className="ol">{c.label}</div>
-                  <div className="os">{c.sub}</div>
-                </div>
+                <div><div className="ol">{c.label}</div><div className="os">{c.sub}</div></div>
               </div>
             ))}
           </div>
           <div className="ob-foot">
-            <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(7)}>
-              Continue
-            </button>
+            <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(7)}>Continue</button>
           </div>
         </>
       )}
 
-      {/* STEP 7 — Daily time */}
       {step === 7 && (
         <>
           <div className="ob-head">
@@ -463,15 +362,9 @@ export default function OnboardingPage() {
           </div>
           <div className="ob-body">
             {TIME_OPTIONS.map(t => (
-              <div
-                key={t.id}
-                className={`ob-opt${data.dailyTime === t.id ? ' sel' : ''}`}
-                onClick={() => set('dailyTime', t.id)}
-              >
+              <div key={t.id} className={`ob-opt${data.dailyTime === t.id ? ' sel' : ''}`} onClick={() => set('dailyTime', t.id)}>
                 <div className="oi">{t.emoji}</div>
-                <div>
-                  <div className="ol">{t.label}</div>
-                </div>
+                <div><div className="ol">{t.label}</div></div>
               </div>
             ))}
           </div>
