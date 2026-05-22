@@ -5,12 +5,29 @@ import BottomNav from '@/components/BottomNav'
 
 type Member = { name: string; streak: number }
 
+const WEEKLY_MESSAGES = [
+  (tasks: number, streak: number) => `${tasks} tasks done across this community. ${tasks} times someone chose the goal over the excuse. That is not a group chat. That is a movement. 🔒`,
+  (tasks: number, streak: number) => `The best streak in this group is ${streak} days. Someone set that bar. The question is who beats it next. 🏆`,
+  (tasks: number, streak: number) => `Every person here started with just one task. The people at the top simply refused to stop. Keep going. ⚡`,
+  (tasks: number, streak: number) => `Progress is not always linear. But showing up is. You are here. That already makes you different. 🔥`,
+  (tasks: number, streak: number) => `${tasks} tasks done. Every single one was a choice. The right one. Build on it this week. 💪`,
+  (tasks: number, streak: number) => `The gap between where you are and where you want to be is filled with daily tasks. One at a time. 🎯`,
+  (tasks: number, streak: number) => `You do not rise to the level of your goals. You fall to the level of your systems. Stride is your system. 🔒`,
+  (tasks: number, streak: number) => `${streak} days at the top. That is what commitment actually looks like. Match it. Then beat it. 🔥`,
+]
+
+const getWeeklyMessage = (totalTasks: number, bestStreak: number) => {
+  const weekNum = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7)) % WEEKLY_MESSAGES.length
+  return WEEKLY_MESSAGES[weekNum](totalTasks, bestStreak)
+}
+
 export default function CommunityPage() {
   const [user, setUser] = useState<any>(null)
   const [leaderboard, setLeaderboard] = useState<Member[]>([])
   const [totalTasks, setTotalTasks] = useState(0)
   const [bestStreak, setBestStreak] = useState(0)
   const [activeUsers, setActiveUsers] = useState(0)
+  const [bonusTotal, setBonusTotal] = useState(0)
 
   useEffect(() => {
     const stored = localStorage.getItem('stride_user')
@@ -28,6 +45,7 @@ export default function CommunityPage() {
           setTotalTasks(data.reduce((sum: number, u: any) => sum + (u.tasks_done || 0), 0))
           setBestStreak(Math.max(...data.map((u: any) => u.streak || 0)))
           setActiveUsers(data.filter((u: any) => (u.streak || 0) > 0).length)
+          setBonusTotal(data.reduce((sum: number, u: any) => sum + (u.bonus_tasks || 0), 0))
         }
       } catch (e) {
         console.error('Community fetch failed:', e)
@@ -55,10 +73,10 @@ export default function CommunityPage() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '9px' }}>
             {[
-              { val: totalTasks || '—',  lbl: 'Tasks done',   ico: '✅', gold: true },
-              { val: bestStreak || '—',  lbl: 'Best streak',  ico: '🔥' },
-              { val: user?.bonusTasks || 0, lbl: 'Bonus tasks', ico: '⚡' },
-              { val: activeUsers || '—', lbl: 'Active users', ico: '👥' },
+              { val: totalTasks || 0,  lbl: 'Tasks done',   ico: '✅', gold: true },
+              { val: bestStreak || 0,  lbl: 'Best streak',  ico: '🔥' },
+              { val: bonusTotal || 0,  lbl: 'Bonus tasks',  ico: '⚡' },
+              { val: activeUsers || 0, lbl: 'Active users', ico: '👥' },
             ].map((n, i) => (
               <div key={i} style={{ textAlign: 'center', padding: '8px 0' }}>
                 <div style={{ fontSize: '24px', fontWeight: 900, color: n.gold ? '#F5A623' : '#1a1a2e' }}>{n.val}</div>
@@ -70,13 +88,11 @@ export default function CommunityPage() {
           </div>
         </div>
 
-        {/* Dash message */}
+        {/* Weekly rotating Dash message */}
         <div style={{ background: '#1a1a2e', borderRadius: '13px', padding: '14px 16px' }}>
           <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '5px' }}>Dash</div>
           <p style={{ fontSize: '13px', color: '#fff', lineHeight: 1.55, margin: 0 }}>
-            {totalTasks > 0
-              ? `${totalTasks} tasks completed across this community. ${totalTasks} times someone chose the goal over the excuse. That is not a group chat. That is a movement. 🔒`
-              : 'Every person here chose to show up today. That already puts this group ahead of most. 🔒'}
+            {getWeeklyMessage(totalTasks, bestStreak)}
           </p>
         </div>
 
@@ -87,7 +103,7 @@ export default function CommunityPage() {
           </div>
           {leaderboard.length === 0 ? (
             <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', textAlign: 'center' }}>
-              <p style={{ color: '#aaa', fontSize: '14px', margin: 0 }}>Leaderboard loading...</p>
+              <p style={{ color: '#aaa', fontSize: '14px', margin: 0 }}>Loading community data...</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

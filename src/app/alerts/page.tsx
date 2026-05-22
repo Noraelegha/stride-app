@@ -13,10 +13,12 @@ type Alert = {
 
 export default function AlertsPage() {
   const [alerts, setAlerts] = useState<Alert[]>([])
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('stride_user')
-    if (!stored) return
+    if (!stored) { setLoaded(true); return }
+
     const user = JSON.parse(stored)
     const streak = user.streak || 0
     const tasksDone = user.tasksDone || 0
@@ -26,18 +28,17 @@ export default function AlertsPage() {
 
     const generated: Alert[] = []
 
-    // Shield earned alert
-    if (shields > 0) {
+    // Only show alerts for things that have actually happened
+    if (shields > 0 && streak >= 5) {
       generated.push({
         ico: '🛡️', bg: '#eef4ff',
         title: 'Streak shield earned!',
-        body: `${streak >= 5 ? streak : 5} consecutive days. You earned a shield. It will protect your streak automatically if you ever miss a day.`,
+        body: `${streak} consecutive days. You earned a shield. It will protect your streak automatically if you ever miss a day.`,
         time: 'Today',
         unread: true,
       })
     }
 
-    // Streak milestone
     if (streak >= 7) {
       generated.push({
         ico: '🔥', bg: '#fff4ec',
@@ -50,22 +51,22 @@ export default function AlertsPage() {
       generated.push({
         ico: '🔥', bg: '#fff4ec',
         title: `${streak}-day streak!`,
-        body: `${streak} days in. You are building the habit. Keep showing up.`,
+        body: `${streak} days in. The habit is forming. Keep showing up.`,
         time: 'Just now',
         unread: streak >= 5,
       })
     }
 
-    // Daily task ready
-    generated.push({
-      ico: '⚡', bg: '#f3eeff',
-      title: 'Dash has your task ready',
-      body: `Your Day ${tasksDone + 1} task is waiting. Let's make it count.`,
-      time: '8:00 AM',
-      unread: false,
-    })
+    if (tasksDone > 0) {
+      generated.push({
+        ico: '⚡', bg: '#f3eeff',
+        title: 'Dash has your task ready',
+        body: `Your Day ${tasksDone + 1} task is waiting. Let's make it count.`,
+        time: '8:00 AM',
+        unread: false,
+      })
+    }
 
-    // Weekly report
     if (score > 0 && tasksDone >= 7) {
       generated.push({
         ico: '📊', bg: '#edfaf3',
@@ -76,29 +77,18 @@ export default function AlertsPage() {
       })
     }
 
-    // Bonus task
     if (bonusTasks > 0) {
       generated.push({
         ico: '💪', bg: '#fffbec',
-        title: 'Bonus task completed',
-        body: `You went the extra mile ${bonusTasks} time${bonusTasks > 1 ? 's' : ''}. That is the kind of energy that wins.`,
+        title: `${bonusTasks > 1 ? `${bonusTasks} bonus tasks` : 'Bonus task'} completed`,
+        body: `You went the extra mile${bonusTasks > 1 ? ` ${bonusTasks} times` : ''}. That is the kind of energy that wins.`,
         time: '2 days ago',
         unread: false,
       })
     }
 
-    // First task encouragement
-    if (tasksDone === 0) {
-      generated.push({
-        ico: '👋', bg: '#f5f5fa',
-        title: 'Welcome to Stride!',
-        body: 'Dash is ready. Your first task is waiting on the home screen. Let\'s go.',
-        time: 'Just now',
-        unread: true,
-      })
-    }
-
     setAlerts(generated)
+    setLoaded(true)
   }, [])
 
   return (
@@ -108,9 +98,17 @@ export default function AlertsPage() {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {alerts.length === 0 ? (
-          <div style={{ background: '#fff', borderRadius: '14px', padding: '24px', textAlign: 'center' }}>
-            <p style={{ color: '#aaa', fontSize: '14px', margin: 0 }}>No alerts yet. Complete your first task to get started.</p>
+        {!loaded ? null : alerts.length === 0 ? (
+          <div style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            padding: '60px 28px', textAlign: 'center', gap: '12px',
+          }}>
+            <div style={{ fontSize: '40px' }}>🔔</div>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#1a1a2e' }}>No alerts yet</div>
+            <p style={{ fontSize: '13px', color: '#aaa', lineHeight: 1.6, margin: 0, maxWidth: '240px' }}>
+              Complete tasks, hit streaks, and earn shields — your milestones will show up here.
+            </p>
           </div>
         ) : (
           alerts.map((a, i) => (
