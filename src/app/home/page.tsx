@@ -265,7 +265,7 @@ export default function HomePage() {
                     </p>
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: 500, color: '#1a1a2e', lineHeight: 1.45, flex: 1 }}>
-                    {user.goal ? `Work on: ${user.goal}` : 'Your personalised task is loading. Check back soon.'}
+                    Your personalised task is loading. Check back soon.
                   </div>
                   <div style={{ fontSize: '11px', color: '#bbb' }}>~{user.dailyTime === 'under10' ? '5' : user.dailyTime === '10to30' ? '15' : '30'} minutes</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'auto' }}>

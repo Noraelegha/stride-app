@@ -2,15 +2,6 @@
 import { useEffect, useState } from 'react'
 import BottomNav from '@/components/BottomNav'
 
-const RECENT_TASKS = [
-  { day: 23, task: 'Changed LinkedIn headline to target niche',     done: true },
-  { day: 22, task: 'Published first thought leadership post',        done: true },
-  { day: 21, task: 'Missed',                                         done: false },
-  { day: 20, task: 'Connected with 5 people in consulting niche',    done: true },
-  { day: 19, task: 'Updated LinkedIn banner image',                  done: true },
-  { day: 18, task: 'Wrote first draft of LinkedIn bio',              done: true },
-]
-
 export default function JourneyPage() {
   const [user, setUser] = useState<any>(null)
 
@@ -19,12 +10,30 @@ export default function JourneyPage() {
     if (stored) setUser(JSON.parse(stored))
   }, [])
 
+  if (!user) return null
+
+  const tasksDone = user.tasksDone || 0
+  const streak = user.streak || 0
+  const score = user.score || 0
+  const phase = user.phase || 1
+  const tasksPerPhase = 30
+  const tasksInPhase = tasksDone - ((phase - 1) * tasksPerPhase)
+  const phaseProgress = Math.min(Math.round((tasksInPhase / tasksPerPhase) * 100), 100)
+
+  // Generate recent task history based on tasks done
+  const recentDays = Math.min(tasksDone, 6)
+  const mockTasks = Array.from({ length: recentDays }, (_, i) => ({
+    day: tasksDone - i,
+    done: Math.random() > 0.15, // 85% completion rate approximation
+    label: `Day ${tasksDone - i} task completed`,
+  })).reverse()
+
   return (
     <div className="screen" style={{ background: '#f5f5f7' }}>
       <div style={{ background: '#1a1a2e', padding: '52px 22px 20px', flexShrink: 0 }}>
-        <h1 style={{ color: '#fff', fontSize: '22px', fontWeight: 900, marginBottom: '3px' }}>Your journey</h1>
-        <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '12px' }}>
-          {user?.goal || 'Build a personal brand on LinkedIn'}
+        <h1 style={{ fontSize: '22px', fontWeight: 900, color: '#fff', margin: 0, marginBottom: '3px' }}>Your journey</h1>
+        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,.45)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {user.goal || 'Your goal'}
         </p>
       </div>
 
@@ -32,59 +41,71 @@ export default function JourneyPage() {
 
         {/* Phase card */}
         <div style={{ background: '#fff', borderRadius: '16px', padding: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e' }}>Phase 1: Foundation</span>
-            <span style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e' }}>42%</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e' }}>Phase {phase}: {phase === 1 ? 'Foundation' : phase === 2 ? 'Momentum' : 'Acceleration'}</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a2e' }}>{phaseProgress}%</div>
           </div>
-          <div style={{ height: '5px', background: '#eee', borderRadius: '3px', marginBottom: '8px' }}>
-            <div style={{ height: '100%', width: '42%', background: '#1a1a2e', borderRadius: '3px' }} />
+          <div style={{ height: '6px', background: '#f0f0f0', borderRadius: '3px', marginBottom: '8px' }}>
+            <div style={{ width: `${phaseProgress}%`, height: '100%', background: '#1a1a2e', borderRadius: '3px', transition: 'width 0.5s ease' }} />
           </div>
-          <div style={{ fontSize: '12px', color: '#888' }}>
-            You are 42% through Phase 1. The finish line is closer than it feels.
-          </div>
+          <p style={{ fontSize: '12px', color: '#888', margin: 0, lineHeight: 1.5 }}>
+            {phaseProgress < 30
+              ? 'You are just getting started. Every task is laying the foundation.'
+              : phaseProgress < 70
+              ? `You are ${phaseProgress}% through Phase ${phase}. The momentum is building.`
+              : 'The finish line is closer than it feels. Keep going.'}
+          </p>
         </div>
 
         {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '9px' }}>
           {[
-            { ico: '🔥', num: user?.streak || 7,  lbl: 'streak' },
-            { ico: '✅', num: 23,                  lbl: 'done' },
-            { ico: '📊', num: '84%',               lbl: 'score' },
+            { ico: '🔥', val: streak,         lbl: 'streak' },
+            { ico: '✅', val: tasksDone,       lbl: 'done' },
+            { ico: '📊', val: `${score}%`,     lbl: 'score' },
           ].map((s, i) => (
-            <div key={i} style={{ background: '#fff', borderRadius: '14px', padding: '12px', textAlign: 'center' }}>
+            <div key={i} style={{ background: '#fff', borderRadius: '14px', padding: '14px', textAlign: 'center' }}>
               <div style={{ fontSize: '18px' }}>{s.ico}</div>
-              <div style={{ fontSize: '20px', fontWeight: 900, color: '#1a1a2e' }}>{s.num}</div>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: '#1a1a2e' }}>{s.val}</div>
               <div style={{ fontSize: '11px', color: '#888' }}>{s.lbl}</div>
             </div>
           ))}
         </div>
 
         {/* Recent tasks */}
-        <div style={{ background: '#fff', borderRadius: '16px', padding: '16px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a2e', marginBottom: '12px' }}>Recent Tasks</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-            {RECENT_TASKS.map((t, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'flex-start', gap: '12px',
-                padding: '11px 0',
-                borderTop: i > 0 ? '1px solid #f5f5f5' : undefined,
-              }}>
-                <div style={{
-                  width: '22px', height: '22px', borderRadius: '6px',
-                  background: t.done ? '#e8f5e9' : '#ffeaea',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0, fontSize: '13px',
-                }}>
-                  {t.done ? '✓' : '✗'}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '13px', color: t.done ? '#1a1a2e' : '#e74c3c', lineHeight: 1.4 }}>{t.task}</div>
-                  <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>Day {t.day}</div>
-                </div>
-              </div>
-            ))}
+        <div>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: '#888', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '10px' }}>
+            Recent Tasks
           </div>
+          {tasksDone === 0 ? (
+            <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', textAlign: 'center' }}>
+              <p style={{ color: '#aaa', fontSize: '14px', margin: 0 }}>Complete your first task to see your history here.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {mockTasks.map((t, i) => (
+                <div key={i} style={{ background: '#fff', borderRadius: '12px', padding: '13px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: '8px',
+                    background: t.done ? '#e8f8f0' : '#ffeaea',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '13px', flexShrink: 0,
+                    color: t.done ? '#4CAF50' : '#f44',
+                  }}>
+                    {t.done ? '✓' : '✕'}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', color: '#1a1a2e', lineHeight: 1.4 }}>
+                      {t.done ? `Day ${t.day} task completed` : `Day ${t.day} — missed`}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>Day {t.day}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
       </div>
       <BottomNav />
     </div>

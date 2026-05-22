@@ -230,9 +230,12 @@ export default function ProfilePage() {
               fontWeight: 700,
               color: '#1a1a2e',
               marginBottom: '5px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
           >
-            {user?.goal || 'Build a personal brand on LinkedIn'}
+            {user?.goal || 'Your goal'}
           </div>
 
           <div
@@ -243,11 +246,12 @@ export default function ProfilePage() {
               alignItems: 'center',
               gap: '5px',
               marginBottom: '12px',
+              overflow: 'hidden',
             }}
           >
-            <span>🎯</span>
-            <span>
-              Big Prize: {user?.bigPrize || 'Land 3 high-paying consulting clients'}
+            <span style={{ flexShrink: 0 }}>🎯</span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Big Prize: {user?.bigPrize || 'Your big prize'}
             </span>
           </div>
 
