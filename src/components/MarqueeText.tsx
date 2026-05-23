@@ -30,7 +30,7 @@ export default function MarqueeText({ text, style }: Props) {
         style={{
           display: 'inline-block',
           '--sd': `-${scrollDist}px`,
-          animation: scrollDist > 0 ? 'marqueeBack 7s ease-in-out infinite' : 'none',
+          animation: scrollDist > 0 ? 'marqueeBack 18s ease-in-out infinite' : 'none',
         } as React.CSSProperties}
       >
         {text}

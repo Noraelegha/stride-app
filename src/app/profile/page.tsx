@@ -84,9 +84,9 @@ export default function ProfilePage() {
         {/* Stats */}
         <div style={{ display: 'flex', gap: '10px' }}>
           {[
-            { val: user?.streak || 0,                   lbl: 'streak', ico: '🔥' },
-            { val: user?.tasksDone || 0,                lbl: 'tasks',  ico: '✅' },
-            { val: `${user?.score || 0}%`,              lbl: 'score',  ico: '📊' },
+            { val: user?.streak || 0,     lbl: 'streak', ico: '🔥' },
+            { val: user?.tasksDone || 0,  lbl: 'tasks',  ico: '✅' },
+            { val: `${user?.score || 0}%`, lbl: 'score', ico: '📊' },
           ].map((s, i) => (
             <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,.1)', borderRadius: '12px', padding: '11px', textAlign: 'center' }}>
               <div style={{ fontSize: '20px', fontWeight: 800, color: '#fff' }}>{s.val}</div>
@@ -100,30 +100,30 @@ export default function ProfilePage() {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
-       {/* Active goal */}
-<div style={{ background: '#fff', borderRadius: '16px', padding: '16px' }}>
-  <div style={{ fontSize: '10px', fontWeight: 700, color: '#888', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '8px' }}>
-    Active Goal
-  </div>
-  <MarqueeText
-    text={user?.goal || 'Your goal'}
-    style={{ fontSize: '15px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px' }}
-  />
-  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '14px', overflow: 'hidden' }}>
-    <span style={{ flexShrink: 0, fontSize: '12px' }}>🎯</span>
-    <MarqueeText
-      text={user?.bigPrize || 'Your big prize'}
-      style={{ fontSize: '12px', color: '#888', flex: 1 }}
-    />
-  </div>
-  <div style={{ fontSize: '12px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px' }}>
-    Phase {user?.phase || 1}: {user?.phase === 2 ? 'Momentum' : user?.phase === 3 ? 'Acceleration' : 'Foundation'}
-  </div>
-  <div style={{ height: '4px', background: '#f0f0f0', borderRadius: '2px' }}>
-    <div style={{ width: `${user?.score || 0}%`, height: '100%', background: '#1a1a2e', borderRadius: '2px', transition: 'width 0.5s ease' }} />
-  </div>
-  <div style={{ fontSize: '11px', color: '#888', marginTop: '4px', textAlign: 'right' }}>{user?.score || 0}%</div>
-</div>
+        {/* Active goal */}
+        <div style={{ background: '#fff', borderRadius: '16px', padding: '16px' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: '#888', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '8px' }}>
+            Active Goal
+          </div>
+          <MarqueeText
+            text={user?.goal || 'Your goal'}
+            style={{ fontSize: '15px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px' }}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '14px', overflow: 'hidden' }}>
+            <span style={{ flexShrink: 0, fontSize: '12px' }}>🎯</span>
+            <MarqueeText
+              text={user?.bigPrize || 'Your big prize'}
+              style={{ fontSize: '12px', color: '#888', flex: 1 }}
+            />
+          </div>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px' }}>
+            Phase {user?.phase || 1}: {user?.phase === 2 ? 'Momentum' : user?.phase === 3 ? 'Acceleration' : 'Foundation'}
+          </div>
+          <div style={{ height: '4px', background: '#f0f0f0', borderRadius: '2px' }}>
+            <div style={{ width: `${user?.score || 0}%`, height: '100%', background: '#1a1a2e', borderRadius: '2px', transition: 'width 0.5s ease' }} />
+          </div>
+          <div style={{ fontSize: '11px', color: '#888', marginTop: '4px', textAlign: 'right' }}>{user?.score || 0}%</div>
+        </div>
 
         {/* Dash settings */}
         <div style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden' }}>
@@ -131,7 +131,7 @@ export default function ProfilePage() {
             Dash Settings
           </div>
 
-          {/* Coach style — tappable */}
+          {/* Coach style */}
           <div onClick={() => setEditCoach(!editCoach)} style={{ borderTop: '1px solid #f5f5f5', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 16px' }}>
               <div style={{ width: 34, height: 34, background: '#f5f5f7', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>
@@ -213,7 +213,6 @@ export default function ProfilePage() {
             Account
           </div>
 
-          {/* Email — read only */}
           <div style={{ padding: '12px 16px', borderTop: '1px solid #f5f5f5' }}>
             <div style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Email</div>
             <div style={{ fontSize: '14px', color: '#1a1a2e' }}>
@@ -221,7 +220,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Upgrade to Pro */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 16px', borderTop: '1px solid #f5f5f5' }}>
             <div style={{ width: 34, height: 34, background: '#1a1a2e', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>⚡</div>
             <div style={{ flex: 1 }}>
