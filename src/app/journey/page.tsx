@@ -1,4 +1,5 @@
 'use client'
+import MarqueeText from '@/components/MarqueeText'
 import { useEffect, useState } from 'react'
 import BottomNav from '@/components/BottomNav'
 
@@ -33,19 +34,10 @@ export default function JourneyPage() {
     <div className="screen" style={{ background: '#f5f5f7' }}>
 
       {/* Header */}
-      <div style={{ background: '#1a1a2e', padding: '52px 22px 20px', flexShrink: 0 }}>
-        <h1 style={{ fontSize: '22px', fontWeight: 900, color: '#fff', margin: 0, marginBottom: '3px' }}>
-          Your journey
-        </h1>
-        <p style={{
-          fontSize: '12px', color: 'rgba(255,255,255,.45)', margin: 0,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {displayGoal}
-        </p>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <MarqueeText
+  text={user.goal || 'Your goal'}
+  style={{ fontSize: '12px', color: 'rgba(255,255,255,.45)' }}
+/>
 
         {/* Phase card */}
         <div style={{ background: '#fff', borderRadius: '16px', padding: '16px' }}>

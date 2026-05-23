@@ -1,4 +1,5 @@
 'use client'
+import MarqueeText from '@/components/MarqueeText'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronRight, ChevronDown } from 'lucide-react'
@@ -99,34 +100,30 @@ export default function ProfilePage() {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
-        {/* Active goal */}
-        <div style={{ background: '#fff', borderRadius: '16px', padding: '16px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 700, color: '#888', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '8px' }}>
-            Active Goal
-          </div>
-          <div style={{
-            fontSize: '15px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {displayGoal}
-          </div>
-          <div style={{
-            fontSize: '12px', color: '#888',
-            display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '14px',
-          }}>
-            <span style={{ flexShrink: 0 }}>🎯</span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {displayPrize}
-            </span>
-          </div>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px' }}>
-            Phase {user?.phase || 1}: {user?.phase === 2 ? 'Momentum' : user?.phase === 3 ? 'Acceleration' : 'Foundation'}
-          </div>
-          <div style={{ height: '4px', background: '#f0f0f0', borderRadius: '2px' }}>
-            <div style={{ width: `${user?.score || 0}%`, height: '100%', background: '#1a1a2e', borderRadius: '2px', transition: 'width 0.5s ease' }} />
-          </div>
-          <div style={{ fontSize: '11px', color: '#888', marginTop: '4px', textAlign: 'right' }}>{user?.score || 0}%</div>
-        </div>
+       {/* Active goal */}
+<div style={{ background: '#fff', borderRadius: '16px', padding: '16px' }}>
+  <div style={{ fontSize: '10px', fontWeight: 700, color: '#888', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '8px' }}>
+    Active Goal
+  </div>
+  <MarqueeText
+    text={user?.goal || 'Your goal'}
+    style={{ fontSize: '15px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px' }}
+  />
+  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '14px', overflow: 'hidden' }}>
+    <span style={{ flexShrink: 0, fontSize: '12px' }}>🎯</span>
+    <MarqueeText
+      text={user?.bigPrize || 'Your big prize'}
+      style={{ fontSize: '12px', color: '#888', flex: 1 }}
+    />
+  </div>
+  <div style={{ fontSize: '12px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px' }}>
+    Phase {user?.phase || 1}: {user?.phase === 2 ? 'Momentum' : user?.phase === 3 ? 'Acceleration' : 'Foundation'}
+  </div>
+  <div style={{ height: '4px', background: '#f0f0f0', borderRadius: '2px' }}>
+    <div style={{ width: `${user?.score || 0}%`, height: '100%', background: '#1a1a2e', borderRadius: '2px', transition: 'width 0.5s ease' }} />
+  </div>
+  <div style={{ fontSize: '11px', color: '#888', marginTop: '4px', textAlign: 'right' }}>{user?.score || 0}%</div>
+</div>
 
         {/* Dash settings */}
         <div style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden' }}>

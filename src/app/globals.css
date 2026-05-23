@@ -217,3 +217,8 @@ html, body {
 .qs-lbl { font-size:11px; color:#888; margin-top:1px; }
 .qs-gold .qs-num { color:#F5A623; }
 .qs-shield .qs-num { color:#4A9EDB; }
+@keyframes marqueeBack {
+  0%, 15%  { transform: translateX(0); }
+  45%, 65% { transform: translateX(var(--sd)); }
+  85%, 100% { transform: translateX(0); }
+}
