@@ -29,8 +29,9 @@ export default function MarqueeText({ text, style }: Props) {
         ref={textRef}
         style={{
           display: 'inline-block',
+          paddingRight: '4px',
           '--sd': `-${scrollDist}px`,
-          animation: scrollDist > 0 ? 'marqueeBack 18s ease-in-out infinite' : 'none',
+          animation: scrollDist > 0 ? 'marqueeBack 25s ease-in-out infinite' : 'none',
         } as React.CSSProperties}
       >
         {text}
