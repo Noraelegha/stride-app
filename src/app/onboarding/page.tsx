@@ -19,22 +19,13 @@ const COACH_OPTIONS = [
 
 async function shortenText(text: string, type: 'goal' | 'prize'): Promise<string> {
   try {
-    const prompt = type === 'goal'
-      ? `Shorten this goal to 6 words or less. Keep it punchy and meaningful. Return only the shortened text, nothing else.\n\nGoal: ${text}`
-      : `Shorten this big prize/reward to 6 words or less. Keep it punchy and meaningful. Return only the shortened text, nothing else.\n\nBig prize: ${text}`
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/shorten', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+      body: JSON.stringify({ text, type }),
     })
-    const data = await response.json()
-    const shortened = data.content?.[0]?.text?.trim()
-    return shortened || text
+    const data = await res.json()
+    return data.shortened || text
   } catch {
     return text
   }
