@@ -15,11 +15,9 @@ export default function SplashPage() {
   useEffect(() => {
     const user = localStorage.getItem('stride_user')
     if (user) {
-      // Returning user on this device — go straight home
       const t = setTimeout(() => router.push('/home'), 1800)
       return () => clearTimeout(t)
     } else {
-      // New device or new user — show welcome screen
       const t = setTimeout(() => setScreen('welcome'), 1000)
       return () => clearTimeout(t)
     }
@@ -46,10 +44,11 @@ export default function SplashPage() {
         return
       }
 
-      // Map Supabase columns to app format and save to localStorage
       const userProfile = {
         name: data.name,
         email: data.email,
+        goalShort: data.goal_short,
+        prizeShort: data.prize_short,
         persona: data.persona,
         goal: data.goal,
         bigPrize: data.big_prize,
@@ -139,7 +138,7 @@ export default function SplashPage() {
         Stop guessing. Start stepping.
       </p>
 
-      {/* Loading dots — shown while checking localStorage */}
+      {/* Loading dots */}
       {screen === 'loading' && (
         <div style={{ display: 'flex', gap: '9px', marginTop: '20px', animation: 'fadeUp 0.6s ease 0.8s both' }}>
           {[0, 1, 2].map(i => (

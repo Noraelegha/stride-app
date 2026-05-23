@@ -50,9 +50,6 @@ export default function ProfilePage() {
 
   const coachLabel = COACH_OPTIONS.find(c => c.id === user?.coachStyle)
 
-  const displayGoal = user?.goalShort || user?.goal || 'Your goal'
-  const displayPrize = user?.bigPrize || 'Your big prize'
-
   if (!user) return null
 
   return (
@@ -84,9 +81,9 @@ export default function ProfilePage() {
         {/* Stats */}
         <div style={{ display: 'flex', gap: '10px' }}>
           {[
-            { val: user?.streak || 0,     lbl: 'streak', ico: '🔥' },
-            { val: user?.tasksDone || 0,  lbl: 'tasks',  ico: '✅' },
-            { val: `${user?.score || 0}%`, lbl: 'score', ico: '📊' },
+            { val: user?.streak || 0,      lbl: 'streak', ico: '🔥' },
+            { val: user?.tasksDone || 0,   lbl: 'tasks',  ico: '✅' },
+            { val: `${user?.score || 0}%`, lbl: 'score',  ico: '📊' },
           ].map((s, i) => (
             <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,.1)', borderRadius: '12px', padding: '11px', textAlign: 'center' }}>
               <div style={{ fontSize: '20px', fontWeight: 800, color: '#fff' }}>{s.val}</div>
@@ -106,13 +103,13 @@ export default function ProfilePage() {
             Active Goal
           </div>
           <MarqueeText
-            text={user?.goal || 'Your goal'}
+            text={user?.goalShort || user?.goal || 'Your goal'}
             style={{ fontSize: '15px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px' }}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '14px', overflow: 'hidden' }}>
             <span style={{ flexShrink: 0, fontSize: '12px' }}>🎯</span>
             <MarqueeText
-              text={user?.bigPrize || 'Your big prize'}
+              text={user?.prizeShort || user?.bigPrize || 'Your big prize'}
               style={{ fontSize: '12px', color: '#888', flex: 1 }}
             />
           </div>
