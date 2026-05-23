@@ -17,10 +17,34 @@ const COACH_OPTIONS = [
   { id: 'mentor',    emoji: '🧘', label: 'Gentle mentor',         sub: 'Encouragement first.' },
 ]
 
+async function shortenText(text: string, type: 'goal' | 'prize'): Promise<string> {
+  try {
+    const prompt = type === 'goal'
+      ? `Shorten this goal to 6 words or less. Keep it punchy and meaningful. Return only the shortened text, nothing else.\n\nGoal: ${text}`
+      : `Shorten this big prize/reward to 6 words or less. Keep it punchy and meaningful. Return only the shortened text, nothing else.\n\nBig prize: ${text}`
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    })
+    const data = await response.json()
+    const shortened = data.content?.[0]?.text?.trim()
+    return shortened || text
+  } catch {
+    return text
+  }
+}
+
 export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const totalSteps = 7
+  const [isFinishing, setIsFinishing] = useState(false)
 
   const [data, setData] = useState({
     name: '',
@@ -78,8 +102,17 @@ export default function OnboardingPage() {
   }
 
   const handleFinish = async () => {
+    setIsFinishing(true)
+
+    const [goalShort, prizeShort] = await Promise.all([
+      shortenText(data.goal, 'goal'),
+      shortenText(data.bigPrize, 'prize'),
+    ])
+
     const userData = {
       ...data,
+      goalShort,
+      prizeShort,
       streak: 0,
       phase: 1,
       tasksDone: 0,
@@ -97,7 +130,9 @@ export default function OnboardingPage() {
         name: data.name,
         persona: data.persona,
         goal: data.goal,
+        goal_short: goalShort,
         big_prize: data.bigPrize,
+        prize_short: prizeShort,
         personal_why: data.personalWhy,
         coach_style: data.coachStyle,
         daily_time: data.dailyTime,
@@ -369,8 +404,12 @@ export default function OnboardingPage() {
             ))}
           </div>
           <div className="ob-foot">
-            <button className="ob-btn" disabled={!canContinue()} onClick={handleFinish}>
-              Lock it in 🔒
+            <button
+              className="ob-btn"
+              disabled={!canContinue() || isFinishing}
+              onClick={handleFinish}
+            >
+              {isFinishing ? 'Setting things up...' : 'Lock it in 🔒'}
             </button>
           </div>
         </>
