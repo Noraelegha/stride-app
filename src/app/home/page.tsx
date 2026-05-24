@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import BottomNav from '@/components/BottomNav'
+import { supabase } from '@/lib/supabase'
 
 type Panel = 'task' | 'hint' | 'srp' | 'streakShow' | 'bonus' | 'locked'
 
@@ -16,17 +17,76 @@ export default function HomePage() {
   const [wallNote, setWallNote] = useState('')
   const [isBeforeNoon, setIsBeforeNoon] = useState(false)
   const [bonusCompleted, setBonusCompleted] = useState(false)
+  const [taskData, setTaskData] = useState<any>(null)
+  const [taskLoading, setTaskLoading] = useState(true)
 
   const cardRef = useRef<HTMLDivElement>(null)
   const bgDoneRef = useRef<HTMLDivElement>(null)
   const bgHintRef = useRef<HTMLDivElement>(null)
   const drag = useRef({ active: false, startX: 0, curX: 0 })
 
+  const fetchTodayTask = async (userData: any) => {
+    try {
+      setTaskLoading(true)
+
+      // Get full task history from Supabase using email
+      const { data: history } = await supabase
+        .from('daily_tasks')
+        .select('*')
+        .eq('user_email', userData.email)
+        .order('day_number', { ascending: true })
+
+      // Check if task already exists for today
+      const today = new Date().toISOString().split('T')[0]
+      const todayTask = history?.find((t: any) => t.task_date === today)
+
+      if (todayTask) {
+        setTaskData(todayTask)
+        setTaskLoading(false)
+        return
+      }
+
+      // No task for today — generate one
+      const res = await fetch('/api/generate-task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user: userData,
+          taskHistory: history || [],
+        }),
+      })
+
+      const { task } = await res.json()
+      if (!task) {
+        setTaskLoading(false)
+        return
+      }
+
+      // Save generated task to Supabase
+      await supabase.from('daily_tasks').insert({
+        user_email: userData.email,
+        day_number: (userData.tasksDone || 0) + 1,
+        task_text: task.taskText,
+        dash_message: task.dashMessage,
+        task_date: today,
+        status: 'pending',
+      })
+
+      setTaskData(task)
+      setTaskLoading(false)
+    } catch (e) {
+      console.error('Task fetch failed:', e)
+      setTaskLoading(false)
+    }
+  }
+
   useEffect(() => {
     const stored = localStorage.getItem('stride_user')
     if (!stored) { router.push('/onboarding'); return }
-    setUser(JSON.parse(stored))
+    const userData = JSON.parse(stored)
+    setUser(userData)
     setIsBeforeNoon(new Date().getHours() < 12)
+    fetchTodayTask(userData)
     const dayLocked = localStorage.getItem('stride_day_locked')
     if (dayLocked === 'true') {
       setPanel('locked')
@@ -112,8 +172,28 @@ export default function HomePage() {
 
   const canSubmit = !!pickedChip && (!showWall || !!pickedWall)
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setIsBeforeNoon(new Date().getHours() < 12)
+
+    // Update task status in Supabase
+    if (user && taskData) {
+      const today = new Date().toISOString().split('T')[0]
+      const status = pickedChip === 'nailed' ? 'completed' : pickedChip === 'partial' ? 'partial' : pickedWall === 'more' ? 'completed' : pickedWall === 'blocked' ? 'blocked' : 'partial'
+
+      await supabase
+        .from('daily_tasks')
+        .update({
+          status,
+          completed_at: pickedChip === 'nailed' || pickedWall === 'more' ? new Date().toISOString() : null,
+          swipe_direction: 'right',
+          user_reply: pickedWall || pickedChip,
+          hint_type: pickedWall || null,
+          hint_text: wallNote || null,
+        })
+        .eq('user_email', user.email)
+        .eq('task_date', today)
+    }
+
     setPanel('streakShow')
   }
 
@@ -121,6 +201,11 @@ export default function HomePage() {
 
   const currentDay = (user.tasksDone || 0) + 1
   const currentStreak = user.streak || 0
+
+  // Task text and message — real data or loading state
+  const taskText = taskData?.task_text || taskData?.taskText || null
+  const dashMessage = taskData?.dash_message || taskData?.dashMessage || null
+  const timeEstimate = taskData?.timeEstimate || `~${user.dailyTime === 'under10' ? '5' : user.dailyTime === '10to30' ? '15' : '30'} minutes`
 
   if (panel === 'streakShow') {
     return (
@@ -261,13 +346,17 @@ export default function HomePage() {
                   <div style={{ background: '#f9f9f9', borderRadius: '9px', borderBottomLeftRadius: '2px', padding: '8px 10px' }}>
                     <div style={{ fontSize: '8px', fontWeight: 700, color: '#1a1a2e', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '2px' }}>Dash</div>
                     <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.45, margin: 0 }}>
-                      Day {currentDay} and you are still here. That already puts you ahead of most. Let&apos;s make it count. 🔥
+                      {taskLoading
+                        ? 'Dash is thinking...'
+                        : dashMessage || `Day ${currentDay} and you are still here. That already puts you ahead of most. Let's make it count. 🔥`}
                     </p>
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: 500, color: '#1a1a2e', lineHeight: 1.45, flex: 1 }}>
-                    Your personalised task is loading. Check back soon.
+                    {taskLoading
+                      ? 'Your personalised task is loading...'
+                      : taskText || 'Your task is ready. Pull to refresh if it does not appear.'}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#bbb' }}>~{user.dailyTime === 'under10' ? '5' : user.dailyTime === '10to30' ? '15' : '30'} minutes</div>
+                  <div style={{ fontSize: '11px', color: '#bbb' }}>{timeEstimate}</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'auto' }}>
                     <span style={{ fontSize: '9px', color: '#ddd' }}>← Help</span>
                     <span style={{ fontSize: '9px', color: '#ddd' }}>Done →</span>
@@ -289,7 +378,9 @@ export default function HomePage() {
                     </p>
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: 500, color: '#1a1a2e', lineHeight: 1.45, flex: 1 }}>
-                    Pick the smallest possible action related to your goal and spend just 5 minutes on it. That is it.
+                    {taskText
+                      ? `Smaller version: just do the first step of "${taskText}" — nothing more.`
+                      : 'Pick the smallest possible action related to your goal and spend just 5 minutes on it. That is it.'}
                   </div>
                   <div style={{ fontSize: '11px', color: '#bbb' }}>~5 minutes</div>
                   <button
@@ -315,9 +406,9 @@ export default function HomePage() {
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e', lineHeight: 1.3 }}>How did it go today?</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {[
-                    { id: 'nailed',  ico: '✅', lbl: 'Nailed it. Done fully.',   wall: false },
+                    { id: 'nailed',  ico: '✅', lbl: 'Nailed it. Done fully.',    wall: false },
                     { id: 'partial', ico: '⏱',  lbl: 'Partial — ran out of time', wall: false },
-                    { id: 'other',   ico: '💬', lbl: 'Something else happened.',  wall: true  },
+                    { id: 'other',   ico: '💬', lbl: 'Something else happened.',   wall: true  },
                   ].map(c => (
                     <div
                       key={c.id}
@@ -392,7 +483,7 @@ export default function HomePage() {
                     <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.45, margin: 0 }}>You are on a roll. Build on what you just did. Expires at midnight.</p>
                   </div>
                   <div style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a2e', lineHeight: 1.45, flex: 1 }}>
-                    Go one level deeper on what you just completed. Ten more minutes. That is all.
+                    {taskData?.bonusTaskText || 'Go one level deeper on what you just completed. Ten more minutes. That is all.'}
                   </div>
                   <div style={{ fontSize: '11px', color: '#bbb' }}>~10 minutes</div>
                   <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
