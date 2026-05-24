@@ -6,7 +6,7 @@ interface Props {
   style?: React.CSSProperties
 }
 
-const SCROLL_SPEED = 40 // px per second — adjust this one number to tune reading speed
+const SCROLL_SPEED = 40 // px per second — completely uniform now
 
 export default function MarqueeText({ text, style }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -17,10 +17,16 @@ export default function MarqueeText({ text, style }: Props) {
   useEffect(() => {
     const measure = () => {
       if (containerRef.current && textRef.current) {
-        const gap = textRef.current.scrollWidth - containerRef.current.clientWidth
-        if (gap > 4) {
+        const textWidth = textRef.current.scrollWidth
+        const containerWidth = containerRef.current.clientWidth
+        
+        // Only scroll if text overflows the container
+        if (textWidth > containerWidth) {
+          const gap = textWidth - containerWidth
           setScrollDist(gap)
-          setDuration(gap / SCROLL_SPEED)
+          
+          // FIX: Calculate speed using the full text width, not the gap
+          setDuration(textWidth / SCROLL_SPEED) 
         } else {
           setScrollDist(0)
           setDuration(0)
@@ -40,8 +46,10 @@ export default function MarqueeText({ text, style }: Props) {
           display: 'inline-block',
           paddingRight: '4px',
           '--sd': `-${scrollDist}px`,
+          // TIP: Use 'linear' timing for perfectly consistent speed. 
+          // 'ease-in-out' accelerates/decelerates differently based on distance.
           animation: scrollDist > 0
-            ? `marqueeBack ${duration}s ease-in-out 1.5s infinite`
+            ? `marqueeBack ${duration}s linear 1.5s infinite`
             : 'none',
         } as React.CSSProperties}
       >
