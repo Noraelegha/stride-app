@@ -15,7 +15,6 @@ export default function HomePage() {
   const [showWall, setShowWall] = useState(false)
   const [pickedWall, setPickedWall] = useState('')
   const [wallNote, setWallNote] = useState('')
-  const [isBeforeNoon, setIsBeforeNoon] = useState(false)
   const [bonusCompleted, setBonusCompleted] = useState(false)
   const [taskData, setTaskData] = useState<any>(null)
   const [taskLoading, setTaskLoading] = useState(true)
@@ -25,18 +24,26 @@ export default function HomePage() {
   const bgHintRef = useRef<HTMLDivElement>(null)
   const drag = useRef({ active: false, startX: 0, curX: 0 })
 
+  const checkMissedDays = (userData: any, lastActiveDate: string | null): number => {
+    if (!lastActiveDate) return 0
+    const last = new Date(lastActiveDate)
+    const today = new Date()
+    last.setHours(0, 0, 0, 0)
+    today.setHours(0, 0, 0, 0)
+    const diff = Math.floor((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24))
+    return Math.max(0, diff - 1)
+  }
+
   const fetchTodayTask = async (userData: any) => {
     try {
       setTaskLoading(true)
 
-      // Get full task history from Supabase using email
       const { data: history } = await supabase
         .from('daily_tasks')
         .select('*')
         .eq('user_email', userData.email)
         .order('day_number', { ascending: true })
 
-      // Check if task already exists for today
       const today = new Date().toISOString().split('T')[0]
       const todayTask = history?.find((t: any) => t.task_date === today)
 
@@ -46,14 +53,10 @@ export default function HomePage() {
         return
       }
 
-      // No task for today — generate one
       const res = await fetch('/api/generate-task', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user: userData,
-          taskHistory: history || [],
-        }),
+        body: JSON.stringify({ user: userData, taskHistory: history || [] }),
       })
 
       const { task } = await res.json()
@@ -62,7 +65,6 @@ export default function HomePage() {
         return
       }
 
-      // Save generated task to Supabase
       await supabase.from('daily_tasks').insert({
         user_email: userData.email,
         day_number: (userData.tasksDone || 0) + 1,
@@ -70,6 +72,9 @@ export default function HomePage() {
         dash_message: task.dashMessage,
         task_date: today,
         status: 'pending',
+        chip1: task.chip1,
+        chip2: task.chip2,
+        chip_type: task.chipType || 'standard',
       })
 
       setTaskData(task)
@@ -84,14 +89,67 @@ export default function HomePage() {
     const stored = localStorage.getItem('stride_user')
     if (!stored) { router.push('/onboarding'); return }
     const userData = JSON.parse(stored)
-    setUser(userData)
-    setIsBeforeNoon(new Date().getHours() < 12)
-    fetchTodayTask(userData)
-    const dayLocked = localStorage.getItem('stride_day_locked')
-    if (dayLocked === 'true') {
-      setPanel('locked')
-      localStorage.removeItem('stride_day_locked')
+
+    const runChecks = async () => {
+      // Get last_active from Supabase
+      const { data: dbUser } = await supabase
+        .from('stride_users')
+        .select('last_active, shields')
+        .eq('email', userData.email)
+        .single()
+
+      const missedDays = checkMissedDays(userData, dbUser?.last_active)
+      const shields = dbUser?.shields ?? userData.shields ?? 0
+
+      if (missedDays >= 3) {
+        router.push('/return')
+        return
+      }
+
+      if (missedDays === 2) {
+        router.push('/recovery')
+        return
+      }
+
+      if (missedDays === 1 && shields > 0) {
+        // Use shield automatically
+        await supabase
+          .from('stride_users')
+          .update({ shields: shields - 1 })
+          .eq('email', userData.email)
+
+        const updated = { ...userData, shields: shields - 1 }
+        localStorage.setItem('stride_user', JSON.stringify(updated))
+        router.push('/unfreeze')
+        return
+      }
+
+      if (missedDays === 1 && shields === 0) {
+        // Streak resets
+        await supabase
+          .from('stride_users')
+          .update({ streak: 0 })
+          .eq('email', userData.email)
+
+        const updated = { ...userData, streak: 0 }
+        localStorage.setItem('stride_user', JSON.stringify(updated))
+        setUser(updated)
+        fetchTodayTask(updated)
+        return
+      }
+
+      // Normal flow
+      setUser(userData)
+      fetchTodayTask(userData)
+
+      const dayLocked = localStorage.getItem('stride_day_locked')
+      if (dayLocked === 'true') {
+        setPanel('locked')
+        localStorage.removeItem('stride_day_locked')
+      }
     }
+
+    runChecks()
   }, [router])
 
   const getGreeting = () => {
@@ -170,21 +228,28 @@ export default function HomePage() {
     partial: 'Where did you get to and what is left? Dash will pick it up from there tomorrow',
   }
 
+  // Momentum window: chip-based not time-based
+  const isEngagedReply = pickedChip === 'chip1' || pickedWall === 'more'
+
   const canSubmit = !!pickedChip && (!showWall || !!pickedWall)
 
   const handleSubmit = async () => {
-    setIsBeforeNoon(new Date().getHours() < 12)
+    const today = new Date().toISOString().split('T')[0]
+    const chipType = taskData?.chip_type || taskData?.chipType || 'standard'
 
-    // Update task status in Supabase
+    const status =
+      pickedChip === 'chip1' ? 'completed' :
+      pickedChip === 'chip2' ? 'partial' :
+      pickedWall === 'more' ? 'completed' :
+      pickedWall === 'blocked' ? 'blocked' :
+      'partial'
+
     if (user && taskData) {
-      const today = new Date().toISOString().split('T')[0]
-      const status = pickedChip === 'nailed' ? 'completed' : pickedChip === 'partial' ? 'partial' : pickedWall === 'more' ? 'completed' : pickedWall === 'blocked' ? 'blocked' : 'partial'
-
       await supabase
         .from('daily_tasks')
         .update({
           status,
-          completed_at: pickedChip === 'nailed' || pickedWall === 'more' ? new Date().toISOString() : null,
+          completed_at: status === 'completed' ? new Date().toISOString() : null,
           swipe_direction: 'right',
           user_reply: pickedWall || pickedChip,
           hint_type: pickedWall || null,
@@ -192,9 +257,19 @@ export default function HomePage() {
         })
         .eq('user_email', user.email)
         .eq('task_date', today)
+
+      // Update last_active in Supabase
+      await supabase
+        .from('stride_users')
+        .update({ last_active: new Date().toISOString() })
+        .eq('email', user.email)
     }
 
-    setPanel('streakShow')
+    if (isEngagedReply) {
+      setPanel('streakShow')
+    } else {
+      setPanel('streakShow')
+    }
   }
 
   if (!user) return null
@@ -202,10 +277,12 @@ export default function HomePage() {
   const currentDay = (user.tasksDone || 0) + 1
   const currentStreak = user.streak || 0
 
-  // Task text and message — real data or loading state
   const taskText = taskData?.task_text || taskData?.taskText || null
   const dashMessage = taskData?.dash_message || taskData?.dashMessage || null
   const timeEstimate = taskData?.timeEstimate || `~${user.dailyTime === 'under10' ? '5' : user.dailyTime === '10to30' ? '15' : '30'} minutes`
+  const chip1Label = taskData?.chip1 || 'Completed it'
+  const chip2Label = taskData?.chip2 || 'Partially done'
+  const chipType = taskData?.chip_type || taskData?.chipType || 'standard'
 
   if (panel === 'streakShow') {
     return (
@@ -222,11 +299,11 @@ export default function HomePage() {
         <p style={{ fontSize: '15px', color: '#555', lineHeight: 1.6, maxWidth: '300px', margin: 0 }}>
           {currentStreak + 1} days. You are in the top tier of people who say they will do something and actually do it. Dash sees you. 🏆
         </p>
-        {isBeforeNoon && (
+        {isEngagedReply && (
           <div style={{ background: '#f9f9f9', border: '1px solid #eee', borderRadius: '16px', padding: '16px', width: '100%', maxWidth: '320px', textAlign: 'left' }}>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a2e', marginBottom: '5px' }}>You finished early ⚡</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a2e', marginBottom: '5px' }}>Momentum window open ⚡</div>
             <div style={{ fontSize: '13px', color: '#777', lineHeight: 1.5, marginBottom: '14px' }}>
-              Momentum window open. Want to go deeper today? Bonus task expires at midnight.
+              Want to go deeper today? Bonus task expires at midnight.
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button onClick={() => setPanel('bonus')} style={{ flex: 1, background: '#1a1a2e', border: 'none', padding: '12px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>
@@ -238,12 +315,11 @@ export default function HomePage() {
             </div>
           </div>
         )}
-        {!isBeforeNoon && (
+        {!isEngagedReply && (
           <button onClick={() => setPanel('locked')} style={{ background: '#1a1a2e', border: 'none', padding: '14px 40px', borderRadius: '14px', fontSize: '15px', fontWeight: 700, color: '#fff', cursor: 'pointer', marginTop: '8px' }}>
             See you tomorrow ☀️
           </button>
         )}
-        {isBeforeNoon && <p style={{ fontSize: '13px', color: '#bbb', margin: 0 }}>See you tomorrow ☀️</p>}
       </div>
     )
   }
@@ -346,15 +422,11 @@ export default function HomePage() {
                   <div style={{ background: '#f9f9f9', borderRadius: '9px', borderBottomLeftRadius: '2px', padding: '8px 10px' }}>
                     <div style={{ fontSize: '8px', fontWeight: 700, color: '#1a1a2e', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '2px' }}>Dash</div>
                     <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.45, margin: 0 }}>
-                      {taskLoading
-                        ? 'Dash is thinking...'
-                        : dashMessage || `Day ${currentDay} and you are still here. That already puts you ahead of most. Let's make it count. 🔥`}
+                      {taskLoading ? 'Dash is thinking...' : dashMessage || `Day ${currentDay} and you are still here. Let's make it count. 🔥`}
                     </p>
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: 500, color: '#1a1a2e', lineHeight: 1.45, flex: 1 }}>
-                    {taskLoading
-                      ? 'Your personalised task is loading...'
-                      : taskText || 'Your task is ready. Pull to refresh if it does not appear.'}
+                    {taskLoading ? 'Your personalised task is loading...' : taskText || 'Your task is ready. Pull to refresh if it does not appear.'}
                   </div>
                   <div style={{ fontSize: '11px', color: '#bbb' }}>{timeEstimate}</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'auto' }}>
@@ -378,16 +450,14 @@ export default function HomePage() {
                     </p>
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: 500, color: '#1a1a2e', lineHeight: 1.45, flex: 1 }}>
-                    {taskText
-                      ? `Smaller version: just do the first step of "${taskText}" — nothing more.`
-                      : 'Pick the smallest possible action related to your goal and spend just 5 minutes on it. That is it.'}
+                    {taskText ? `Smaller version: just do the first step of "${taskText}" and nothing more.` : 'Pick the smallest possible action related to your goal and spend just 5 minutes on it.'}
                   </div>
                   <div style={{ fontSize: '11px', color: '#bbb' }}>~5 minutes</div>
                   <button
                     onClick={() => setPanel('srp')}
                     style={{ background: '#1a1a2e', border: 'none', padding: '13px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer', marginTop: 'auto' }}
                   >
-                    ✓ Done
+                    Done
                   </button>
                 </div>
               )}
@@ -405,25 +475,74 @@ export default function HomePage() {
                 <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>Dash</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e', lineHeight: 1.3 }}>How did it go today?</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {[
-                    { id: 'nailed',  ico: '✅', lbl: 'Nailed it. Done fully.',    wall: false },
-                    { id: 'partial', ico: '⏱',  lbl: 'Partial — ran out of time', wall: false },
-                    { id: 'other',   ico: '💬', lbl: 'Something else happened.',   wall: true  },
-                  ].map(c => (
-                    <div
-                      key={c.id}
-                      onClick={() => { setPickedChip(c.id); setShowWall(c.wall); setPickedWall(''); setWallNote('') }}
-                      style={{
-                        border: `1.5px solid ${pickedChip === c.id ? '#1a1a2e' : '#eee'}`,
-                        borderRadius: '12px', padding: '10px 13px', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '9px',
-                        background: pickedChip === c.id ? '#f5f5fa' : '#fff', transition: 'all .15s',
-                      }}
-                    >
-                      <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>{c.ico}</span>
-                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{c.lbl}</span>
-                    </div>
-                  ))}
+
+                  {chipType === 'checkin' ? (
+                    <>
+                      <div
+                        onClick={() => { setPickedChip('chip1'); setShowWall(false) }}
+                        style={{
+                          border: `1.5px solid ${pickedChip === 'chip1' ? '#1a1a2e' : '#eee'}`,
+                          borderRadius: '12px', padding: '10px 13px', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '9px',
+                          background: pickedChip === 'chip1' ? '#f5f5fa' : '#fff', transition: 'all .15s',
+                        }}
+                      >
+                        <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>✅</span>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{chip1Label}</span>
+                      </div>
+                      <div
+                        onClick={() => { setPickedChip('chip2'); setShowWall(false) }}
+                        style={{
+                          border: `1.5px solid ${pickedChip === 'chip2' ? '#1a1a2e' : '#eee'}`,
+                          borderRadius: '12px', padding: '10px 13px', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '9px',
+                          background: pickedChip === 'chip2' ? '#f5f5fa' : '#fff', transition: 'all .15s',
+                        }}
+                      >
+                        <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>⏳</span>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{chip2Label}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        onClick={() => { setPickedChip('chip1'); setShowWall(false) }}
+                        style={{
+                          border: `1.5px solid ${pickedChip === 'chip1' ? '#1a1a2e' : '#eee'}`,
+                          borderRadius: '12px', padding: '10px 13px', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '9px',
+                          background: pickedChip === 'chip1' ? '#f5f5fa' : '#fff', transition: 'all .15s',
+                        }}
+                      >
+                        <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>✅</span>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{chip1Label}</span>
+                      </div>
+                      <div
+                        onClick={() => { setPickedChip('chip2'); setShowWall(false) }}
+                        style={{
+                          border: `1.5px solid ${pickedChip === 'chip2' ? '#1a1a2e' : '#eee'}`,
+                          borderRadius: '12px', padding: '10px 13px', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '9px',
+                          background: pickedChip === 'chip2' ? '#f5f5fa' : '#fff', transition: 'all .15s',
+                        }}
+                      >
+                        <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>⏱</span>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{chip2Label}</span>
+                      </div>
+                      <div
+                        onClick={() => { setPickedChip('other'); setShowWall(true); setPickedWall(''); setWallNote('') }}
+                        style={{
+                          border: `1.5px solid ${pickedChip === 'other' ? '#1a1a2e' : '#eee'}`,
+                          borderRadius: '12px', padding: '10px 13px', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '9px',
+                          background: pickedChip === 'other' ? '#f5f5fa' : '#fff', transition: 'all .15s',
+                        }}
+                      >
+                        <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>💬</span>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>Something else happened.</span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {showWall && (
@@ -467,7 +586,7 @@ export default function HomePage() {
                   disabled={!canSubmit}
                   style={{ background: '#1a1a2e', border: 'none', padding: '11px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: canSubmit ? 'pointer' : 'default', opacity: canSubmit ? 1 : 0.3, marginTop: 'auto', transition: 'opacity .2s' }}
                 >
-                  Submit →
+                  Submit
                 </button>
               </div>
 
@@ -483,12 +602,12 @@ export default function HomePage() {
                     <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.45, margin: 0 }}>You are on a roll. Build on what you just did. Expires at midnight.</p>
                   </div>
                   <div style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a2e', lineHeight: 1.45, flex: 1 }}>
-                    {taskData?.bonusTaskText || 'Go one level deeper on what you just completed. Ten more minutes. That is all.'}
+                    {taskData?.bonus_task_text || 'Go one level deeper on what you just completed. Ten more minutes. That is all.'}
                   </div>
                   <div style={{ fontSize: '11px', color: '#bbb' }}>~10 minutes</div>
                   <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
                     <button onClick={() => { setBonusCompleted(false); setPanel('locked') }} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '12px', borderRadius: '13px', fontSize: '13px', color: '#888', cursor: 'pointer' }}>Skip</button>
-                    <button onClick={() => { setBonusCompleted(true); setPanel('locked') }} style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '12px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>✓ Done</button>
+                    <button onClick={() => { setBonusCompleted(true); setPanel('locked') }} style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '12px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>Done</button>
                   </div>
                 </div>
               )}
