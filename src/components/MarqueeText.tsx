@@ -6,7 +6,7 @@ interface Props {
   style?: React.CSSProperties
 }
 
-const SCROLL_SPEED = 15 // px per second — adjust this one number to tune reading speed
+const SCROLL_SPEED = 30 // px per second — adjust this one number to tune reading speed
 
 export default function MarqueeText({ text, style }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
