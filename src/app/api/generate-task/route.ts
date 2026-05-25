@@ -10,22 +10,37 @@ export async function POST(req: NextRequest) {
     }
 
     const allTasks: any[] = taskHistory || []
-    const recentTasks = allTasks.slice(-7)
-    const olderTasks = allTasks.slice(0, Math.max(0, allTasks.length - 7))
+
+    // Fix null day_numbers by calculating from task_date
+    const joinedAt = user.joinedAt ? new Date(user.joinedAt) : null
+    const tasksWithDays = allTasks.map((t: any) => {
+      if (t.day_number) return t
+      if (t.task_date && joinedAt) {
+        const taskDate = new Date(t.task_date)
+        joinedAt.setHours(0, 0, 0, 0)
+        taskDate.setHours(0, 0, 0, 0)
+        const dayNum = Math.floor((taskDate.getTime() - joinedAt.getTime()) / (1000 * 60 * 60 * 24)) + 1
+        return { ...t, day_number: dayNum }
+      }
+      return t
+    })
+
+    const recentTasks = tasksWithDays.slice(-7)
+    const olderTasks = tasksWithDays.slice(0, Math.max(0, tasksWithDays.length - 7))
 
     const recentHistory = recentTasks.length > 0
       ? recentTasks.map((t: any) => {
           const status = t.status === 'completed' ? '✅' : t.bonus_completed ? '⬆️' : t.status === 'partial' ? '🔄' : '❌'
           const chip = t.user_reply ? ` — Reply: ${t.user_reply}` : ''
           const note = t.hint_text ? ` — Note: ${t.hint_text}` : ''
-          return `Day ${t.day_number} — ${status} — "${t.task_text}"${chip}${note}`
+          return `Day ${t.day_number || '?'} — ${status} — "${t.task_text}"${chip}${note}`
         }).join('\n')
       : 'No tasks yet. This is Day 1.'
 
     const compactHistory = olderTasks.length > 0
       ? olderTasks.map((t: any) => {
           const status = t.status === 'completed' ? '✅' : t.bonus_completed ? '⬆️' : t.status === 'partial' ? '🔄' : '❌'
-          return `Day ${t.day_number} ${status}`
+          return `Day ${t.day_number || '?'} ${status}`
         }).join(' | ')
       : ''
 
@@ -42,6 +57,13 @@ export async function POST(req: NextRequest) {
       mentor:    'Gentle mentor, encouragement first, pressure second. Patient, warm, belief-driven.',
     }
 
+    const coachToneExamples: Record<string, string> = {
+      tough:     'Example dashMessage tone: "26 days. No excuses today. Here is your move."',
+      strategic: 'Example dashMessage tone: "Day 26. One action, high leverage. This is how momentum compounds."',
+      friend:    'Example dashMessage tone: "Day 26 and you actually showed up again. Unbelievable. Let\'s go."',
+      mentor:    'Example dashMessage tone: "26 days in. You have built something real here. One more step today."',
+    }
+
     const backgroundContext = user.tasksDone > 7
       ? `Started as: ${user.prior || 'fresh start'}. Key context: ${(user.priorDetail || '').slice(0, 100)}`
       : `Prior context: ${user.prior || 'starting fresh'}. ${user.priorDetail || ''}`
@@ -49,6 +71,8 @@ export async function POST(req: NextRequest) {
     const sprintContext = user.sprintTheme
       ? `ACTIVE SPRINT: Theme: "${user.sprintTheme}" | Sprint Day: ${user.sprintDay || 1} of 7 | Started: ${user.sprintStartDate}`
       : 'No active sprint.'
+
+    const todayDayNumber = (user.tasksDone || 0) + 1
 
     const userContext = `
 USER PROFILE:
@@ -63,7 +87,7 @@ Daily Time Available: ${user.dailyTime}
 Background: ${backgroundContext}
 
 CURRENT STATUS:
-Today is Day ${(user.tasksDone || 0) + 1} for ${user.name}
+Today is Day ${todayDayNumber} for ${user.name}
 Current Streak: ${user.streak || 0} days
 Phase: ${user.phase || 1}
 Completion Score: ${user.score || 0}%
@@ -80,6 +104,14 @@ Weekend: ${isWeekend ? 'YES, avoid tasks requiring going out or making calls' : 
 TASK HISTORY (all time):
 ${compactHistory ? `Full history: ${compactHistory}\n\n` : ''}Recent detail (last 7 days):
 ${recentHistory}
+
+DASH MESSAGE RULES FOR THIS RESPONSE:
+- Maximum 2 short sentences. Never more.
+- No em dashes. Use a period or nothing instead.
+- No generic motivational phrases.
+- Must reference something specific: the day number, the streak, or something from their recent history.
+- Tone must match coach style exactly: ${coachDescriptions[user.coachStyle] || user.coachStyle}
+- ${coachToneExamples[user.coachStyle] || ''}
 
 Generate today's task for ${user.name}. Return valid JSON only.
 `

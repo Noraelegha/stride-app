@@ -45,7 +45,7 @@ export default function HomePage() {
         .from('daily_tasks')
         .select('*')
         .eq('user_email', userData.email)
-        .order('day_number', { ascending: true })
+        .order('task_date', { ascending: true })
 
       const today = new Date().toISOString().split('T')[0]
       const todayTask = history?.find((t: any) => t.task_date === today)
@@ -459,12 +459,13 @@ export default function HomePage() {
               <div style={{ fontSize: '12px', color: '#888' }}>See all</div>
             </div>
 
-            <div style={{ position: 'relative', height: '320px', overflow: 'hidden', borderRadius: '20px' }}>
+            {/* Task card container — dynamic height, no fixed 320px */}
+            <div style={{ position: 'relative', borderRadius: '20px', minHeight: '220px' }}>
 
               <div ref={bgDoneRef} style={{
                 position: 'absolute', inset: 0, background: '#4CAF50', borderRadius: '20px',
                 display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-                paddingRight: '26px', opacity: 0, zIndex: 1,
+                paddingRight: '26px', opacity: 0, zIndex: 1, pointerEvents: 'none',
               }}>
                 <div style={{ color: '#fff', fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 7 }}>✅ Done!</div>
               </div>
@@ -472,7 +473,7 @@ export default function HomePage() {
               <div ref={bgHintRef} style={{
                 position: 'absolute', inset: 0, background: '#f0f0f5', border: '1.5px solid #ddd',
                 borderRadius: '20px', display: 'flex', alignItems: 'center',
-                justifyContent: 'flex-start', paddingLeft: '26px', opacity: 0, zIndex: 1,
+                justifyContent: 'flex-start', paddingLeft: '26px', opacity: 0, zIndex: 1, pointerEvents: 'none',
               }}>
                 <div style={{ color: '#888', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 7 }}>💡 Help</div>
               </div>
@@ -488,10 +489,10 @@ export default function HomePage() {
                   onTouchMove={e => moveDrag(e.touches[0].clientX)}
                   onTouchEnd={endDrag}
                   style={{
-                    position: 'absolute', inset: 0, background: '#fff',
+                    position: 'relative', background: '#fff',
                     borderRadius: '20px', border: '1.5px solid #1a1a2e',
-                    padding: '16px 18px', cursor: 'grab', userSelect: 'none',
-                    zIndex: 2, display: 'flex', flexDirection: 'column', gap: '8px',
+                    padding: '16px 18px 20px', cursor: 'grab', userSelect: 'none',
+                    zIndex: 2, display: 'flex', flexDirection: 'column', gap: '10px',
                   }}
                 >
                   <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>
@@ -500,25 +501,33 @@ export default function HomePage() {
                   <div style={{ background: '#f9f9f9', borderRadius: '9px', borderBottomLeftRadius: '2px', padding: '8px 10px' }}>
                     <div style={{ fontSize: '8px', fontWeight: 700, color: '#1a1a2e', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '2px' }}>Dash</div>
                     <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.45, margin: 0 }}>
-                      {taskLoading ? 'Dash is thinking...' : dashMessage || `Day ${currentDay} and you are still here. Let's make it count. 🔥`}
+                      {taskLoading ? 'Dash is thinking...' : dashMessage || `Day ${currentDay}. Let's go.`}
                     </p>
                   </div>
-                  <div style={{ fontSize: '14px', fontWeight: 500, color: '#1a1a2e', lineHeight: 1.45, flex: 1 }}>
+                  <div style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a2e', lineHeight: 1.5 }}>
                     {taskLoading ? 'Your personalised task is loading...' : taskText || 'Your task is ready. Pull to refresh if it does not appear.'}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#bbb' }}>{timeEstimate}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'auto' }}>
-                    <span style={{ fontSize: '9px', color: '#ddd' }}>← Help</span>
-                    <span style={{ fontSize: '9px', color: '#ddd' }}>Done →</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '5px',
+                      background: '#f5f5f7', borderRadius: '20px', padding: '4px 10px',
+                      fontSize: '11px', color: '#888', fontWeight: 600,
+                    }}>
+                      ⏱ {timeEstimate}
+                    </div>
+                    <div style={{ display: 'flex', gap: '14px' }}>
+                      <span style={{ fontSize: '10px', color: '#ccc' }}>← Help</span>
+                      <span style={{ fontSize: '10px', color: '#ccc' }}>Done →</span>
+                    </div>
                   </div>
                 </div>
               )}
 
               {panel === 'hint' && (
                 <div style={{
-                  position: 'absolute', inset: 0, background: '#fff',
+                  position: 'relative', background: '#fff',
                   borderRadius: '20px', border: '1.5px solid #F5A623',
-                  padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 5,
+                  padding: '16px 18px 20px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 5,
                 }}>
                   <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>Hint from Dash 💡</div>
                   <div style={{ background: '#fffbf0', borderLeft: '3px solid #F5A623', borderRadius: '0 10px 10px 0', padding: '10px 12px' }}>
@@ -527,13 +536,15 @@ export default function HomePage() {
                       It does not have to be perfect. Done beats perfect every single time. Forget the full task. Here is the smaller version.
                     </p>
                   </div>
-                  <div style={{ fontSize: '14px', fontWeight: 500, color: '#1a1a2e', lineHeight: 1.45, flex: 1 }}>
+                  <div style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a2e', lineHeight: 1.5 }}>
                     {taskText ? `Smaller version: just do the first step of "${taskText}" and nothing more.` : 'Pick the smallest possible action related to your goal and spend just 5 minutes on it.'}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#bbb' }}>~5 minutes</div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#f5f5f7', borderRadius: '20px', padding: '4px 10px', fontSize: '11px', color: '#888', fontWeight: 600, alignSelf: 'flex-start' }}>
+                    ⏱ ~5 minutes
+                  </div>
                   <button
                     onClick={() => setPanel('srp')}
-                    style={{ background: '#1a1a2e', border: 'none', padding: '13px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer', marginTop: 'auto' }}
+                    style={{ background: '#1a1a2e', border: 'none', padding: '13px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer', marginTop: '4px' }}
                   >
                     Done
                   </button>
@@ -541,7 +552,9 @@ export default function HomePage() {
               )}
 
               <div style={{
-                position: 'absolute', inset: 0, background: '#fff',
+                position: panel === 'srp' ? 'relative' : 'absolute',
+                inset: panel === 'srp' ? 'unset' : 0,
+                background: '#fff',
                 borderRadius: '20px', border: '1.5px solid #1a1a2e',
                 padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px',
                 overflowY: 'auto',
@@ -549,6 +562,7 @@ export default function HomePage() {
                 pointerEvents: panel === 'srp' ? 'auto' : 'none',
                 transition: 'opacity .3s ease',
                 zIndex: panel === 'srp' ? 20 : 0,
+                minHeight: panel === 'srp' ? 'unset' : '220px',
               }}>
                 <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>Dash</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e', lineHeight: 1.3 }}>How did it go today?</div>
@@ -652,20 +666,22 @@ export default function HomePage() {
 
               {panel === 'bonus' && (
                 <div style={{
-                  position: 'absolute', inset: 0, background: '#fff',
+                  position: 'relative', background: '#fff',
                   borderRadius: '20px', border: '1.5px solid #F5A623',
-                  padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 5,
+                  padding: '16px 18px 20px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 5,
                 }}>
                   <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>⚡ Bonus task</div>
                   <div style={{ background: '#f9f9f9', borderRadius: '9px', borderBottomLeftRadius: '2px', padding: '8px 10px' }}>
                     <div style={{ fontSize: '8px', fontWeight: 700, color: '#1a1a2e', textTransform: 'uppercase', marginBottom: '2px' }}>Dash</div>
                     <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.45, margin: 0 }}>You are on a roll. Build on what you just did. Expires at midnight.</p>
                   </div>
-                  <div style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a2e', lineHeight: 1.45, flex: 1 }}>
+                  <div style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a2e', lineHeight: 1.5 }}>
                     {taskData?.bonus_task_text || 'Go one level deeper on what you just completed. Ten more minutes. That is all.'}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#bbb' }}>~10 minutes</div>
-                  <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#f5f5f7', borderRadius: '20px', padding: '4px 10px', fontSize: '11px', color: '#888', fontWeight: 600, alignSelf: 'flex-start' }}>
+                    ⏱ ~10 minutes
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
                     <button onClick={() => { setBonusCompleted(false); setPanel('locked') }} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '12px', borderRadius: '13px', fontSize: '13px', color: '#888', cursor: 'pointer' }}>Skip</button>
                     <button onClick={() => { setBonusCompleted(true); setPanel('locked') }} style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '12px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>Done</button>
                   </div>
@@ -674,10 +690,10 @@ export default function HomePage() {
 
               {panel === 'locked' && (
                 <div style={{
-                  position: 'absolute', inset: 0, background: '#fff',
+                  position: 'relative', background: '#fff',
                   borderRadius: '20px', border: `1.5px solid ${bonusCompleted ? '#F5A623' : '#4CAF50'}`,
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'center', gap: '10px', padding: '24px', textAlign: 'center', zIndex: 5,
+                  justifyContent: 'center', gap: '10px', padding: '40px 24px', textAlign: 'center', zIndex: 5,
                 }}>
                   <div style={{ fontSize: '44px' }}>🔒</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
