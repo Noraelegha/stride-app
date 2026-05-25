@@ -91,7 +91,15 @@ export default function HomePage() {
     const userData = JSON.parse(stored)
 
     const runChecks = async () => {
-      // Get last_active from Supabase
+      // Skip routing checks if coming from recovery or return screen
+      const fromRecovery = localStorage.getItem('stride_from_recovery')
+      if (fromRecovery) {
+        localStorage.removeItem('stride_from_recovery')
+        setUser(userData)
+        fetchTodayTask(userData)
+        return
+      }
+
       const { data: dbUser } = await supabase
         .from('stride_users')
         .select('last_active, shields')
@@ -112,7 +120,6 @@ export default function HomePage() {
       }
 
       if (missedDays === 1 && shields > 0) {
-        // Use shield automatically
         await supabase
           .from('stride_users')
           .update({ shields: shields - 1 })
@@ -125,7 +132,6 @@ export default function HomePage() {
       }
 
       if (missedDays === 1 && shields === 0) {
-        // Streak resets
         await supabase
           .from('stride_users')
           .update({ streak: 0 })
@@ -138,7 +144,6 @@ export default function HomePage() {
         return
       }
 
-      // Normal flow
       setUser(userData)
       fetchTodayTask(userData)
 
@@ -228,14 +233,11 @@ export default function HomePage() {
     partial: 'Where did you get to and what is left? Dash will pick it up from there tomorrow',
   }
 
-  // Momentum window: chip-based not time-based
   const isEngagedReply = pickedChip === 'chip1' || pickedWall === 'more'
-
   const canSubmit = !!pickedChip && (!showWall || !!pickedWall)
 
   const handleSubmit = async () => {
     const today = new Date().toISOString().split('T')[0]
-    const chipType = taskData?.chip_type || taskData?.chipType || 'standard'
 
     const status =
       pickedChip === 'chip1' ? 'completed' :
@@ -258,25 +260,19 @@ export default function HomePage() {
         .eq('user_email', user.email)
         .eq('task_date', today)
 
-      // Update last_active in Supabase
       await supabase
         .from('stride_users')
         .update({ last_active: new Date().toISOString() })
         .eq('email', user.email)
     }
 
-    if (isEngagedReply) {
-      setPanel('streakShow')
-    } else {
-      setPanel('streakShow')
-    }
+    setPanel('streakShow')
   }
 
   if (!user) return null
 
   const currentDay = (user.tasksDone || 0) + 1
   const currentStreak = user.streak || 0
-
   const taskText = taskData?.task_text || taskData?.taskText || null
   const dashMessage = taskData?.dash_message || taskData?.dashMessage || null
   const timeEstimate = taskData?.timeEstimate || `~${user.dailyTime === 'under10' ? '5' : user.dailyTime === '10to30' ? '15' : '30'} minutes`

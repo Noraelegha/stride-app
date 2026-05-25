@@ -1,9 +1,31 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { Zap } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 export default function RecoveryPage() {
   const router = useRouter()
+
+  const handleReturn = async () => {
+    // Set flag so home skips the missed days check
+    localStorage.setItem('stride_from_recovery', 'true')
+
+    // Update last_active so the calculation resets
+    try {
+      const stored = localStorage.getItem('stride_user')
+      if (stored) {
+        const user = JSON.parse(stored)
+        await supabase
+          .from('stride_users')
+          .update({ last_active: new Date().toISOString() })
+          .eq('email', user.email)
+      }
+    } catch (e) {
+      console.error('last_active update failed:', e)
+    }
+
+    router.push('/home')
+  }
 
   return (
     <div style={{
@@ -52,7 +74,7 @@ export default function RecoveryPage() {
           One small thing is all I am asking for right now.
         </p>
         <button
-          onClick={() => router.push('/home')}
+          onClick={handleReturn}
           style={{
             width: '100%', background: '#1a1a2e', color: 'white',
             border: 'none', borderRadius: '14px', padding: '16px',
