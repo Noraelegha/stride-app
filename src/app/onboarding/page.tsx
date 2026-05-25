@@ -153,36 +153,49 @@ export default function OnboardingPage() {
   return (
     <div className="ob-screen">
 
-      {step === 1 && (
-        <>
-          <div className="ob-head">
-            <div className="ob-prog">{dots}</div>
-            <div className="ob-step">Step 1 of {totalSteps}</div>
-            <div className="ob-title">What should Dash call you?</div>
-            <div className="ob-sub">Your name and email make every message personal.</div>
-          </div>
-          <div className="ob-body">
-            <textarea
-              className="ob-ta" rows={1}
-              placeholder="Your first name"
-              value={data.name}
-              onChange={e => set('name', e.target.value)}
-              style={{ resize: 'none' }}
-            />
-            <div className="ob-lbl" style={{ marginTop: '8px' }}>Email address</div>
-            <textarea
-              className="ob-ta" rows={1}
-              placeholder="you@example.com"
-              value={data.email}
-              onChange={e => set('email', e.target.value)}
-              style={{ resize: 'none' }}
-            />
-          </div>
-          <div className="ob-foot">
-            <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(2)}>Continue</button>
-          </div>
-        </>
-      )}
+{step === 1 && (
+  <>
+    <div className="ob-head">
+      <div className="ob-prog">{dots}</div>
+      <div className="ob-step">Step 1 of {totalSteps}</div>
+      <div className="ob-title">What should Dash call you?</div>
+    </div>
+
+    <div className="ob-body">
+      <textarea
+        className="ob-ta"
+        rows={1}
+        placeholder="Your first name"
+        value={data.name}
+        onChange={e => set('name', e.target.value)}
+        style={{ resize: 'none' }}
+      />
+
+      <div className="ob-lbl" style={{ marginTop: '8px' }}>
+        Email address
+      </div>
+
+      <textarea
+        className="ob-ta"
+        rows={1}
+        placeholder="you@example.com"
+        value={data.email}
+        onChange={e => set('email', e.target.value)}
+        style={{ resize: 'none' }}
+      />
+    </div>
+
+    <div className="ob-foot">
+      <button
+        className="ob-btn"
+        disabled={!canContinue()}
+        onClick={() => setStep(2)}
+      >
+        Continue
+      </button>
+    </div>
+  </>
+)}
 
       {step === 2 && (
         <>
