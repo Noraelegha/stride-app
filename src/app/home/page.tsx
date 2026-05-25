@@ -19,6 +19,7 @@ export default function HomePage() {
   const [taskData, setTaskData] = useState<any>(null)
   const [taskLoading, setTaskLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   const cardRef = useRef<HTMLDivElement>(null)
   const bgDoneRef = useRef<HTMLDivElement>(null)
@@ -254,6 +255,7 @@ export default function HomePage() {
 
   const handleSubmit = async () => {
     if (submitting) return
+    setSubmitError('')
 
     try {
       setSubmitting(true)
@@ -284,6 +286,7 @@ export default function HomePage() {
 
         if (dailyTaskError) {
           console.error('daily_tasks update failed:', dailyTaskError)
+          setSubmitError('Something went wrong saving your response. Please try again.')
           return
         }
       }
@@ -310,6 +313,7 @@ export default function HomePage() {
 
         if (userUpdateError) {
           console.error('stride_users update failed:', userUpdateError)
+          setSubmitError('Something went wrong updating your stats. Please try again.')
           return
         }
 
@@ -333,6 +337,7 @@ export default function HomePage() {
 
         if (blockedError) {
           console.error('blocked update failed:', blockedError)
+          setSubmitError('Something went wrong. Please try again.')
           return
         }
       }
@@ -340,6 +345,7 @@ export default function HomePage() {
       setPanel('streakShow')
     } catch (err) {
       console.error('Submit failed:', err)
+      setSubmitError('Something went wrong. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -626,6 +632,12 @@ export default function HomePage() {
                         )}
                       </>
                     )}
+                  </div>
+                )}
+
+                {submitError && (
+                  <div style={{ fontSize: '12px', color: '#f44', textAlign: 'center', padding: '6px 0' }}>
+                    {submitError}
                   </div>
                 )}
 
