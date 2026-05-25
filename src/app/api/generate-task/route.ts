@@ -92,8 +92,8 @@ Generate today's task for ${user.name}. Return valid JSON only.
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1500,
         system: DASH_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userContext }],
       }),
