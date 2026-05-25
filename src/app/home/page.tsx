@@ -18,11 +18,13 @@ export default function HomePage() {
   const [bonusCompleted, setBonusCompleted] = useState(false)
   const [taskData, setTaskData] = useState<any>(null)
   const [taskLoading, setTaskLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
 
   const cardRef = useRef<HTMLDivElement>(null)
   const bgDoneRef = useRef<HTMLDivElement>(null)
   const bgHintRef = useRef<HTMLDivElement>(null)
   const drag = useRef({ active: false, startX: 0, curX: 0 })
+  const engagedReplyRef = useRef(false)
 
   const checkMissedDays = (userData: any, lastActiveDate: string | null): number => {
     if (!lastActiveDate) return 0
@@ -60,12 +62,13 @@ export default function HomePage() {
       })
 
       const { task } = await res.json()
+
       if (!task) {
         setTaskLoading(false)
         return
       }
 
-      await supabase.from('daily_tasks').insert({
+      const { error: insertError } = await supabase.from('daily_tasks').insert({
         user_email: userData.email,
         day_number: (userData.tasksDone || 0) + 1,
         task_text: task.taskText,
@@ -77,7 +80,20 @@ export default function HomePage() {
         chip_type: task.chipType || 'standard',
       })
 
-      setTaskData(task)
+      if (insertError) {
+        console.error('Task insert failed:', insertError)
+        setTaskLoading(false)
+        return
+      }
+
+      const { data: insertedTask } = await supabase
+        .from('daily_tasks')
+        .select('*')
+        .eq('user_email', userData.email)
+        .eq('task_date', today)
+        .single()
+
+      setTaskData(insertedTask)
       setTaskLoading(false)
     } catch (e) {
       console.error('Task fetch failed:', e)
@@ -91,7 +107,6 @@ export default function HomePage() {
     const userData = JSON.parse(stored)
 
     const runChecks = async () => {
-      // Skip routing checks if coming from recovery or return screen
       const fromRecovery = localStorage.getItem('stride_from_recovery')
       if (fromRecovery) {
         localStorage.removeItem('stride_from_recovery')
@@ -233,40 +248,101 @@ export default function HomePage() {
     partial: 'Where did you get to and what is left? Dash will pick it up from there tomorrow',
   }
 
-  const isEngagedReply = pickedChip === 'chip1' || pickedWall === 'more'
-  const canSubmit = !!pickedChip && (!showWall || !!pickedWall)
+  const canSubmit =
+    !!pickedChip &&
+    (!showWall || (!!pickedWall && wallNote.trim().length >= 5))
 
   const handleSubmit = async () => {
-    const today = new Date().toISOString().split('T')[0]
+    if (submitting) return
 
-    const status =
-      pickedChip === 'chip1' ? 'completed' :
-      pickedChip === 'chip2' ? 'partial' :
-      pickedWall === 'more' ? 'completed' :
-      pickedWall === 'blocked' ? 'blocked' :
-      'partial'
+    try {
+      setSubmitting(true)
 
-    if (user && taskData) {
-      await supabase
-        .from('daily_tasks')
-        .update({
-          status,
-          completed_at: status === 'completed' ? new Date().toISOString() : null,
-          swipe_direction: 'right',
-          user_reply: pickedWall || pickedChip,
-          hint_type: pickedWall || null,
-          hint_text: wallNote || null,
-        })
-        .eq('user_email', user.email)
-        .eq('task_date', today)
+      const today = new Date().toISOString().split('T')[0]
 
-      await supabase
-        .from('stride_users')
-        .update({ last_active: new Date().toISOString() })
-        .eq('email', user.email)
+      const isCompleted = pickedChip === 'chip1' || pickedWall === 'more'
+      const isPartial = pickedChip === 'chip2' || pickedWall === 'partial'
+      const isBlocked = pickedWall === 'blocked'
+
+      const status = isCompleted ? 'completed' : isPartial ? 'partial' : isBlocked ? 'blocked' : 'partial'
+
+      engagedReplyRef.current = isCompleted
+
+      if (user && taskData) {
+        const { error: dailyTaskError } = await supabase
+          .from('daily_tasks')
+          .update({
+            status,
+            completed_at: isCompleted ? new Date().toISOString() : null,
+            swipe_direction: panel === 'hint' ? 'left' : 'right',
+            user_reply: pickedWall || pickedChip,
+            hint_type: pickedWall || null,
+            hint_text: wallNote.trim() || null,
+          })
+          .eq('user_email', user.email)
+          .eq('task_date', today)
+
+        if (dailyTaskError) {
+          console.error('daily_tasks update failed:', dailyTaskError)
+          return
+        }
+      }
+
+      if (user && (isCompleted || isPartial)) {
+        const newTasksDone = (user.tasksDone || 0) + 1
+        const newStreak = (user.streak || 0) + 1
+        const newScore = Math.min(Math.round((newTasksDone / newStreak) * 100), 100)
+        const currentShields = user.shields || 0
+        const newShields = newStreak % 5 === 0 && currentShields < 2
+          ? currentShields + 1
+          : currentShields
+
+        const { error: userUpdateError } = await supabase
+          .from('stride_users')
+          .update({
+            tasks_done: newTasksDone,
+            streak: newStreak,
+            score: newScore,
+            shields: newShields,
+            last_active: new Date().toISOString(),
+          })
+          .eq('email', user.email)
+
+        if (userUpdateError) {
+          console.error('stride_users update failed:', userUpdateError)
+          return
+        }
+
+        const updatedUser = {
+          ...user,
+          tasksDone: newTasksDone,
+          streak: newStreak,
+          score: newScore,
+          shields: newShields,
+        }
+
+        localStorage.setItem('stride_user', JSON.stringify(updatedUser))
+        setUser(updatedUser)
+      }
+
+      if (isBlocked) {
+        const { error: blockedError } = await supabase
+          .from('stride_users')
+          .update({ last_active: new Date().toISOString() })
+          .eq('email', user.email)
+
+        if (blockedError) {
+          console.error('blocked update failed:', blockedError)
+          return
+        }
+      }
+
+      setPanel('streakShow')
+    } catch (err) {
+      console.error('Submit failed:', err)
+    } finally {
+      setSubmitting(false)
     }
-
-    setPanel('streakShow')
   }
 
   if (!user) return null
@@ -290,12 +366,12 @@ export default function HomePage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '22px' }}>🔥</span>
-          <span style={{ fontSize: '32px', fontWeight: 900, color: '#1a1a2e' }}>{currentStreak + 1} days</span>
+          <span style={{ fontSize: '32px', fontWeight: 900, color: '#1a1a2e' }}>{currentStreak} days</span>
         </div>
         <p style={{ fontSize: '15px', color: '#555', lineHeight: 1.6, maxWidth: '300px', margin: 0 }}>
-          {currentStreak + 1} days. You are in the top tier of people who say they will do something and actually do it. Dash sees you. 🏆
+          {currentStreak} days. You are in the top tier of people who say they will do something and actually do it. Dash sees you. 🏆
         </p>
-        {isEngagedReply && (
+        {engagedReplyRef.current && (
           <div style={{ background: '#f9f9f9', border: '1px solid #eee', borderRadius: '16px', padding: '16px', width: '100%', maxWidth: '320px', textAlign: 'left' }}>
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a2e', marginBottom: '5px' }}>Momentum window open ⚡</div>
             <div style={{ fontSize: '13px', color: '#777', lineHeight: 1.5, marginBottom: '14px' }}>
@@ -311,7 +387,7 @@ export default function HomePage() {
             </div>
           </div>
         )}
-        {!isEngagedReply && (
+        {!engagedReplyRef.current && (
           <button onClick={() => setPanel('locked')} style={{ background: '#1a1a2e', border: 'none', padding: '14px 40px', borderRadius: '14px', fontSize: '15px', fontWeight: 700, color: '#fff', cursor: 'pointer', marginTop: '8px' }}>
             See you tomorrow ☀️
           </button>
@@ -470,30 +546,20 @@ export default function HomePage() {
               }}>
                 <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>Dash</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e', lineHeight: 1.3 }}>How did it go today?</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
 
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {chipType === 'checkin' ? (
                     <>
                       <div
                         onClick={() => { setPickedChip('chip1'); setShowWall(false) }}
-                        style={{
-                          border: `1.5px solid ${pickedChip === 'chip1' ? '#1a1a2e' : '#eee'}`,
-                          borderRadius: '12px', padding: '10px 13px', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: '9px',
-                          background: pickedChip === 'chip1' ? '#f5f5fa' : '#fff', transition: 'all .15s',
-                        }}
+                        style={{ border: `1.5px solid ${pickedChip === 'chip1' ? '#1a1a2e' : '#eee'}`, borderRadius: '12px', padding: '10px 13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', background: pickedChip === 'chip1' ? '#f5f5fa' : '#fff', transition: 'all .15s' }}
                       >
                         <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>✅</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{chip1Label}</span>
                       </div>
                       <div
                         onClick={() => { setPickedChip('chip2'); setShowWall(false) }}
-                        style={{
-                          border: `1.5px solid ${pickedChip === 'chip2' ? '#1a1a2e' : '#eee'}`,
-                          borderRadius: '12px', padding: '10px 13px', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: '9px',
-                          background: pickedChip === 'chip2' ? '#f5f5fa' : '#fff', transition: 'all .15s',
-                        }}
+                        style={{ border: `1.5px solid ${pickedChip === 'chip2' ? '#1a1a2e' : '#eee'}`, borderRadius: '12px', padding: '10px 13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', background: pickedChip === 'chip2' ? '#f5f5fa' : '#fff', transition: 'all .15s' }}
                       >
                         <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>⏳</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{chip2Label}</span>
@@ -503,36 +569,21 @@ export default function HomePage() {
                     <>
                       <div
                         onClick={() => { setPickedChip('chip1'); setShowWall(false) }}
-                        style={{
-                          border: `1.5px solid ${pickedChip === 'chip1' ? '#1a1a2e' : '#eee'}`,
-                          borderRadius: '12px', padding: '10px 13px', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: '9px',
-                          background: pickedChip === 'chip1' ? '#f5f5fa' : '#fff', transition: 'all .15s',
-                        }}
+                        style={{ border: `1.5px solid ${pickedChip === 'chip1' ? '#1a1a2e' : '#eee'}`, borderRadius: '12px', padding: '10px 13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', background: pickedChip === 'chip1' ? '#f5f5fa' : '#fff', transition: 'all .15s' }}
                       >
                         <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>✅</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{chip1Label}</span>
                       </div>
                       <div
                         onClick={() => { setPickedChip('chip2'); setShowWall(false) }}
-                        style={{
-                          border: `1.5px solid ${pickedChip === 'chip2' ? '#1a1a2e' : '#eee'}`,
-                          borderRadius: '12px', padding: '10px 13px', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: '9px',
-                          background: pickedChip === 'chip2' ? '#f5f5fa' : '#fff', transition: 'all .15s',
-                        }}
+                        style={{ border: `1.5px solid ${pickedChip === 'chip2' ? '#1a1a2e' : '#eee'}`, borderRadius: '12px', padding: '10px 13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', background: pickedChip === 'chip2' ? '#f5f5fa' : '#fff', transition: 'all .15s' }}
                       >
                         <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>⏱</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{chip2Label}</span>
                       </div>
                       <div
                         onClick={() => { setPickedChip('other'); setShowWall(true); setPickedWall(''); setWallNote('') }}
-                        style={{
-                          border: `1.5px solid ${pickedChip === 'other' ? '#1a1a2e' : '#eee'}`,
-                          borderRadius: '12px', padding: '10px 13px', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: '9px',
-                          background: pickedChip === 'other' ? '#f5f5fa' : '#fff', transition: 'all .15s',
-                        }}
+                        style={{ border: `1.5px solid ${pickedChip === 'other' ? '#1a1a2e' : '#eee'}`, borderRadius: '12px', padding: '10px 13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', background: pickedChip === 'other' ? '#f5f5fa' : '#fff', transition: 'all .15s' }}
                       >
                         <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>💬</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>Something else happened.</span>
@@ -553,36 +604,37 @@ export default function HomePage() {
                         <div
                           key={w.id}
                           onClick={() => setPickedWall(w.id)}
-                          style={{
-                            border: `1.5px solid ${pickedWall === w.id ? '#1a1a2e' : '#eee'}`,
-                            borderRadius: '20px', padding: '6px 12px', fontSize: '12px',
-                            fontWeight: 600, color: pickedWall === w.id ? '#1a1a2e' : '#555',
-                            cursor: 'pointer', background: pickedWall === w.id ? '#f5f5fa' : '#fff',
-                            display: 'inline-flex', alignItems: 'center', gap: '5px',
-                          }}
+                          style={{ border: `1.5px solid ${pickedWall === w.id ? '#1a1a2e' : '#eee'}`, borderRadius: '20px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: pickedWall === w.id ? '#1a1a2e' : '#555', cursor: 'pointer', background: pickedWall === w.id ? '#f5f5fa' : '#fff', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                         >
                           {w.ico} {w.lbl}
                         </div>
                       ))}
                     </div>
                     {pickedWall && (
-                      <textarea
-                        rows={2}
-                        placeholder={wallPlaceholders[pickedWall]}
-                        value={wallNote}
-                        onChange={e => setWallNote(e.target.value)}
-                        style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '8px 11px', fontSize: '12px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%' }}
-                      />
+                      <>
+                        <textarea
+                          rows={2}
+                          placeholder={wallPlaceholders[pickedWall]}
+                          value={wallNote}
+                          onChange={e => setWallNote(e.target.value)}
+                          style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '8px 11px', fontSize: '12px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%' }}
+                        />
+                        {wallNote.trim().length < 5 && (
+                          <div style={{ fontSize: '11px', color: '#999' }}>
+                            Please add a little more detail so Dash can adapt tomorrow better.
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
 
                 <button
                   onClick={handleSubmit}
-                  disabled={!canSubmit}
-                  style={{ background: '#1a1a2e', border: 'none', padding: '11px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: canSubmit ? 'pointer' : 'default', opacity: canSubmit ? 1 : 0.3, marginTop: 'auto', transition: 'opacity .2s' }}
+                  disabled={!canSubmit || submitting}
+                  style={{ background: '#1a1a2e', border: 'none', padding: '11px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: canSubmit && !submitting ? 'pointer' : 'default', opacity: canSubmit && !submitting ? 1 : 0.3, marginTop: 'auto', transition: 'opacity .2s' }}
                 >
-                  Submit
+                  {submitting ? 'Saving...' : 'Submit'}
                 </button>
               </div>
 
@@ -618,7 +670,7 @@ export default function HomePage() {
                   <div style={{ fontSize: '44px' }}>🔒</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '22px' }}>🔥</span>
-                    <span style={{ fontSize: '28px', fontWeight: 900, color: '#1a1a2e' }}>{currentStreak + 1} days</span>
+                    <span style={{ fontSize: '28px', fontWeight: 900, color: '#1a1a2e' }}>{currentStreak} days</span>
                   </div>
                   <p style={{ color: '#555', fontSize: '15px', margin: 0, fontWeight: 500 }}>
                     {bonusCompleted ? 'Bonus locked. Extra mile taken today.' : 'Streak locked. The goal is moving.'}
