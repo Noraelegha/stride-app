@@ -53,6 +53,10 @@ export default function HomePage() {
       if (todayTask) {
         setTaskData(todayTask)
         setTaskLoading(false)
+        // If already done today, show locked state — don't let them submit again
+        if (todayTask.status === 'completed' || todayTask.status === 'partial') {
+          setPanel('locked')
+        }
         return
       }
 
