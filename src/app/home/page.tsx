@@ -53,9 +53,13 @@ export default function HomePage() {
       if (todayTask) {
         setTaskData(todayTask)
         setTaskLoading(false)
-        // If already done today, show locked state — don't let them submit again
         if (todayTask.status === 'completed' || todayTask.status === 'partial') {
-          setPanel('locked')
+          // Check if there is an active bonus task waiting
+          if (todayTask.bonus_task_active && todayTask.bonus_task_status === 'pending') {
+            setPanel('bonus')
+          } else {
+            setPanel('locked')
+          }
         }
         return
       }
@@ -129,22 +133,11 @@ export default function HomePage() {
       const missedDays = checkMissedDays(userData, dbUser?.last_active)
       const shields = dbUser?.shields ?? userData.shields ?? 0
 
-      if (missedDays >= 3) {
-        router.push('/return')
-        return
-      }
-
-      if (missedDays === 2) {
-        router.push('/recovery')
-        return
-      }
+      if (missedDays >= 3) { router.push('/return'); return }
+      if (missedDays === 2) { router.push('/recovery'); return }
 
       if (missedDays === 1 && shields > 0) {
-        await supabase
-          .from('stride_users')
-          .update({ shields: shields - 1 })
-          .eq('email', userData.email)
-
+        await supabase.from('stride_users').update({ shields: shields - 1 }).eq('email', userData.email)
         const updated = { ...userData, shields: shields - 1 }
         localStorage.setItem('stride_user', JSON.stringify(updated))
         router.push('/unfreeze')
@@ -152,11 +145,7 @@ export default function HomePage() {
       }
 
       if (missedDays === 1 && shields === 0) {
-        await supabase
-          .from('stride_users')
-          .update({ streak: 0 })
-          .eq('email', userData.email)
-
+        await supabase.from('stride_users').update({ streak: 0 }).eq('email', userData.email)
         const updated = { ...userData, streak: 0 }
         localStorage.setItem('stride_user', JSON.stringify(updated))
         setUser(updated)
@@ -190,11 +179,7 @@ export default function HomePage() {
   const weekDates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(now)
     d.setDate(now.getDate() - now.getDay() + i)
-    return {
-      day: dayNames[d.getDay()],
-      num: d.getDate(),
-      isToday: d.toDateString() === now.toDateString(),
-    }
+    return { day: dayNames[d.getDay()], num: d.getDate(), isToday: d.toDateString() === now.toDateString() }
   })
 
   const startDrag = (x: number) => {
@@ -223,20 +208,14 @@ export default function HomePage() {
         cardRef.current.style.transform = 'translateX(500px) rotate(20deg)'
         cardRef.current.style.opacity = '0'
       }
-      setTimeout(() => {
-        setPanel('srp')
-        if (bgDoneRef.current) bgDoneRef.current.style.opacity = '0'
-      }, 300)
+      setTimeout(() => { setPanel('srp'); if (bgDoneRef.current) bgDoneRef.current.style.opacity = '0' }, 300)
     } else if (dx < -80) {
       if (cardRef.current) {
         cardRef.current.style.transition = 'transform .28s ease-in, opacity .28s'
         cardRef.current.style.transform = 'translateX(-500px) rotate(-20deg)'
         cardRef.current.style.opacity = '0'
       }
-      setTimeout(() => {
-        setPanel('hint')
-        if (bgHintRef.current) bgHintRef.current.style.opacity = '0'
-      }, 300)
+      setTimeout(() => { setPanel('hint'); if (bgHintRef.current) bgHintRef.current.style.opacity = '0' }, 300)
     } else {
       if (cardRef.current) {
         cardRef.current.style.transition = 'transform .36s cubic-bezier(.34,1.56,.64,1)'
@@ -253,9 +232,7 @@ export default function HomePage() {
     partial: 'Where did you get to and what is left? Dash will pick it up from there tomorrow',
   }
 
-  const canSubmit =
-    !!pickedChip &&
-    (!showWall || (!!pickedWall && wallNote.trim().length >= 5))
+  const canSubmit = !!pickedChip && (!showWall || (!!pickedWall && wallNote.trim().length >= 5))
 
   const handleSubmit = async () => {
     if (submitting) return
@@ -263,13 +240,11 @@ export default function HomePage() {
 
     try {
       setSubmitting(true)
-
       const today = new Date().toISOString().split('T')[0]
 
       const isCompleted = pickedChip === 'chip1' || pickedWall === 'more'
       const isPartial = pickedChip === 'chip2' || pickedWall === 'partial'
       const isBlocked = pickedWall === 'blocked'
-
       const status = isCompleted ? 'completed' : isPartial ? 'partial' : isBlocked ? 'blocked' : 'partial'
 
       engagedReplyRef.current = isCompleted
@@ -289,7 +264,6 @@ export default function HomePage() {
           .eq('task_date', today)
 
         if (dailyTaskError) {
-          console.error('daily_tasks update failed:', dailyTaskError)
           setSubmitError('Something went wrong saving your response. Please try again.')
           return
         }
@@ -300,9 +274,7 @@ export default function HomePage() {
         const newStreak = (user.streak || 0) + 1
         const newScore = Math.min(Math.round((newTasksDone / newStreak) * 100), 100)
         const currentShields = user.shields || 0
-        const newShields = newStreak % 5 === 0 && currentShields < 2
-          ? currentShields + 1
-          : currentShields
+        const newShields = newStreak % 5 === 0 && currentShields < 2 ? currentShields + 1 : currentShields
 
         const { error: userUpdateError } = await supabase
           .from('stride_users')
@@ -316,34 +288,17 @@ export default function HomePage() {
           .eq('email', user.email)
 
         if (userUpdateError) {
-          console.error('stride_users update failed:', userUpdateError)
           setSubmitError('Something went wrong updating your stats. Please try again.')
           return
         }
 
-        const updatedUser = {
-          ...user,
-          tasksDone: newTasksDone,
-          streak: newStreak,
-          score: newScore,
-          shields: newShields,
-        }
-
+        const updatedUser = { ...user, tasksDone: newTasksDone, streak: newStreak, score: newScore, shields: newShields }
         localStorage.setItem('stride_user', JSON.stringify(updatedUser))
         setUser(updatedUser)
       }
 
       if (isBlocked) {
-        const { error: blockedError } = await supabase
-          .from('stride_users')
-          .update({ last_active: new Date().toISOString() })
-          .eq('email', user.email)
-
-        if (blockedError) {
-          console.error('blocked update failed:', blockedError)
-          setSubmitError('Something went wrong. Please try again.')
-          return
-        }
+        await supabase.from('stride_users').update({ last_active: new Date().toISOString() }).eq('email', user.email)
       }
 
       setPanel('streakShow')
@@ -353,6 +308,68 @@ export default function HomePage() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleBonusYes = async () => {
+    if (!user || !taskData) return
+    const today = new Date().toISOString().split('T')[0]
+
+    try {
+      await supabase
+        .from('daily_tasks')
+        .update({ bonus_task_active: true, bonus_task_status: 'pending' })
+        .eq('user_email', user.email)
+        .eq('task_date', today)
+
+      setTaskData((prev: any) => ({ ...prev, bonus_task_active: true, bonus_task_status: 'pending' }))
+      setPanel('bonus')
+    } catch (err) {
+      console.error('Bonus activation failed:', err)
+      setPanel('bonus')
+    }
+  }
+
+  const handleBonusDone = async () => {
+    if (!user) return
+    const today = new Date().toISOString().split('T')[0]
+
+    try {
+      await supabase
+        .from('daily_tasks')
+        .update({ bonus_task_status: 'completed', bonus_completed: true })
+        .eq('user_email', user.email)
+        .eq('task_date', today)
+
+      const newBonusTasks = (user.bonusTasks || 0) + 1
+      await supabase.from('stride_users').update({ bonus_tasks: newBonusTasks }).eq('email', user.email)
+
+      const updatedUser = { ...user, bonusTasks: newBonusTasks }
+      localStorage.setItem('stride_user', JSON.stringify(updatedUser))
+      setUser(updatedUser)
+      setBonusCompleted(true)
+    } catch (err) {
+      console.error('Bonus done failed:', err)
+    }
+
+    setPanel('locked')
+  }
+
+  const handleBonusSkip = async () => {
+    if (!user) return
+    const today = new Date().toISOString().split('T')[0]
+
+    try {
+      await supabase
+        .from('daily_tasks')
+        .update({ bonus_task_status: 'skipped' })
+        .eq('user_email', user.email)
+        .eq('task_date', today)
+    } catch (err) {
+      console.error('Bonus skip failed:', err)
+    }
+
+    setBonusCompleted(false)
+    setPanel('locked')
   }
 
   if (!user) return null
@@ -368,7 +385,7 @@ export default function HomePage() {
 
   if (panel === 'streakShow') {
     return (
-      <div style={{ flex: 1, minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 28px', textAlign: 'center', gap: '14px' }}>
+      <div style={{ flex: 1, minHeight: '100dvh', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 28px', textAlign: 'center', gap: '14px' }}>
         <div style={{ width: 72, height: 72, background: '#FF9500', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
           <svg viewBox="0 0 28 28" width="32" height="32" fill="none">
             <polyline points="5,14 11,20 23,8" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
@@ -388,7 +405,7 @@ export default function HomePage() {
               Want to go deeper today? Bonus task expires at midnight.
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setPanel('bonus')} style={{ flex: 1, background: '#1a1a2e', border: 'none', padding: '12px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>
+              <button onClick={handleBonusYes} style={{ flex: 1, background: '#1a1a2e', border: 'none', padding: '12px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>
                 Yes, more
               </button>
               <button onClick={() => setPanel('locked')} style={{ flex: 1, background: '#fff', border: '1.5px solid #eee', padding: '12px', borderRadius: '12px', fontSize: '14px', color: '#888', cursor: 'pointer' }}>
@@ -423,17 +440,9 @@ export default function HomePage() {
 
         <div style={{ display: 'flex', gap: '4px', marginBottom: '11px' }}>
           {weekDates.map((d, i) => (
-            <div key={i} style={{
-              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              padding: '7px 4px', borderRadius: '10px',
-              background: d.isToday ? '#F5A623' : 'transparent',
-            }}>
-              <div style={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 500, color: d.isToday ? 'rgba(26,26,46,.6)' : 'rgba(255,255,255,.4)' }}>
-                {d.day}
-              </div>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: d.isToday ? '#1a1a2e' : '#fff' }}>
-                {d.num}
-              </div>
+            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '7px 4px', borderRadius: '10px', background: d.isToday ? '#F5A623' : 'transparent' }}>
+              <div style={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 500, color: d.isToday ? 'rgba(26,26,46,.6)' : 'rgba(255,255,255,.4)' }}>{d.day}</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: d.isToday ? '#1a1a2e' : '#fff' }}>{d.num}</div>
             </div>
           ))}
         </div>
@@ -463,22 +472,13 @@ export default function HomePage() {
               <div style={{ fontSize: '12px', color: '#888' }}>See all</div>
             </div>
 
-            {/* Task card container — dynamic height, no fixed 320px */}
             <div style={{ position: 'relative', borderRadius: '20px', minHeight: '220px' }}>
 
-              <div ref={bgDoneRef} style={{
-                position: 'absolute', inset: 0, background: '#4CAF50', borderRadius: '20px',
-                display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-                paddingRight: '26px', opacity: 0, zIndex: 1, pointerEvents: 'none',
-              }}>
+              <div ref={bgDoneRef} style={{ position: 'absolute', inset: 0, background: '#4CAF50', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: '26px', opacity: 0, zIndex: 1, pointerEvents: 'none' }}>
                 <div style={{ color: '#fff', fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 7 }}>✅ Done!</div>
               </div>
 
-              <div ref={bgHintRef} style={{
-                position: 'absolute', inset: 0, background: '#f0f0f5', border: '1.5px solid #ddd',
-                borderRadius: '20px', display: 'flex', alignItems: 'center',
-                justifyContent: 'flex-start', paddingLeft: '26px', opacity: 0, zIndex: 1, pointerEvents: 'none',
-              }}>
+              <div ref={bgHintRef} style={{ position: 'absolute', inset: 0, background: '#f0f0f5', border: '1.5px solid #ddd', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', paddingLeft: '26px', opacity: 0, zIndex: 1, pointerEvents: 'none' }}>
                 <div style={{ color: '#888', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 7 }}>💡 Help</div>
               </div>
 
@@ -492,12 +492,7 @@ export default function HomePage() {
                   onTouchStart={e => startDrag(e.touches[0].clientX)}
                   onTouchMove={e => moveDrag(e.touches[0].clientX)}
                   onTouchEnd={endDrag}
-                  style={{
-                    position: 'relative', background: '#fff',
-                    borderRadius: '20px', border: '1.5px solid #1a1a2e',
-                    padding: '16px 18px 20px', cursor: 'grab', userSelect: 'none',
-                    zIndex: 2, display: 'flex', flexDirection: 'column', gap: '10px',
-                  }}
+                  style={{ position: 'relative', background: '#fff', borderRadius: '20px', border: '1.5px solid #1a1a2e', padding: '16px 18px 20px', cursor: 'grab', userSelect: 'none', zIndex: 2, display: 'flex', flexDirection: 'column', gap: '10px' }}
                 >
                   <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>
                     Day {currentDay} ⚡
@@ -512,11 +507,7 @@ export default function HomePage() {
                     {taskLoading ? 'Your personalised task is loading...' : taskText || 'Your task is ready. Pull to refresh if it does not appear.'}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
-                    <div style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '5px',
-                      background: '#f5f5f7', borderRadius: '20px', padding: '4px 10px',
-                      fontSize: '11px', color: '#888', fontWeight: 600,
-                    }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#f5f5f7', borderRadius: '20px', padding: '4px 10px', fontSize: '11px', color: '#888', fontWeight: 600 }}>
                       ⏱ {timeEstimate}
                     </div>
                     <div style={{ display: 'flex', gap: '14px' }}>
@@ -528,11 +519,7 @@ export default function HomePage() {
               )}
 
               {panel === 'hint' && (
-                <div style={{
-                  position: 'relative', background: '#fff',
-                  borderRadius: '20px', border: '1.5px solid #F5A623',
-                  padding: '16px 18px 20px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 5,
-                }}>
+                <div style={{ position: 'relative', background: '#fff', borderRadius: '20px', border: '1.5px solid #F5A623', padding: '16px 18px 20px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 5 }}>
                   <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>Hint from Dash 💡</div>
                   <div style={{ background: '#fffbf0', borderLeft: '3px solid #F5A623', borderRadius: '0 10px 10px 0', padding: '10px 12px' }}>
                     <div style={{ fontSize: '8px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', marginBottom: '2px' }}>Dash</div>
@@ -546,10 +533,7 @@ export default function HomePage() {
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#f5f5f7', borderRadius: '20px', padding: '4px 10px', fontSize: '11px', color: '#888', fontWeight: 600, alignSelf: 'flex-start' }}>
                     ⏱ ~5 minutes
                   </div>
-                  <button
-                    onClick={() => setPanel('srp')}
-                    style={{ background: '#1a1a2e', border: 'none', padding: '13px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer', marginTop: '4px' }}
-                  >
+                  <button onClick={() => setPanel('srp')} style={{ background: '#1a1a2e', border: 'none', padding: '13px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer', marginTop: '4px' }}>
                     Done
                   </button>
                 </div>
@@ -558,15 +542,13 @@ export default function HomePage() {
               <div style={{
                 position: panel === 'srp' ? 'relative' : 'absolute',
                 inset: panel === 'srp' ? 'unset' : 0,
-                background: '#fff',
-                borderRadius: '20px', border: '1.5px solid #1a1a2e',
+                background: '#fff', borderRadius: '20px', border: '1.5px solid #1a1a2e',
                 padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px',
                 overflowY: 'auto',
                 opacity: panel === 'srp' ? 1 : 0,
                 pointerEvents: panel === 'srp' ? 'auto' : 'none',
                 transition: 'opacity .3s ease',
                 zIndex: panel === 'srp' ? 20 : 0,
-                minHeight: panel === 'srp' ? 'unset' : '220px',
               }}>
                 <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>Dash</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e', lineHeight: 1.3 }}>How did it go today?</div>
@@ -574,41 +556,26 @@ export default function HomePage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {chipType === 'checkin' ? (
                     <>
-                      <div
-                        onClick={() => { setPickedChip('chip1'); setShowWall(false) }}
-                        style={{ border: `1.5px solid ${pickedChip === 'chip1' ? '#1a1a2e' : '#eee'}`, borderRadius: '12px', padding: '10px 13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', background: pickedChip === 'chip1' ? '#f5f5fa' : '#fff', transition: 'all .15s' }}
-                      >
+                      <div onClick={() => { setPickedChip('chip1'); setShowWall(false) }} style={{ border: `1.5px solid ${pickedChip === 'chip1' ? '#1a1a2e' : '#eee'}`, borderRadius: '12px', padding: '10px 13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', background: pickedChip === 'chip1' ? '#f5f5fa' : '#fff', transition: 'all .15s' }}>
                         <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>✅</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{chip1Label}</span>
                       </div>
-                      <div
-                        onClick={() => { setPickedChip('chip2'); setShowWall(false) }}
-                        style={{ border: `1.5px solid ${pickedChip === 'chip2' ? '#1a1a2e' : '#eee'}`, borderRadius: '12px', padding: '10px 13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', background: pickedChip === 'chip2' ? '#f5f5fa' : '#fff', transition: 'all .15s' }}
-                      >
+                      <div onClick={() => { setPickedChip('chip2'); setShowWall(false) }} style={{ border: `1.5px solid ${pickedChip === 'chip2' ? '#1a1a2e' : '#eee'}`, borderRadius: '12px', padding: '10px 13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', background: pickedChip === 'chip2' ? '#f5f5fa' : '#fff', transition: 'all .15s' }}>
                         <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>⏳</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{chip2Label}</span>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div
-                        onClick={() => { setPickedChip('chip1'); setShowWall(false) }}
-                        style={{ border: `1.5px solid ${pickedChip === 'chip1' ? '#1a1a2e' : '#eee'}`, borderRadius: '12px', padding: '10px 13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', background: pickedChip === 'chip1' ? '#f5f5fa' : '#fff', transition: 'all .15s' }}
-                      >
+                      <div onClick={() => { setPickedChip('chip1'); setShowWall(false) }} style={{ border: `1.5px solid ${pickedChip === 'chip1' ? '#1a1a2e' : '#eee'}`, borderRadius: '12px', padding: '10px 13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', background: pickedChip === 'chip1' ? '#f5f5fa' : '#fff', transition: 'all .15s' }}>
                         <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>✅</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{chip1Label}</span>
                       </div>
-                      <div
-                        onClick={() => { setPickedChip('chip2'); setShowWall(false) }}
-                        style={{ border: `1.5px solid ${pickedChip === 'chip2' ? '#1a1a2e' : '#eee'}`, borderRadius: '12px', padding: '10px 13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', background: pickedChip === 'chip2' ? '#f5f5fa' : '#fff', transition: 'all .15s' }}
-                      >
+                      <div onClick={() => { setPickedChip('chip2'); setShowWall(false) }} style={{ border: `1.5px solid ${pickedChip === 'chip2' ? '#1a1a2e' : '#eee'}`, borderRadius: '12px', padding: '10px 13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', background: pickedChip === 'chip2' ? '#f5f5fa' : '#fff', transition: 'all .15s' }}>
                         <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>⏱</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{chip2Label}</span>
                       </div>
-                      <div
-                        onClick={() => { setPickedChip('other'); setShowWall(true); setPickedWall(''); setWallNote('') }}
-                        style={{ border: `1.5px solid ${pickedChip === 'other' ? '#1a1a2e' : '#eee'}`, borderRadius: '12px', padding: '10px 13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', background: pickedChip === 'other' ? '#f5f5fa' : '#fff', transition: 'all .15s' }}
-                      >
+                      <div onClick={() => { setPickedChip('other'); setShowWall(true); setPickedWall(''); setWallNote('') }} style={{ border: `1.5px solid ${pickedChip === 'other' ? '#1a1a2e' : '#eee'}`, borderRadius: '12px', padding: '10px 13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px', background: pickedChip === 'other' ? '#f5f5fa' : '#fff', transition: 'all .15s' }}>
                         <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>💬</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>Something else happened.</span>
                       </div>
@@ -621,32 +588,20 @@ export default function HomePage() {
                     <div style={{ fontSize: '12px', fontWeight: 700, color: '#1a1a2e' }}>What happened?</div>
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       {[
-                        { id: 'more',    ico: '🔥', lbl: 'Did more' },
+                        { id: 'more', ico: '🔥', lbl: 'Did more' },
                         { id: 'blocked', ico: '🚧', lbl: 'Hit a wall' },
-                        { id: 'partial', ico: '⏸',  lbl: 'Partial' },
+                        { id: 'partial', ico: '⏸', lbl: 'Partial' },
                       ].map(w => (
-                        <div
-                          key={w.id}
-                          onClick={() => setPickedWall(w.id)}
-                          style={{ border: `1.5px solid ${pickedWall === w.id ? '#1a1a2e' : '#eee'}`, borderRadius: '20px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: pickedWall === w.id ? '#1a1a2e' : '#555', cursor: 'pointer', background: pickedWall === w.id ? '#f5f5fa' : '#fff', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-                        >
+                        <div key={w.id} onClick={() => setPickedWall(w.id)} style={{ border: `1.5px solid ${pickedWall === w.id ? '#1a1a2e' : '#eee'}`, borderRadius: '20px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: pickedWall === w.id ? '#1a1a2e' : '#555', cursor: 'pointer', background: pickedWall === w.id ? '#f5f5fa' : '#fff', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                           {w.ico} {w.lbl}
                         </div>
                       ))}
                     </div>
                     {pickedWall && (
                       <>
-                        <textarea
-                          rows={2}
-                          placeholder={wallPlaceholders[pickedWall]}
-                          value={wallNote}
-                          onChange={e => setWallNote(e.target.value)}
-                          style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '8px 11px', fontSize: '12px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%' }}
-                        />
+                        <textarea rows={2} placeholder={wallPlaceholders[pickedWall]} value={wallNote} onChange={e => setWallNote(e.target.value)} style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '8px 11px', fontSize: '12px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%' }} />
                         {wallNote.trim().length < 5 && (
-                          <div style={{ fontSize: '11px', color: '#999' }}>
-                            Please add a little more detail so Dash can adapt tomorrow better.
-                          </div>
+                          <div style={{ fontSize: '11px', color: '#999' }}>Please add a little more detail so Dash can adapt tomorrow better.</div>
                         )}
                       </>
                     )}
@@ -654,26 +609,16 @@ export default function HomePage() {
                 )}
 
                 {submitError && (
-                  <div style={{ fontSize: '12px', color: '#f44', textAlign: 'center', padding: '6px 0' }}>
-                    {submitError}
-                  </div>
+                  <div style={{ fontSize: '12px', color: '#f44', textAlign: 'center', padding: '6px 0' }}>{submitError}</div>
                 )}
 
-                <button
-                  onClick={handleSubmit}
-                  disabled={!canSubmit || submitting}
-                  style={{ background: '#1a1a2e', border: 'none', padding: '11px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: canSubmit && !submitting ? 'pointer' : 'default', opacity: canSubmit && !submitting ? 1 : 0.3, marginTop: 'auto', transition: 'opacity .2s' }}
-                >
+                <button onClick={handleSubmit} disabled={!canSubmit || submitting} style={{ background: '#1a1a2e', border: 'none', padding: '11px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: canSubmit && !submitting ? 'pointer' : 'default', opacity: canSubmit && !submitting ? 1 : 0.3, marginTop: 'auto', transition: 'opacity .2s' }}>
                   {submitting ? 'Saving...' : 'Submit'}
                 </button>
               </div>
 
               {panel === 'bonus' && (
-                <div style={{
-                  position: 'relative', background: '#fff',
-                  borderRadius: '20px', border: '1.5px solid #F5A623',
-                  padding: '16px 18px 20px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 5,
-                }}>
+                <div style={{ position: 'relative', background: '#fff', borderRadius: '20px', border: '1.5px solid #F5A623', padding: '16px 18px 20px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 5 }}>
                   <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>⚡ Bonus task</div>
                   <div style={{ background: '#f9f9f9', borderRadius: '9px', borderBottomLeftRadius: '2px', padding: '8px 10px' }}>
                     <div style={{ fontSize: '8px', fontWeight: 700, color: '#1a1a2e', textTransform: 'uppercase', marginBottom: '2px' }}>Dash</div>
@@ -685,20 +630,18 @@ export default function HomePage() {
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#f5f5f7', borderRadius: '20px', padding: '4px 10px', fontSize: '11px', color: '#888', fontWeight: 600, alignSelf: 'flex-start' }}>
                     ⏱ ~10 minutes
                   </div>
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                    <button onClick={() => { setBonusCompleted(false); setPanel('locked') }} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '12px', borderRadius: '13px', fontSize: '13px', color: '#888', cursor: 'pointer' }}>Skip</button>
-                    <button onClick={() => { setBonusCompleted(true); setPanel('locked') }} style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '12px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>Done</button>
+                  <div style={{ fontSize: '11px', color: '#aaa', textAlign: 'center' }}>
+                    You can close the app and come back to this before midnight
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                    <button onClick={handleBonusSkip} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '12px', borderRadius: '13px', fontSize: '13px', color: '#888', cursor: 'pointer' }}>Skip</button>
+                    <button onClick={handleBonusDone} style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '12px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>Done</button>
                   </div>
                 </div>
               )}
 
               {panel === 'locked' && (
-                <div style={{
-                  position: 'relative', background: '#fff',
-                  borderRadius: '20px', border: `1.5px solid ${bonusCompleted ? '#F5A623' : '#4CAF50'}`,
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'center', gap: '10px', padding: '40px 24px', textAlign: 'center', zIndex: 5,
-                }}>
+                <div style={{ position: 'relative', background: '#fff', borderRadius: '20px', border: `1.5px solid ${bonusCompleted ? '#F5A623' : '#4CAF50'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '40px 24px', textAlign: 'center', zIndex: 5 }}>
                   <div style={{ fontSize: '44px' }}>🔒</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '22px' }}>🔥</span>
@@ -711,14 +654,7 @@ export default function HomePage() {
               )}
 
               {showTut && panel === 'task' && (
-                <div
-                  onClick={() => setShowTut(false)}
-                  style={{
-                    position: 'absolute', inset: 0, background: 'rgba(26,26,46,.88)',
-                    borderRadius: '20px', zIndex: 30, display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer',
-                  }}
-                >
+                <div onClick={() => setShowTut(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(26,26,46,.88)', borderRadius: '20px', zIndex: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{ fontSize: '22px', color: '#F5A623' }}>←</span>
                     <span style={{ color: '#fff', fontSize: '14px', fontWeight: 500 }}>Swipe left for help</span>
