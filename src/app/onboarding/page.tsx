@@ -185,7 +185,7 @@ export default function OnboardingPage() {
       />
     </div>
 
-    <div className="ob-foot">
+    <div className="ob-foot" style={{ marginTop: 'auto' }}>
       <button
         className="ob-btn"
         disabled={!canContinue()}
@@ -218,7 +218,7 @@ export default function OnboardingPage() {
               </div>
             ))}
           </div>
-          <div className="ob-foot">
+          <div className="ob-foot" style={{ marginTop: 'auto' }}>
             <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(3)}>Continue</button>
           </div>
         </>
@@ -274,7 +274,7 @@ export default function OnboardingPage() {
               </>
             )}
           </div>
-          <div className="ob-foot">
+          <div className="ob-foot" style={{ marginTop: 'auto' }}>
             <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(4)}>Continue</button>
           </div>
         </>
@@ -325,7 +325,7 @@ export default function OnboardingPage() {
               </>
             )}
           </div>
-          <div className="ob-foot">
+          <div className="ob-foot" style={{ marginTop: 'auto' }}>
             <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(5)}>Continue</button>
           </div>
         </>
@@ -361,7 +361,7 @@ export default function OnboardingPage() {
             <div className="ob-lbl">In your own words, why does this matter?</div>
             <textarea className="ob-ta" rows={3} placeholder="Not the outcome. The reason behind it." value={data.personalWhy} onChange={e => set('personalWhy', e.target.value)} />
           </div>
-          <div className="ob-foot">
+          <div className="ob-foot" style={{ marginTop: 'auto' }}>
             <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(6)}>Continue</button>
           </div>
         </>
@@ -384,7 +384,7 @@ export default function OnboardingPage() {
               </div>
             ))}
           </div>
-          <div className="ob-foot">
+          <div className="ob-foot" style={{ marginTop: 'auto' }}>
             <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(7)}>Continue</button>
           </div>
         </>
@@ -407,7 +407,7 @@ export default function OnboardingPage() {
               </div>
             ))}
           </div>
-          <div className="ob-foot">
+          <div className="ob-foot" style={{ marginTop: 'auto' }}>
             <button
               className="ob-btn"
               disabled={!canContinue() || isFinishing}
