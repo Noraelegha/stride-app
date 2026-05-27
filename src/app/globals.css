@@ -58,7 +58,8 @@ html, body {
 .ob-screen {
   display: flex;
   flex-direction: column;
-  min-height: 100svh;
+  height: 100svh;
+  max-height: 100svh;
   overflow: hidden;
   background: #fff;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
@@ -67,7 +68,7 @@ html, body {
 
 .ob-body { 
   padding: 16px 26px; 
-  flex: 1; 
+  flex-grow: 1;
   overflow-y: auto; 
   display: flex; 
   flex-direction: column; 
