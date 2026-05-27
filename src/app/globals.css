@@ -56,32 +56,21 @@ html, body {
 
 /* ── Onboarding ── */
 .ob-screen {
+  background: #fff;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100svh;
-  max-height: 100svh;
-  overflow: hidden;
-  background: #fff;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  min-height: 100vh;
 }
 .ob-head { padding: 22px 26px 0; flex-shrink: 0; }
-
-.ob-body { 
-  padding: 16px 26px; 
-  flex-grow: 1;
-  overflow-y: auto; 
-  display: flex; 
-  flex-direction: column; 
-  gap: 9px;
-  -webkit-overflow-scrolling: touch;
-}
-
-.ob-foot { 
-  padding: 6px 26px 16px; 
-  flex-shrink: 0; 
-  background: #fff;
-}
-
+.ob-prog { display: flex; gap: 4px; margin-bottom: 22px; }
+.ob-pd { height: 3px; border-radius: 2px; background: #eee; flex: 1; transition: background 0.3s; }
+.ob-pd.on { background: #1a1a2e; }
+.ob-step { font-size: 11px; font-weight: 700; color: #bbb; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px; }
+.ob-title { font-size: 24px; font-weight: 800; color: #1a1a2e; line-height: 1.2; margin-bottom: 5px; }
+.ob-sub { font-size: 13px; color: #888; line-height: 1.5; }
+.ob-body { padding: 16px 26px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 9px; }
+.ob-foot { padding: 14px 26px 28px; flex-shrink: 0; background: #fff; }
 .ob-btn { width: 100%; background: #1a1a2e; color: #fff; border: none; padding: 15px; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
 .ob-btn:disabled { opacity: 0.3; cursor: default; }
 .ob-opt { border: 1.5px solid #eee; border-radius: 15px; padding: 13px 15px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.15s; background: #fff; }
