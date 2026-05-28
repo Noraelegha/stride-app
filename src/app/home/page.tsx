@@ -393,10 +393,10 @@ export default function HomePage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '22px' }}>🔥</span>
-          <span style={{ fontSize: '32px', fontWeight: 900, color: '#1a1a2e' }}>{currentStreak} days</span>
+          <span style={{ fontSize: '32px', fontWeight: 900, color: '#1a1a2e' }}>{currentStreak} {currentStreak === 1 ? 'day' : 'days'}</span>
         </div>
         <p style={{ fontSize: '15px', color: '#555', lineHeight: 1.6, maxWidth: '300px', margin: 0 }}>
-          {currentStreak} days. You are in the top tier of people who say they will do something and actually do it. Dash sees you. 🏆
+          {currentStreak} {currentStreak === 1 ? 'day' : 'days'}. You are in the top tier of people who say they will do something and actually do it. Dash sees you. 🏆
         </p>
         {engagedReplyRef.current && (
           <div style={{ background: '#f9f9f9', border: '1px solid #eee', borderRadius: '16px', padding: '16px', width: '100%', maxWidth: '320px', textAlign: 'left' }}>
@@ -450,7 +450,7 @@ export default function HomePage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,.1)', borderRadius: '16px', padding: '5px 11px' }}>
             <span>🔥</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{currentStreak} days</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{currentStreak} {currentStreak === 1 ? 'day' : 'days'}</span>
             <span style={{ fontSize: 10, color: 'rgba(255,255,255,.45)' }}>streak</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -645,7 +645,7 @@ export default function HomePage() {
                   <div style={{ fontSize: '44px' }}>🔒</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '22px' }}>🔥</span>
-                    <span style={{ fontSize: '28px', fontWeight: 900, color: '#1a1a2e' }}>{currentStreak} days</span>
+                    <span style={{ fontSize: '28px', fontWeight: 900, color: '#1a1a2e' }}>{currentStreak} {currentStreak === 1 ? 'day' : 'days'}</span>
                   </div>
                   <p style={{ color: '#555', fontSize: '15px', margin: 0, fontWeight: 500 }}>
                     {bonusCompleted ? 'Bonus locked. Extra mile taken today.' : 'Streak locked. The goal is moving.'}
