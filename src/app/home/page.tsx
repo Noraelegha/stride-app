@@ -276,7 +276,17 @@ export default function HomePage() {
       if (user && (isCompleted || isPartial)) {
         const newTasksDone = (user.tasksDone || 0) + 1
         const newStreak = (user.streak || 0) + 1
-        const newScore = Math.min(Math.round((newTasksDone / newStreak) * 100), 100)
+        // Correct score: completed / total recorded days
+const { data: allTasksData } = await supabase
+  .from('daily_tasks')
+  .select('status')
+  .eq('user_email', user.email)
+
+const totalRecorded = allTasksData?.length || newTasksDone
+const completedCount = allTasksData?.filter((t: any) =>
+  t.status === 'completed' || t.status === 'partial'
+).length || newTasksDone
+const newScore = Math.min(Math.round((completedCount / totalRecorded) * 100), 100)
         const currentShields = user.shields || 0
         const newShields = newStreak % 5 === 0 && currentShields < 2 ? currentShields + 1 : currentShields
 
