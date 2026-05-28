@@ -20,6 +20,7 @@ export default function HomePage() {
   const [taskLoading, setTaskLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [bonusTask, setBonusTask] = useState<{ text: string; dashMessage: string } | null>(null)
 
   const cardRef = useRef<HTMLDivElement>(null)
   const bgDoneRef = useRef<HTMLDivElement>(null)
@@ -54,8 +55,11 @@ export default function HomePage() {
         setTaskData(todayTask)
         setTaskLoading(false)
         if (todayTask.status === 'completed' || todayTask.status === 'partial') {
-          // Check if there is an active bonus task waiting
           if (todayTask.bonus_task_active && todayTask.bonus_task_status === 'pending') {
+            setBonusTask({
+              text: todayTask.bonus_task_text || 'Go one level deeper on what you just completed. Ten more minutes.',
+              dashMessage: 'Your bonus task is still waiting. Expires at midnight.',
+            })
             setPanel('bonus')
           } else {
             setPanel('locked')
@@ -315,16 +319,40 @@ export default function HomePage() {
     const today = new Date().toISOString().split('T')[0]
 
     try {
+      const res = await fetch('/api/generate-bonus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user, taskData }),
+      })
+      const { bonus } = await res.json()
+
       await supabase
         .from('daily_tasks')
-        .update({ bonus_task_active: true, bonus_task_status: 'pending' })
+        .update({
+          bonus_task_active: true,
+          bonus_task_status: 'pending',
+          bonus_task_text: bonus?.bonusTaskText || null,
+        })
         .eq('user_email', user.email)
         .eq('task_date', today)
 
-      setTaskData((prev: any) => ({ ...prev, bonus_task_active: true, bonus_task_status: 'pending' }))
+      setTaskData((prev: any) => ({
+        ...prev,
+        bonus_task_active: true,
+        bonus_task_status: 'pending',
+        bonus_task_text: bonus?.bonusTaskText,
+      }))
+      setBonusTask({
+        text: bonus?.bonusTaskText || 'Go one level deeper on what you just completed. Ten more minutes.',
+        dashMessage: bonus?.dashMessage || 'You are on a roll. Build on what you just did. Expires at midnight.',
+      })
       setPanel('bonus')
     } catch (err) {
       console.error('Bonus activation failed:', err)
+      setBonusTask({
+        text: 'Go one level deeper on what you just completed. Ten more minutes.',
+        dashMessage: 'You are on a roll. Build on what you just did. Expires at midnight.',
+      })
       setPanel('bonus')
     }
   }
@@ -622,10 +650,12 @@ export default function HomePage() {
                   <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>⚡ Bonus task</div>
                   <div style={{ background: '#f9f9f9', borderRadius: '9px', borderBottomLeftRadius: '2px', padding: '8px 10px' }}>
                     <div style={{ fontSize: '8px', fontWeight: 700, color: '#1a1a2e', textTransform: 'uppercase', marginBottom: '2px' }}>Dash</div>
-                    <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.45, margin: 0 }}>You are on a roll. Build on what you just did. Expires at midnight.</p>
+                    <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.45, margin: 0 }}>
+                      {bonusTask?.dashMessage || 'You are on a roll. Expires at midnight.'}
+                    </p>
                   </div>
                   <div style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a2e', lineHeight: 1.5 }}>
-                    {taskData?.bonus_task_text || 'Go one level deeper on what you just completed. Ten more minutes. That is all.'}
+                    {bonusTask?.text || taskData?.bonus_task_text || 'Loading bonus task...'}
                   </div>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#f5f5f7', borderRadius: '20px', padding: '4px 10px', fontSize: '11px', color: '#888', fontWeight: 600, alignSelf: 'flex-start' }}>
                     ⏱ ~10 minutes
