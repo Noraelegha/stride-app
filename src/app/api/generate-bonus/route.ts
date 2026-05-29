@@ -1,61 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { DASH_SYSTEM_PROMPT } from '@/lib/dashPrompt'
+import Anthropic from '@anthropic-ai/sdk'
+
+const client = new Anthropic()
 
 export async function POST(req: NextRequest) {
   try {
-    const { user, completedTask } = await req.json()
+    const { user, taskData } = await req.json()
 
-    if (!user || !completedTask) {
-      return NextResponse.json({ error: 'Missing data' }, { status: 400 })
+    const coachStyles: Record<string, string> = {
+      tough:     'direct, no-nonsense, zero fluff',
+      strategic: 'professional, ROI-focused, peer-to-peer energy',
+      friend:    'sarcastic best friend with real accountability',
+      mentor:    'warm, encouraging, gentle push forward',
     }
 
-    const prompt = `
-The user just completed their main task for today.
+    const style = coachStyles[user?.coachStyle] || 'professional'
+    const mainTask = taskData?.task_text || 'their main task today'
 
-USER: ${user.name}
-GOAL: ${user.goal}
-BIG PRIZE: ${user.bigPrize}
-COACH STYLE: ${user.coachStyle}
-TASK THEY JUST COMPLETED: "${completedTask}"
+    const prompt = `You are Dash, an AI accountability coach. Your tone is ${style}.
 
-Generate a bonus task that builds DIRECTLY on what they just completed.
-The bonus task must name the exact next physical action — not a direction.
-Under 20 minutes. Expires at midnight.
+The user just completed: "${mainTask}"
+Their goal: ${user?.goal || 'not specified'}
+Day number: ${(user?.tasksDone || 0) + 1}
 
-Return valid JSON only:
+Write a bonus task that builds DIRECTLY on what they just completed. Rules:
+- Specific and actionable, not vague
+- Maximum 15 minutes
+- Feels like natural momentum, not extra homework
+- References what they just did
+
+Respond ONLY with valid JSON, no markdown, no backticks:
 {
-  "bonusTaskText": "the exact specific bonus task",
-  "dashMessage": "short celebratory message acknowledging completion and introducing the bonus"
-}
-`
+  "bonusTaskText": "the specific bonus task instruction here",
+  "dashMessage": "1 short motivating sentence from Dash in your coach style"
+}`
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY!,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 500,
-        system: DASH_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 300,
+      messages: [{ role: 'user', content: prompt }],
     })
 
-    const data = await response.json()
-    const rawText = data.content?.[0]?.text?.trim()
-    const jsonMatch = rawText?.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      return NextResponse.json({ error: 'Invalid response' }, { status: 500 })
-    }
+    const raw = message.content[0].type === 'text' ? message.content[0].text : ''
+    const clean = raw.replace(/```json|```/g, '').trim()
+    const bonus = JSON.parse(clean)
 
-    const bonus = JSON.parse(jsonMatch[0])
     return NextResponse.json({ bonus })
-
-  } catch (error) {
-    console.error('Generate bonus error:', error)
-    return NextResponse.json({ error: 'Failed to generate bonus' }, { status: 500 })
+  } catch (err) {
+    console.error('Generate bonus failed:', err)
+    return NextResponse.json({
+      bonus: {
+        bonusTaskText: 'Take the very next step from what you just completed. Spend 10 minutes on it right now.',
+        dashMessage: 'You are on a roll. Build on the momentum while it is still warm.',
+      }
+    })
   }
 }

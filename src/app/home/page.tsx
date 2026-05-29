@@ -57,7 +57,7 @@ export default function HomePage() {
         if (todayTask.status === 'completed' || todayTask.status === 'partial') {
           if (todayTask.bonus_task_active && todayTask.bonus_task_status === 'pending') {
             setBonusTask({
-              text: todayTask.bonus_task_text || 'Go one level deeper on what you just completed. Ten more minutes.',
+              text: todayTask.bonus_task_text || '',
               dashMessage: 'Your bonus task is still waiting. Expires at midnight.',
             })
             setPanel('bonus')
@@ -276,17 +276,19 @@ export default function HomePage() {
       if (user && (isCompleted || isPartial)) {
         const newTasksDone = (user.tasksDone || 0) + 1
         const newStreak = (user.streak || 0) + 1
-        // Correct score: completed / total recorded days
-const { data: allTasksData } = await supabase
-  .from('daily_tasks')
-  .select('status')
-  .eq('user_email', user.email)
 
-const totalRecorded = allTasksData?.length || newTasksDone
-const completedCount = allTasksData?.filter((t: any) =>
-  t.status === 'completed' || t.status === 'partial'
-).length || newTasksDone
-const newScore = Math.min(Math.round((completedCount / totalRecorded) * 100), 100)
+        // Correct score: completed / total recorded days
+        const { data: allTasksData } = await supabase
+          .from('daily_tasks')
+          .select('status')
+          .eq('user_email', user.email)
+
+        const totalRecorded = allTasksData?.length || newTasksDone
+        const completedCount = allTasksData?.filter((t: any) =>
+          t.status === 'completed' || t.status === 'partial'
+        ).length || newTasksDone
+        const newScore = Math.min(Math.round((completedCount / totalRecorded) * 100), 100)
+
         const currentShields = user.shields || 0
         const newShields = newStreak % 5 === 0 && currentShields < 2 ? currentShields + 1 : currentShields
 
@@ -324,9 +326,13 @@ const newScore = Math.min(Math.round((completedCount / totalRecorded) * 100), 10
     }
   }
 
+  // Shows bonus panel immediately with loading state, then populates once API responds
   const handleBonusYes = async () => {
     if (!user || !taskData) return
     const today = new Date().toISOString().split('T')[0]
+
+    setBonusTask({ text: '', dashMessage: '' })
+    setPanel('bonus')
 
     try {
       const res = await fetch('/api/generate-bonus', {
@@ -334,7 +340,11 @@ const newScore = Math.min(Math.round((completedCount / totalRecorded) * 100), 10
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user, taskData }),
       })
-      const { bonus } = await res.json()
+
+      if (!res.ok) throw new Error(`API ${res.status}`)
+
+      const data = await res.json()
+      const bonus = data.bonus
 
       await supabase
         .from('daily_tasks')
@@ -352,18 +362,17 @@ const newScore = Math.min(Math.round((completedCount / totalRecorded) * 100), 10
         bonus_task_status: 'pending',
         bonus_task_text: bonus?.bonusTaskText,
       }))
+
       setBonusTask({
-        text: bonus?.bonusTaskText || 'Go one level deeper on what you just completed. Ten more minutes.',
-        dashMessage: bonus?.dashMessage || 'You are on a roll. Build on what you just did. Expires at midnight.',
+        text: bonus?.bonusTaskText || '',
+        dashMessage: bonus?.dashMessage || '',
       })
-      setPanel('bonus')
     } catch (err) {
       console.error('Bonus activation failed:', err)
       setBonusTask({
-        text: 'Go one level deeper on what you just completed. Ten more minutes.',
-        dashMessage: 'You are on a roll. Build on what you just did. Expires at midnight.',
+        text: 'Take the very next step from what you just completed. Spend 10 minutes on it right now.',
+        dashMessage: 'You are on a roll. Build on the momentum while it is still warm.',
       })
-      setPanel('bonus')
     }
   }
 
@@ -420,6 +429,11 @@ const newScore = Math.min(Math.round((completedCount / totalRecorded) * 100), 10
   const chip1Label = taskData?.chip1 || 'Completed it'
   const chip2Label = taskData?.chip2 || 'Partially done'
   const chipType = taskData?.chip_type || taskData?.chipType || 'standard'
+
+  // Phase progress — separate from score, based purely on tasks completed in current phase
+  const calculatedPhase = (user.tasksDone || 0) >= 60 ? 3 : (user.tasksDone || 0) >= 30 ? 2 : 1
+  const tasksInCurrentPhase = Math.max(0, (user.tasksDone || 0) - ((calculatedPhase - 1) * 30))
+  const phaseProgress = Math.min(Math.round((tasksInCurrentPhase / 30) * 100), 100)
 
   if (panel === 'streakShow') {
     return (
@@ -485,6 +499,7 @@ const newScore = Math.min(Math.round((completedCount / totalRecorded) * 100), 10
           ))}
         </div>
 
+        {/* Phase progress bar — separate from score */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,.1)', borderRadius: '16px', padding: '5px 11px' }}>
             <span>🔥</span>
@@ -492,11 +507,11 @@ const newScore = Math.min(Math.round((completedCount / totalRecorded) * 100), 10
             <span style={{ fontSize: 10, color: 'rgba(255,255,255,.45)' }}>streak</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>Phase {user.phase || 1}</span>
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>Phase {calculatedPhase}</span>
             <div style={{ width: 54, height: 3, background: 'rgba(255,255,255,.12)', borderRadius: 2 }}>
-              <div style={{ width: `${user.score || 0}%`, height: '100%', background: '#F5A623', borderRadius: 2 }} />
+              <div style={{ width: `${phaseProgress}%`, height: '100%', background: '#F5A623', borderRadius: 2 }} />
             </div>
-            <strong style={{ fontSize: 10, color: '#F5A623' }}>{user.score || 0}%</strong>
+            <strong style={{ fontSize: 10, color: '#F5A623' }}>{phaseProgress}%</strong>
           </div>
         </div>
       </div>
@@ -661,17 +676,20 @@ const newScore = Math.min(Math.round((completedCount / totalRecorded) * 100), 10
                   <div style={{ background: '#f9f9f9', borderRadius: '9px', borderBottomLeftRadius: '2px', padding: '8px 10px' }}>
                     <div style={{ fontSize: '8px', fontWeight: 700, color: '#1a1a2e', textTransform: 'uppercase', marginBottom: '2px' }}>Dash</div>
                     <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.45, margin: 0 }}>
-                      {bonusTask?.dashMessage || 'You are on a roll. Expires at midnight.'}
+                      {bonusTask?.dashMessage
+                        ? bonusTask.dashMessage
+                        : 'Dash is generating your bonus task...'}
                     </p>
                   </div>
                   <div style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a2e', lineHeight: 1.5 }}>
-                    {bonusTask?.text || taskData?.bonus_task_text || 'Loading bonus task...'}
+                    {bonusTask?.text
+                      ? bonusTask.text
+                      : taskData?.bonus_task_text
+                      ? taskData.bonus_task_text
+                      : 'Dash is generating your bonus task...'}
                   </div>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#f5f5f7', borderRadius: '20px', padding: '4px 10px', fontSize: '11px', color: '#888', fontWeight: 600, alignSelf: 'flex-start' }}>
                     ⏱ ~10 minutes
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#aaa', textAlign: 'center' }}>
-                    You can close the app and come back to this before midnight
                   </div>
                   <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                     <button onClick={handleBonusSkip} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '12px', borderRadius: '13px', fontSize: '13px', color: '#888', cursor: 'pointer' }}>Skip</button>
