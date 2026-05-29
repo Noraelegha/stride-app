@@ -120,7 +120,7 @@ export default function LockedInPage() {
         </div>
       </div>
 
-      {/* Notification permission prompt */}
+      {/* Notification permission — required */}
       <div style={{
         background: 'rgba(255,255,255,0.18)', borderRadius: '16px',
         padding: '16px', width: '100%', textAlign: 'left',
@@ -128,10 +128,10 @@ export default function LockedInPage() {
       }}>
         <div style={{ fontSize: '22px', marginBottom: '8px' }}>🔔</div>
         <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginBottom: '5px' }}>
-          Dash shows up daily.
+          One last thing.
         </div>
         <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, marginBottom: '14px' }}>
-          Allow notifications and your 8am task lands right on your lock screen.
+          Dash shows up daily at 8am with your task. Allow notifications so you never miss it.
         </div>
         <button
           onClick={handleAllowNotifications}
@@ -143,20 +143,20 @@ export default function LockedInPage() {
             opacity: notifRequesting ? 0.7 : 1,
           }}
         >
-          {notifRequesting ? 'Setting up...' : 'Turn on notifications ⚡'}
+          {notifRequesting ? 'Setting up...' : 'Allow notifications ⚡'}
+        </button>
+        <button
+          onClick={() => router.push('/home')}
+          style={{
+            width: '100%', background: 'none', color: 'rgba(255,255,255,0.5)',
+            border: 'none', padding: '10px', fontSize: '12px',
+            cursor: 'pointer', marginTop: '6px',
+          }}
+        >
+          I understand I may miss my daily tasks
         </button>
       </div>
 
-      <button
-        onClick={() => router.push('/home')}
-        style={{
-          background: 'none', color: 'rgba(255,255,255,0.6)',
-          border: 'none', padding: '8px',
-          fontSize: '13px', cursor: 'pointer',
-        }}
-      >
-        Maybe later
-      </button>
     </div>
   )
 }
