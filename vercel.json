@@ -1,5 +1,11 @@
 {
   "rewrites": [
     { "source": "/waitlist", "destination": "/waitlist.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/send-reminders",
+      "schedule": "0 * * * *"
+    }
   ]
 }
