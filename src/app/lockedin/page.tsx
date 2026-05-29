@@ -5,11 +5,32 @@ import { useRouter } from 'next/navigation'
 export default function LockedInPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const [notifRequesting, setNotifRequesting] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('stride_user')
     if (stored) setUser(JSON.parse(stored))
   }, [])
+
+  const handleAllowNotifications = async () => {
+    setNotifRequesting(true)
+    try {
+      const OneSignal = (await import('react-onesignal')).default
+      await OneSignal.init({
+        appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
+        allowLocalhostAsSecureOrigin: true,
+      })
+      await OneSignal.Notifications.requestPermission()
+      const stored = localStorage.getItem('stride_user')
+      if (stored) {
+        const userData = JSON.parse(stored)
+        await OneSignal.login(userData.email)
+      }
+    } catch (e) {
+      console.error('Notification setup failed:', e)
+    }
+    router.push('/home')
+  }
 
   return (
     <div style={{
@@ -27,7 +48,6 @@ export default function LockedInPage() {
 
       {/* Confetti + circle */}
       <div style={{ position: 'relative', width: '100px', height: '100px' }}>
-        {/* Confetti dots */}
         {[
           { bg: '#F5A623', left: '4%',  top: '20%', delay: '0s', size: 7 },
           { bg: '#fff',    left: '85%', top: '10%', delay: '.3s', size: 5 },
@@ -43,7 +63,6 @@ export default function LockedInPage() {
             borderRadius: i === 2 || i === 6 ? '2px' : '50%',
           }} />
         ))}
-        {/* Main circle */}
         <div style={{
           width: '96px', height: '96px',
           background: 'rgba(255,255,255,0.25)',
@@ -101,16 +120,42 @@ export default function LockedInPage() {
         </div>
       </div>
 
+      {/* Notification permission prompt */}
+      <div style={{
+        background: 'rgba(255,255,255,0.18)', borderRadius: '16px',
+        padding: '16px', width: '100%', textAlign: 'left',
+        border: '1px solid rgba(255,255,255,0.25)',
+      }}>
+        <div style={{ fontSize: '22px', marginBottom: '8px' }}>🔔</div>
+        <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginBottom: '5px' }}>
+          Dash shows up daily.
+        </div>
+        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, marginBottom: '14px' }}>
+          Allow notifications and your 8am task lands right on your lock screen.
+        </div>
+        <button
+          onClick={handleAllowNotifications}
+          disabled={notifRequesting}
+          style={{
+            width: '100%', background: '#fff', color: '#4CAF50',
+            border: 'none', borderRadius: '12px', padding: '13px',
+            fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+            opacity: notifRequesting ? 0.7 : 1,
+          }}
+        >
+          {notifRequesting ? 'Setting up...' : 'Turn on notifications ⚡'}
+        </button>
+      </div>
+
       <button
         onClick={() => router.push('/home')}
         style={{
-          background: '#fff', color: '#4CAF50', border: 'none',
-          padding: '14px 40px', borderRadius: '50px',
-          fontSize: '15px', fontWeight: 700, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: '8px',
+          background: 'none', color: 'rgba(255,255,255,0.6)',
+          border: 'none', padding: '8px',
+          fontSize: '13px', cursor: 'pointer',
         }}
       >
-        See my first task ⚡
+        Maybe later
       </button>
     </div>
   )
