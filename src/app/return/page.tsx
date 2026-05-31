@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import ThemeColor from '@/components/ThemeColor'
 
 export default function ReturnPage() {
   const router = useRouter()
@@ -47,6 +48,7 @@ export default function ReturnPage() {
       position: 'relative',
       overflow: 'hidden',
     }}>
+      <ThemeColor color="#0f1623" />
       <style>{`
         @keyframes confettiFall {
           0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }

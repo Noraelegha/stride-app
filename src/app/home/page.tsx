@@ -6,6 +6,26 @@ import { supabase } from '@/lib/supabase'
 
 type Panel = 'task' | 'hint' | 'srp' | 'streakShow' | 'bonus' | 'locked'
 
+// Sets the browser chrome/status bar colour dynamically
+function ThemeColor({ color }: { color: string }) {
+  useEffect(() => {
+    let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null
+    const prev = meta?.content || '#1a1a2e'
+    if (meta) {
+      meta.content = color
+    } else {
+      meta = document.createElement('meta')
+      meta.name = 'theme-color'
+      meta.content = color
+      document.head.appendChild(meta)
+    }
+    return () => {
+      if (meta) meta.content = prev
+    }
+  }, [color])
+  return null
+}
+
 export default function HomePage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
@@ -15,12 +35,14 @@ export default function HomePage() {
   const [showWall, setShowWall] = useState(false)
   const [pickedWall, setPickedWall] = useState('')
   const [wallNote, setWallNote] = useState('')
+  const [checkinNote, setCheckinNote] = useState('')
   const [bonusCompleted, setBonusCompleted] = useState(false)
   const [taskData, setTaskData] = useState<any>(null)
   const [taskLoading, setTaskLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [bonusTask, setBonusTask] = useState<{ text: string; dashMessage: string } | null>(null)
+  const [bonusError, setBonusError] = useState(false)
 
   const cardRef = useRef<HTMLDivElement>(null)
   const bgDoneRef = useRef<HTMLDivElement>(null)
@@ -54,12 +76,46 @@ export default function HomePage() {
       if (todayTask) {
         setTaskData(todayTask)
         setTaskLoading(false)
+
         if (todayTask.status === 'completed' || todayTask.status === 'partial') {
           if (todayTask.bonus_task_active && todayTask.bonus_task_status === 'pending') {
-            setBonusTask({
-              text: todayTask.bonus_task_text || '',
-              dashMessage: 'Your bonus task is still waiting. Expires at midnight.',
-            })
+            if (todayTask.bonus_task_text) {
+              // Saved text exists — use it directly
+              setBonusTask({
+                text: todayTask.bonus_task_text,
+                dashMessage: 'Your bonus task is still waiting. Expires at midnight.',
+              })
+            } else {
+              // Text was never saved (API failed first time) — regenerate now
+              setBonusTask({ text: '', dashMessage: '' })
+              setBonusError(false)
+              try {
+                const bonusRes = await fetch('/api/generate-bonus', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ user: userData, taskData: todayTask }),
+                })
+                if (!bonusRes.ok) throw new Error('API failed')
+                const bonusData = await bonusRes.json()
+                const bonus = bonusData.bonus
+                if (bonus?.bonusTaskText) {
+                  await supabase
+                    .from('daily_tasks')
+                    .update({ bonus_task_text: bonus.bonusTaskText })
+                    .eq('user_email', userData.email)
+                    .eq('task_date', today)
+                  setBonusTask({
+                    text: bonus.bonusTaskText,
+                    dashMessage: bonus.dashMessage || '',
+                  })
+                } else {
+                  setBonusError(true)
+                }
+              } catch (e) {
+                console.error('Bonus regeneration failed:', e)
+                setBonusError(true)
+              }
+            }
             setPanel('bonus')
           } else {
             setPanel('locked')
@@ -236,7 +292,12 @@ export default function HomePage() {
     partial: 'Where did you get to and what is left? Dash will pick it up from there tomorrow',
   }
 
-  const canSubmit = !!pickedChip && (!showWall || (!!pickedWall && wallNote.trim().length >= 5))
+  // chipType declared here so canSubmit can reference it
+  const chipType = taskData?.chip_type || taskData?.chipType || 'standard'
+
+  const canSubmit = !!pickedChip &&
+    (!showWall || (!!pickedWall && wallNote.trim().length >= 5)) &&
+    (chipType !== 'checkin' || checkinNote.trim().length >= 15)
 
   const handleSubmit = async () => {
     if (submitting) return
@@ -262,7 +323,7 @@ export default function HomePage() {
             swipe_direction: panel === 'hint' ? 'left' : 'right',
             user_reply: pickedWall || pickedChip,
             hint_type: pickedWall || null,
-            hint_text: wallNote.trim() || null,
+            hint_text: chipType === 'checkin' ? checkinNote.trim() : (wallNote.trim() || null),
           })
           .eq('user_email', user.email)
           .eq('task_date', today)
@@ -277,7 +338,6 @@ export default function HomePage() {
         const newTasksDone = (user.tasksDone || 0) + 1
         const newStreak = (user.streak || 0) + 1
 
-        // Correct score: completed / total recorded days
         const { data: allTasksData } = await supabase
           .from('daily_tasks')
           .select('status')
@@ -309,8 +369,19 @@ export default function HomePage() {
         }
 
         const updatedUser = { ...user, tasksDone: newTasksDone, streak: newStreak, score: newScore, shields: newShields }
-        localStorage.setItem('stride_user', JSON.stringify(updatedUser))
-        setUser(updatedUser)
+
+        // If context-gathering task, save user's written response to enrich all future task generation
+        if (chipType === 'checkin' && checkinNote.trim().length >= 15) {
+          await supabase.from('stride_users')
+            .update({ prior_detail: checkinNote.trim() })
+            .eq('email', user.email)
+          const enriched = { ...updatedUser, priorDetail: checkinNote.trim() }
+          localStorage.setItem('stride_user', JSON.stringify(enriched))
+          setUser(enriched)
+        } else {
+          localStorage.setItem('stride_user', JSON.stringify(updatedUser))
+          setUser(updatedUser)
+        }
       }
 
       if (isBlocked) {
@@ -326,12 +397,13 @@ export default function HomePage() {
     }
   }
 
-  // Shows bonus panel immediately with loading state, then populates once API responds
   const handleBonusYes = async () => {
     if (!user || !taskData) return
     const today = new Date().toISOString().split('T')[0]
 
+    // Show panel immediately with loading state
     setBonusTask({ text: '', dashMessage: '' })
+    setBonusError(false)
     setPanel('bonus')
 
     try {
@@ -363,16 +435,18 @@ export default function HomePage() {
         bonus_task_text: bonus?.bonusTaskText,
       }))
 
-      setBonusTask({
-        text: bonus?.bonusTaskText || '',
-        dashMessage: bonus?.dashMessage || '',
-      })
+      if (bonus?.bonusTaskText) {
+        setBonusTask({
+          text: bonus.bonusTaskText,
+          dashMessage: bonus.dashMessage || '',
+        })
+      } else {
+        setBonusError(true)
+      }
     } catch (err) {
       console.error('Bonus activation failed:', err)
-      setBonusTask({
-        text: 'Take the very next step from what you just completed. Spend 10 minutes on it right now.',
-        dashMessage: 'You are on a roll. Build on the momentum while it is still warm.',
-      })
+      // No fallback text — show retry instead
+      setBonusError(true)
     }
   }
 
@@ -428,9 +502,7 @@ export default function HomePage() {
   const timeEstimate = taskData?.timeEstimate || `~${user.dailyTime === 'under10' ? '5' : user.dailyTime === '10to30' ? '15' : '30'} minutes`
   const chip1Label = taskData?.chip1 || 'Completed it'
   const chip2Label = taskData?.chip2 || 'Partially done'
-  const chipType = taskData?.chip_type || taskData?.chipType || 'standard'
 
-  // Phase progress — separate from score, based purely on tasks completed in current phase
   const calculatedPhase = (user.tasksDone || 0) >= 60 ? 3 : (user.tasksDone || 0) >= 30 ? 2 : 1
   const tasksInCurrentPhase = Math.max(0, (user.tasksDone || 0) - ((calculatedPhase - 1) * 30))
   const phaseProgress = Math.min(Math.round((tasksInCurrentPhase / 30) * 100), 100)
@@ -438,6 +510,7 @@ export default function HomePage() {
   if (panel === 'streakShow') {
     return (
       <div style={{ flex: 1, minHeight: '100dvh', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 28px', textAlign: 'center', gap: '14px' }}>
+        <ThemeColor color="#ffffff" />
         <div style={{ width: 72, height: 72, background: '#FF9500', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
           <svg viewBox="0 0 28 28" width="32" height="32" fill="none">
             <polyline points="5,14 11,20 23,8" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
@@ -499,7 +572,6 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* Phase progress bar — separate from score */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,.1)', borderRadius: '16px', padding: '5px 11px' }}>
             <span>🔥</span>
@@ -617,6 +689,25 @@ export default function HomePage() {
                         <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>⏳</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{chip2Label}</span>
                       </div>
+                      {pickedChip && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a2e' }}>Now tell Dash what you actually wrote.</div>
+                          <div style={{ fontSize: '12px', color: '#888', lineHeight: 1.5 }}>Type or paste your answers here. This is what Dash uses to build every task from now on.</div>
+                          <textarea
+                            rows={5}
+                            placeholder="e.g. I am building a social media management service for small Nigerian businesses. My ideal client runs a shop or restaurant and has 100–500 followers but no consistent posting. Right now I have zero clients and have only posted 3 times on my own page..."
+                            value={checkinNote}
+                            onChange={e => setCheckinNote(e.target.value)}
+                            style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '10px 12px', fontSize: '13px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%', lineHeight: 1.5 }}
+                          />
+                          {checkinNote.trim().length > 0 && checkinNote.trim().length < 15 && (
+                            <div style={{ fontSize: '11px', color: '#999' }}>Keep going — Dash needs more detail to generate useful tasks.</div>
+                          )}
+                          {checkinNote.trim().length === 0 && (
+                            <div style={{ fontSize: '11px', color: '#999' }}>The more specific you are, the better every future task will be.</div>
+                          )}
+                        </div>
+                      )}
                     </>
                   ) : (
                     <>
@@ -676,13 +767,15 @@ export default function HomePage() {
                   <div style={{ background: '#f9f9f9', borderRadius: '9px', borderBottomLeftRadius: '2px', padding: '8px 10px' }}>
                     <div style={{ fontSize: '8px', fontWeight: 700, color: '#1a1a2e', textTransform: 'uppercase', marginBottom: '2px' }}>Dash</div>
                     <p style={{ fontSize: '12px', color: '#555', lineHeight: 1.45, margin: 0 }}>
-                      {bonusTask?.dashMessage
-                        ? bonusTask.dashMessage
-                        : 'Dash is generating your bonus task...'}
+                      {bonusError
+                        ? 'Could not generate your bonus task. Tap retry below.'
+                        : bonusTask?.dashMessage || 'Dash is generating your bonus task...'}
                     </p>
                   </div>
                   <div style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a2e', lineHeight: 1.5 }}>
-                    {bonusTask?.text
+                    {bonusError
+                      ? 'Generation failed. Tap retry to try again.'
+                      : bonusTask?.text
                       ? bonusTask.text
                       : taskData?.bonus_task_text
                       ? taskData.bonus_task_text
@@ -692,8 +785,17 @@ export default function HomePage() {
                     ⏱ ~10 minutes
                   </div>
                   <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                    <button onClick={handleBonusSkip} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '12px', borderRadius: '13px', fontSize: '13px', color: '#888', cursor: 'pointer' }}>Skip</button>
-                    <button onClick={handleBonusDone} style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '12px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>Done</button>
+                    {bonusError ? (
+                      <>
+                        <button onClick={handleBonusSkip} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '12px', borderRadius: '13px', fontSize: '13px', color: '#888', cursor: 'pointer' }}>Skip</button>
+                        <button onClick={handleBonusYes} style={{ flex: 2, background: '#F5A623', border: 'none', padding: '12px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#1a1a2e', cursor: 'pointer' }}>Retry ↺</button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={handleBonusSkip} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '12px', borderRadius: '13px', fontSize: '13px', color: '#888', cursor: 'pointer' }}>Skip</button>
+                        <button onClick={handleBonusDone} style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '12px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>Done</button>
+                      </>
+                    )}
                   </div>
                 </div>
               )}

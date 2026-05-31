@@ -2,6 +2,7 @@
 import { useRouter } from 'next/navigation'
 import { Zap } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import ThemeColor from '@/components/ThemeColor'
 
 export default function RecoveryPage() {
   const router = useRouter()
@@ -35,6 +36,7 @@ export default function RecoveryPage() {
       alignItems: 'center', justifyContent: 'center',
       padding: '40px 24px', textAlign: 'center',
     }}>
+      <ThemeColor color="#0f1623" />
       {/* Breathing mascot */}
       <div style={{ position: 'relative', marginBottom: '40px' }}>
         <div style={{

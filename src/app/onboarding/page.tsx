@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import ThemeColor from '@/components/ThemeColor'
 
 const TIME_OPTIONS = [
   { id: 'under10', emoji: '⏰', label: 'Under 10 minutes' },
@@ -156,6 +157,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="ob-screen">
+      <ThemeColor color="#ffffff" />
 
       {step === 1 && (
         <>

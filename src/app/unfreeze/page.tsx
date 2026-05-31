@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import ThemeColor from '@/components/ThemeColor'
 
 export default function UnfreezePage() {
   const router = useRouter()
@@ -36,6 +37,7 @@ export default function UnfreezePage() {
 
   return (
     <div style={{ position: 'relative', flex: 1, minHeight: '100vh', overflow: 'hidden' }}>
+      <ThemeColor color={p2In ? '#ffffff' : '#29B6F6'} />
       <style>{`
         @keyframes shieldPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.07)} }
         @keyframes tapFade { 0%,100%{opacity:0.3} 50%{opacity:1.0} }

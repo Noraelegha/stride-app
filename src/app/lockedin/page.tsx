@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import ThemeColor from '@/components/ThemeColor'
 
 export default function LockedInPage() {
   const router = useRouter()
@@ -33,13 +34,23 @@ export default function LockedInPage() {
   }
 
   return (
-    <div style={{
-      flex: 1, minHeight: '100vh',
-      background: '#4CAF50',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', padding: '32px 24px 40px',
-      textAlign: 'center', gap: '18px', position: 'relative', overflow: 'hidden',
-    }}>
+    <div
+      style={{
+        flex: 1,
+        minHeight: '100vh',
+        background: '#4CAF50',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '32px 24px 40px',
+        textAlign: 'center',
+        gap: '18px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      <ThemeColor color="#4CAF50" />
+
       {/* Badge */}
       <div style={{
         background: '#fff', borderRadius: '20px', padding: '7px 18px',
