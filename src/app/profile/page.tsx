@@ -98,10 +98,10 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px', paddingBottom: 'calc(var(--nav-height) + 16px)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px 76px' }}>
 
         {/* Active goal */}
-        <div style={{ background: '#fff', borderRadius: '16px', padding: '16px' }}>
+        <div style={{ background: '#fff', borderRadius: '16px', padding: '16px', marginBottom: '12px' }}>
           <div style={{ fontSize: '10px', fontWeight: 700, color: '#888', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '8px' }}>
             Active Goal
           </div>
@@ -126,7 +126,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Dash settings */}
-        <div style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden' }}>
+        <div style={{ background: '#fff', borderRadius: '16px', overflow: 'visible', marginBottom: '12px' }}>
           <div style={{ fontSize: '10px', fontWeight: 700, color: '#888', letterSpacing: '.08em', textTransform: 'uppercase', padding: '14px 16px 8px' }}>
             Dash Settings
           </div>
@@ -208,7 +208,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Account */}
-        <div style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden' }}>
+        <div style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', marginBottom: '12px' }}>
           <div style={{ fontSize: '10px', fontWeight: 700, color: '#888', letterSpacing: '.08em', textTransform: 'uppercase', padding: '14px 16px 8px' }}>
             Account
           </div>
