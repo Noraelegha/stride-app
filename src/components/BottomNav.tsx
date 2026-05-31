@@ -20,19 +20,19 @@ export default function BottomNav() {
       <div style={{ height: 'calc(60px + env(safe-area-inset-bottom))', flexShrink: 0 }} />
 
       <nav style={{
-        position: 'fixed',
-        bottom: 0,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: '100%',
-        maxWidth: '390px',
-        background: '#ffffff',
-        borderTop: '0.5px solid #e8e8e8',
-        display: 'flex',
-        padding: `0 6px calc(env(safe-area-inset-bottom) + 8px)`,
-        zIndex: 1000,
-        boxShadow: '0 -1px 0 rgba(0,0,0,0.06)',
-      }}>
+  position: 'fixed',
+  bottom: 0,
+  left: '50%',
+  transform: 'translateX(-50%)',
+  width: '100%',
+  maxWidth: '390px',
+  background: '#ffffff',
+  borderTop: '0.5px solid #e8e8e8',
+  display: 'flex',
+  padding: `6px 6px calc(env(safe-area-inset-bottom) + 4px)`,
+  zIndex: 1000,
+  boxShadow: '0 -1px 0 rgba(0,0,0,0.06)',
+}}>
         {navItems.map(({ icon: Icon, label, path }) => {
           const active = pathname === path
           return (
