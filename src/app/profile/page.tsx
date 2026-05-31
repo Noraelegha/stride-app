@@ -1,5 +1,6 @@
 'use client'
 import MarqueeText from '@/components/MarqueeText'
+import ThemeColor from '@/components/ThemeColor'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronRight, ChevronDown } from 'lucide-react'
@@ -55,6 +56,8 @@ export default function ProfilePage() {
   return (
     <div className="screen" style={{ background: '#f5f5f7' }}>
 
+      <ThemeColor color="#1a1a2e" />
+
       {/* Header */}
       <div style={{ background: '#1a1a2e', padding: '52px 22px 24px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
@@ -95,7 +98,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px', paddingBottom: 'calc(var(--nav-height) + 16px)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
         {/* Active goal */}
         <div style={{ background: '#fff', borderRadius: '16px', padding: '16px' }}>

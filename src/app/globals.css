@@ -51,11 +51,11 @@ body {
   height: 100vh;
   height: 100dvh;
   margin: 0 auto;
-  background: #f5f5f7;
+  background: #1a1a2e;
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden; /* Fix 2 — clips content to shell */
+  overflow: hidden;
 }
 
 .screen {
