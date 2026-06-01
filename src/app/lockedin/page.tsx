@@ -6,11 +6,32 @@ import ThemeColor from '@/components/ThemeColor'
 export default function LockedInPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const [notifRequesting, setNotifRequesting] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('stride_user')
     if (stored) setUser(JSON.parse(stored))
   }, [])
+
+  const handleAllowNotifications = async () => {
+    setNotifRequesting(true)
+    try {
+      const OneSignal = (await import('react-onesignal')).default
+      await OneSignal.init({
+        appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
+        allowLocalhostAsSecureOrigin: true,
+      })
+      await OneSignal.Notifications.requestPermission()
+      const stored = localStorage.getItem('stride_user')
+      if (stored) {
+        const userData = JSON.parse(stored)
+        await OneSignal.login(userData.email)
+      }
+    } catch (e) {
+      console.error('Notification setup failed:', e)
+    }
+    router.push('/home')
+  }
 
   return (
     <div
@@ -110,17 +131,29 @@ export default function LockedInPage() {
         </div>
       </div>
 
-      {/* Go to home */}
+      {/* Allow notifications button */}
       <button
-        onClick={() => router.push('/home')}
+        onClick={handleAllowNotifications}
+        disabled={notifRequesting}
         style={{
           width: '100%', background: '#fff', color: '#4CAF50',
           border: 'none', borderRadius: '12px', padding: '15px',
           fontSize: '15px', fontWeight: 700, cursor: 'pointer',
-          marginTop: '4px',
+          opacity: notifRequesting ? 0.7 : 1, marginTop: '4px',
         }}
       >
-        Let&apos;s go ⚡
+        {notifRequesting ? 'Setting up...' : 'Allow notifications ⚡'}
+      </button>
+
+      <button
+        onClick={() => router.push('/home')}
+        style={{
+          background: 'none', border: 'none',
+          color: 'rgba(255,255,255,0.5)',
+          fontSize: '12px', cursor: 'pointer', padding: '4px',
+        }}
+      >
+        I understand I may miss my daily tasks
       </button>
 
     </div>
