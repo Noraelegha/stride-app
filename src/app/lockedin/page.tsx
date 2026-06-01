@@ -6,32 +6,11 @@ import ThemeColor from '@/components/ThemeColor'
 export default function LockedInPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
-  const [notifRequesting, setNotifRequesting] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('stride_user')
     if (stored) setUser(JSON.parse(stored))
   }, [])
-
-  const handleAllowNotifications = async () => {
-    setNotifRequesting(true)
-    try {
-      const OneSignal = (await import('react-onesignal')).default
-      await OneSignal.init({
-        appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
-        allowLocalhostAsSecureOrigin: true,
-      })
-      await OneSignal.Notifications.requestPermission()
-      const stored = localStorage.getItem('stride_user')
-      if (stored) {
-        const userData = JSON.parse(stored)
-        await OneSignal.login(userData.email)
-      }
-    } catch (e) {
-      console.error('Notification setup failed:', e)
-    }
-    router.push('/home')
-  }
 
   return (
     <div
@@ -131,42 +110,18 @@ export default function LockedInPage() {
         </div>
       </div>
 
-      {/* Notification permission — required */}
-      <div style={{
-        background: 'rgba(255,255,255,0.18)', borderRadius: '16px',
-        padding: '16px', width: '100%', textAlign: 'left',
-        border: '1px solid rgba(255,255,255,0.25)',
-      }}>
-        <div style={{ fontSize: '22px', marginBottom: '8px' }}>🔔</div>
-        <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginBottom: '5px' }}>
-          One last thing.
-        </div>
-        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, marginBottom: '14px' }}>
-          Dash shows up daily at 8am with your task. Allow notifications so you never miss it.
-        </div>
-        <button
-          onClick={handleAllowNotifications}
-          disabled={notifRequesting}
-          style={{
-            width: '100%', background: '#fff', color: '#4CAF50',
-            border: 'none', borderRadius: '12px', padding: '13px',
-            fontSize: '14px', fontWeight: 700, cursor: 'pointer',
-            opacity: notifRequesting ? 0.7 : 1,
-          }}
-        >
-          {notifRequesting ? 'Setting up...' : 'Allow notifications ⚡'}
-        </button>
-        <button
-          onClick={() => router.push('/home')}
-          style={{
-            width: '100%', background: 'none', color: 'rgba(255,255,255,0.5)',
-            border: 'none', padding: '10px', fontSize: '12px',
-            cursor: 'pointer', marginTop: '6px',
-          }}
-        >
-          I understand I may miss my daily tasks
-        </button>
-      </div>
+      {/* Go to home */}
+      <button
+        onClick={() => router.push('/home')}
+        style={{
+          width: '100%', background: '#fff', color: '#4CAF50',
+          border: 'none', borderRadius: '12px', padding: '15px',
+          fontSize: '15px', fontWeight: 700, cursor: 'pointer',
+          marginTop: '4px',
+        }}
+      >
+        Let&apos;s go ⚡
+      </button>
 
     </div>
   )
