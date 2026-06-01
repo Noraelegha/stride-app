@@ -7,7 +7,6 @@ import { initAndSaveOneSignalId } from '@/lib/onesignal'
 
 type Panel = 'task' | 'hint' | 'srp' | 'streakShow' | 'bonus' | 'locked'
 
-// Sets the browser chrome/status bar colour dynamically
 function ThemeColor({ color }: { color: string }) {
   useEffect(() => {
     let meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null
@@ -81,13 +80,11 @@ export default function HomePage() {
         if (todayTask.status === 'completed' || todayTask.status === 'partial') {
           if (todayTask.bonus_task_active && todayTask.bonus_task_status === 'pending') {
             if (todayTask.bonus_task_text) {
-              // Saved text exists — use it directly
               setBonusTask({
                 text: todayTask.bonus_task_text,
                 dashMessage: 'Your bonus task is still waiting. Expires at midnight.',
               })
             } else {
-              // Text was never saved (API failed first time) — regenerate now
               setBonusTask({ text: '', dashMessage: '' })
               setBonusError(false)
               try {
@@ -211,6 +208,7 @@ export default function HomePage() {
         const updated = { ...userData, streak: 0 }
         localStorage.setItem('stride_user', JSON.stringify(updated))
         setUser(updated)
+        if (!updated.onesignal_id) initAndSaveOneSignalId(updated.email)
         fetchTodayTask(updated)
         return
       }
@@ -295,12 +293,29 @@ export default function HomePage() {
     partial: 'Where did you get to and what is left? Dash will pick it up from there tomorrow',
   }
 
-  // chipType declared here so canSubmit can reference it
   const chipType = taskData?.chip_type || taskData?.chipType || 'standard'
 
   const canSubmit = !!pickedChip &&
     (!showWall || (!!pickedWall && wallNote.trim().length >= 5)) &&
     (chipType !== 'checkin' || checkinNote.trim().length >= 15)
+
+  // ── Event notification helper ──
+  const sendEventNotification = async (message: string) => {
+    if (!user?.onesignal_id) return
+    try {
+      await fetch('/api/send-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          onesignal_id: user.onesignal_id,
+          message,
+        }),
+      })
+    } catch (err) {
+      console.error('Event notification failed:', err)
+    }
+  }
 
   const handleSubmit = async () => {
     if (submitting) return
@@ -373,7 +388,6 @@ export default function HomePage() {
 
         const updatedUser = { ...user, tasksDone: newTasksDone, streak: newStreak, score: newScore, shields: newShields }
 
-        // If context-gathering task, save user's written response to enrich all future task generation
         if (chipType === 'checkin' && checkinNote.trim().length >= 15) {
           await supabase.from('stride_users')
             .update({ prior_detail: checkinNote.trim() })
@@ -384,6 +398,26 @@ export default function HomePage() {
         } else {
           localStorage.setItem('stride_user', JSON.stringify(updatedUser))
           setUser(updatedUser)
+        }
+
+        // ── Streak milestone notifications ──
+        const STREAK_MILESTONES = [7, 14, 21, 30, 60, 90]
+        if (STREAK_MILESTONES.includes(newStreak)) {
+          const milestoneMsg =
+            newStreak >= 30
+              ? `${newStreak} days in a row. You are in the top 5% of Stride users. This is rare. 🏆`
+              : newStreak >= 14
+              ? `${newStreak} days straight. Top 20% of users. The habit is real now. 🔥`
+              : `${newStreak} days in a row. The habit is forming. Keep showing up. 🔥`
+          sendEventNotification(milestoneMsg)
+        }
+
+        // ── Shield earned notification ──
+        const justEarnedShield = newStreak % 5 === 0 && newShields > currentShields
+        if (justEarnedShield) {
+          sendEventNotification(
+            `Shield earned 🛡️ ${newStreak} consecutive days. Your streak is now protected if you ever miss a day.`
+          )
         }
       }
 
@@ -404,7 +438,6 @@ export default function HomePage() {
     if (!user || !taskData) return
     const today = new Date().toISOString().split('T')[0]
 
-    // Show panel immediately with loading state
     setBonusTask({ text: '', dashMessage: '' })
     setBonusError(false)
     setPanel('bonus')
@@ -448,7 +481,6 @@ export default function HomePage() {
       }
     } catch (err) {
       console.error('Bonus activation failed:', err)
-      // No fallback text — show retry instead
       setBonusError(true)
     }
   }
