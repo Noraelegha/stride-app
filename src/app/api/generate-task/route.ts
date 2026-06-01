@@ -73,8 +73,9 @@ export async function POST(req: NextRequest) {
       : 'No active sprint.'
 
     const todayDayNumber = (user.tasksDone || 0) + 1
+    const isExperiencedUser = (user.tasksDone || 0) >= 5
 
-    const userContext = `
+    const userContext = `${isExperiencedUser ? `CRITICAL RULE: This user has completed ${user.tasksDone} tasks already. They are NOT a new user. Do NOT generate any diagnostic, clarification, or onboarding tasks. Do NOT ask them what they are building or who their audience is. You already know from their history. Pick up directly from where the task history left off.` : ''}
 USER PROFILE:
 Name: ${user.name}
 Persona: ${user.persona} (${user.persona === 'builder' ? 'Solo-Hustler' : user.persona === 'learner' ? 'Learner' : 'Career Pivot-er'})
@@ -128,6 +129,7 @@ Generate today's task for ${user.name}. Return valid JSON only.
         max_tokens: 1500,
         system: DASH_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userContext }],
+        
       }),
     })
 
