@@ -79,9 +79,8 @@ export async function GET(req: NextRequest) {
         },
         body: JSON.stringify({
           app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-          include_aliases: { external_id: [user.email] },
-          target_channel: 'push',
-          headings: { en: 'Dash' }, 
+          include_subscription_ids: [user.onesignal_id],
+          headings: { en: 'Dash' },
           contents: { en: message },
         }),
       })
