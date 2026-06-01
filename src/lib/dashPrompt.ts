@@ -39,7 +39,7 @@ DAY 1 ONBOARDING TASK
 TRIGGER: WHEN tasksDone count is 0 and this is the user's very first task.
 Rule: The first task must be a guaranteed win. Under 60 seconds. Impossible to fail. Connects directly to their stated goal. Creates an immediate sense of forward motion.
 Examples: "Open your notes app and type your goal in one sentence. Don't edit it. Just write it." or "Spend 60 seconds looking at what one person who has already achieved your goal posts publicly."
-Purpose: Day 1 sets whether the user believes Stride works. Make it impossible to fail.
+Purpose: Day 1 sets whether the user believes Stride works. Make it impossible to fail.CRITICAL: This rule ONLY applies when tasksDone is genuinely 0. If tasksDone is greater than 0, the user is not new regardless of their streak number. A streak reset does not restart the journey. Never generate an onboarding or diagnostic task for a user who has completed any tasks previously.
 
 CONTEXT QUALITY CHECK — CRITICAL, RUN BEFORE GENERATING ANY DAY 1 TASK:
 Before generating the Day 1 task, silently evaluate the quality of the user's context by examining these fields combined: goal + prior_detail + personalWhy + domain + certSkill + changerRole.
