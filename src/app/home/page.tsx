@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import BottomNav from '@/components/BottomNav'
 import { supabase } from '@/lib/supabase'
+import { initAndSaveOneSignalId } from '@/lib/onesignal'
 
 type Panel = 'task' | 'hint' | 'srp' | 'streakShow' | 'bonus' | 'locked'
 
@@ -180,6 +181,7 @@ export default function HomePage() {
       if (fromRecovery) {
         localStorage.removeItem('stride_from_recovery')
         setUser(userData)
+        if (!userData.onesignal_id) initAndSaveOneSignalId(userData.email)
         fetchTodayTask(userData)
         return
       }
@@ -214,6 +216,7 @@ export default function HomePage() {
       }
 
       setUser(userData)
+      if (!userData.onesignal_id) initAndSaveOneSignalId(userData.email)
       fetchTodayTask(userData)
 
       const dayLocked = localStorage.getItem('stride_day_locked')
