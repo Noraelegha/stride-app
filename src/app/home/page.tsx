@@ -426,6 +426,41 @@ export default function HomePage() {
       }
 
       setPanel('streakShow')
+      // Sprint auto-update — triggers when user confirms first paying client (checkin chip1)
+if (pickedChip === 'chip1' && chipType === 'checkin') {
+  const sprintStartDate = new Date().toISOString().split('T')[0]
+  const sprintThemes = [
+    'Convert your first warm lead into a paying client',
+    'Build a referral system from your first client',
+    'Land your second client using social proof',
+    'Create a repeatable outreach system',
+  ]
+  const nextSprintTheme = sprintThemes[0]
+
+  const { error: sprintError } = await supabase
+    .from('stride_users')
+    .update({
+      phase: 2,
+      sprint_theme: nextSprintTheme,
+      sprint_day: 1,
+      sprint_start_date: sprintStartDate,
+    })
+    .eq('email', user.email)
+
+  if (!sprintError) {
+    const updatedUser = {
+      ...user,
+      phase: 2,
+      sprintTheme: nextSprintTheme,
+      sprintDay: 1,
+      sprintStartDate: sprintStartDate,
+    }
+    localStorage.setItem('stride_user', JSON.stringify(updatedUser))
+    setUser(updatedUser)
+  }
+}
+
+setPanel('streakShow')
     } catch (err) {
       console.error('Submit failed:', err)
       setSubmitError('Something went wrong. Please try again.')
