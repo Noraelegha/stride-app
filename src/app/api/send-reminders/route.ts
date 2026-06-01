@@ -81,6 +81,7 @@ export async function GET(req: NextRequest) {
           app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
           include_aliases: { external_id: [user.email] },
           target_channel: 'push',
+          headings: { en: 'Dash' }, 
           contents: { en: message },
         }),
       })
