@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       if (tier === 'morning') {
         if (isCompleted) continue
         message = todayTask?.morning_reminder
-          || `${firstName}. Your Stride task is ready. 5 minutes. Go. ⚡`
+          || `${firstName}. Your Stride task is ready. 5 minutes. Go.`
       }
 
       if (tier === 'midday') {
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
       if (tier === 'night') {
         if (isCompleted) continue
         message = todayTask?.night_reminder
-          || `Last call ${firstName}. One task. Do it now. ⚡`
+          || `Last call ${firstName}. One task. Do it now.`
       }
 
       if (!message) continue
@@ -81,7 +81,6 @@ export async function GET(req: NextRequest) {
           app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
           include_aliases: { external_id: [user.email] },
           target_channel: 'push',
-          headings: { en: 'Stride ⚡' },
           contents: { en: message },
         }),
       })
