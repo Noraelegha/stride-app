@@ -8,10 +8,7 @@ export default function RecoveryPage() {
   const router = useRouter()
 
   const handleReturn = async () => {
-    // Set flag so home skips the missed days check
     localStorage.setItem('stride_from_recovery', 'true')
-
-    // Update last_active so the calculation resets
     try {
       const stored = localStorage.getItem('stride_user')
       if (stored) {
@@ -24,7 +21,6 @@ export default function RecoveryPage() {
     } catch (e) {
       console.error('last_active update failed:', e)
     }
-
     router.push('/home')
   }
 
@@ -37,7 +33,7 @@ export default function RecoveryPage() {
       padding: '40px 24px', textAlign: 'center',
     }}>
       <ThemeColor color="#0f1623" />
-      {/* Breathing mascot */}
+
       <div style={{ position: 'relative', marginBottom: '40px' }}>
         <div style={{
           width: '120px', height: '120px', borderRadius: '50%',
@@ -62,7 +58,6 @@ export default function RecoveryPage() {
         </div>
       </div>
 
-      {/* Card */}
       <div style={{
         background: 'white', borderRadius: '24px',
         padding: '32px 28px', maxWidth: '360px', width: '100%',
