@@ -145,6 +145,12 @@ export default function HomePage() {
         chip1: task.chip1,
         chip2: task.chip2,
         chip_type: task.chipType || 'standard',
+        morning_reminder: task.morningReminder || null,
+        midday_reminder: task.middayReminder || null,
+        afternoon_reminder: task.afternoonReminder || null,
+        evening_reminder_complete: task.eveningReminderComplete || null,
+        evening_reminder_incomplete: task.eveningReminderIncomplete || null,
+        night_reminder: task.nightReminder || null,
       })
 
       if (insertError) {
@@ -299,7 +305,6 @@ export default function HomePage() {
     (!showWall || (!!pickedWall && wallNote.trim().length >= 5)) &&
     (chipType !== 'checkin' || checkinNote.trim().length >= 15)
 
-  // ── Event notification helper ──
   const sendEventNotification = async (message: string) => {
     if (!user?.onesignal_id) return
     try {
@@ -400,7 +405,34 @@ export default function HomePage() {
           setUser(updatedUser)
         }
 
-        // ── Streak milestone notifications ──
+        // Sprint auto-update — triggers when user confirms first paying client
+        if (pickedChip === 'chip1' && chipType === 'checkin') {
+          const sprintStartDate = new Date().toISOString().split('T')[0]
+          const nextSprintTheme = 'Convert your first warm lead into a paying client'
+          const { error: sprintError } = await supabase
+            .from('stride_users')
+            .update({
+              phase: 2,
+              sprint_theme: nextSprintTheme,
+              sprint_day: 1,
+              sprint_start_date: sprintStartDate,
+            })
+            .eq('email', user.email)
+
+          if (!sprintError) {
+            const sprintUser = {
+              ...updatedUser,
+              phase: 2,
+              sprintTheme: nextSprintTheme,
+              sprintDay: 1,
+              sprintStartDate: sprintStartDate,
+            }
+            localStorage.setItem('stride_user', JSON.stringify(sprintUser))
+            setUser(sprintUser)
+          }
+        }
+
+        // Streak milestone notifications
         const STREAK_MILESTONES = [7, 14, 21, 30, 60, 90]
         if (STREAK_MILESTONES.includes(newStreak)) {
           const milestoneMsg =
@@ -412,7 +444,7 @@ export default function HomePage() {
           sendEventNotification(milestoneMsg)
         }
 
-        // ── Shield earned notification ──
+        // Shield earned notification
         const justEarnedShield = newStreak % 5 === 0 && newShields > currentShields
         if (justEarnedShield) {
           sendEventNotification(
@@ -426,41 +458,7 @@ export default function HomePage() {
       }
 
       setPanel('streakShow')
-      // Sprint auto-update — triggers when user confirms first paying client (checkin chip1)
-if (pickedChip === 'chip1' && chipType === 'checkin') {
-  const sprintStartDate = new Date().toISOString().split('T')[0]
-  const sprintThemes = [
-    'Convert your first warm lead into a paying client',
-    'Build a referral system from your first client',
-    'Land your second client using social proof',
-    'Create a repeatable outreach system',
-  ]
-  const nextSprintTheme = sprintThemes[0]
 
-  const { error: sprintError } = await supabase
-    .from('stride_users')
-    .update({
-      phase: 2,
-      sprint_theme: nextSprintTheme,
-      sprint_day: 1,
-      sprint_start_date: sprintStartDate,
-    })
-    .eq('email', user.email)
-
-  if (!sprintError) {
-    const updatedUser = {
-      ...user,
-      phase: 2,
-      sprintTheme: nextSprintTheme,
-      sprintDay: 1,
-      sprintStartDate: sprintStartDate,
-    }
-    localStorage.setItem('stride_user', JSON.stringify(updatedUser))
-    setUser(updatedUser)
-  }
-}
-
-setPanel('streakShow')
     } catch (err) {
       console.error('Submit failed:', err)
       setSubmitError('Something went wrong. Please try again.')
@@ -507,10 +505,7 @@ setPanel('streakShow')
       }))
 
       if (bonus?.bonusTaskText) {
-        setBonusTask({
-          text: bonus.bonusTaskText,
-          dashMessage: bonus.dashMessage || '',
-        })
+        setBonusTask({ text: bonus.bonusTaskText, dashMessage: bonus.dashMessage || '' })
       } else {
         setBonusError(true)
       }
@@ -765,7 +760,7 @@ setPanel('streakShow')
                           <div style={{ fontSize: '12px', color: '#888', lineHeight: 1.5 }}>Type or paste your answers here. This is what Dash uses to build every task from now on.</div>
                           <textarea
                             rows={5}
-                            placeholder="e.g. I am building a social media management service for small Nigerian businesses. My ideal client runs a shop or restaurant and has 100–500 followers but no consistent posting. Right now I have zero clients and have only posted 3 times on my own page..."
+                            placeholder="e.g. I am building a social media management service for small Nigerian businesses..."
                             value={checkinNote}
                             onChange={e => setCheckinNote(e.target.value)}
                             style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '10px 12px', fontSize: '13px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%', lineHeight: 1.5 }}
