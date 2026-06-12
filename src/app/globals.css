@@ -27,7 +27,6 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ── Restored original html/body — no height or overflow constraints ── */
 html, body {
   background: #1a1a2e;
   margin: 0;
@@ -40,14 +39,16 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* ── Desktop & Mobile Shell — restored original min-height approach ── */
+/* ── Desktop & Mobile Shell ── */
 .app-shell {
   max-width: 430px;
   margin: 0 auto;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   background: #1a1a2e;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── Mobile ── */
@@ -63,13 +64,13 @@ body {
   }
 }
 
-/* ── Screen — restored original scroll behaviour ── */
+/* ── Screen: overflow hidden so only inner content scrolls ── */
 .screen {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* Sticky header / scrollable body helpers */

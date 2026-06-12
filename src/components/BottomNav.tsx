@@ -17,22 +17,22 @@ export default function BottomNav() {
   return (
     <>
       {/* Spacer so content doesn't hide behind the fixed nav */}
-      <div style={{ height: 'calc(60px + env(safe-area-inset-bottom))', flexShrink: 0 }} />
+      <div style={{ height: 'calc(56px + env(safe-area-inset-bottom))', flexShrink: 0 }} />
 
       <nav style={{
-  position: 'fixed',
-  bottom: 0,
-  left: '50%',
-  transform: 'translateX(-50%)',
-  width: '100%',
-  maxWidth: '390px',
-  background: '#ffffff',
-  borderTop: '0.5px solid #e8e8e8',
-  display: 'flex',
-  padding: `6px 6px calc(env(safe-area-inset-bottom) + 4px)`,
-  zIndex: 1000,
-  boxShadow: '0 -1px 0 rgba(0,0,0,0.06)',
-}}>
+        position: 'fixed',
+        bottom: 0,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '100%',
+        maxWidth: '430px',
+        background: '#ffffff',
+        borderTop: '0.5px solid #e8e8e8',
+        display: 'flex',
+        padding: `8px 6px env(safe-area-inset-bottom)`,
+        zIndex: 1000,
+        boxShadow: '0 -1px 0 rgba(0,0,0,0.06)',
+      }}>
         {navItems.map(({ icon: Icon, label, path }) => {
           const active = pathname === path
           return (
@@ -44,11 +44,11 @@ export default function BottomNav() {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '2px',
+                gap: '3px',
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                padding: '8px 4px 0',
+                padding: '4px 4px 0',
                 color: active ? '#1a1a2e' : '#cccccc',
                 transition: 'color 0.2s',
               }}

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
+import ThemeColor from '@/components/ThemeColor'
 
 type Alert = {
   ico: string
@@ -23,7 +24,6 @@ export default function AlertsPage() {
 
     const generateAlerts = async () => {
       try {
-        // Always pull fresh from Supabase
         const { data: dbUser } = await supabase
           .from('stride_users')
           .select('streak, tasks_done, score, shields, bonus_tasks')
@@ -36,7 +36,6 @@ export default function AlertsPage() {
         const shields = dbUser?.shields ?? localUser.shields ?? 0
         const bonusTasks = dbUser?.bonus_tasks ?? localUser.bonusTasks ?? 0
 
-        // Check today's task status
         const today = new Date().toISOString().split('T')[0]
         const { data: todayTask } = await supabase
           .from('daily_tasks')
@@ -47,7 +46,6 @@ export default function AlertsPage() {
 
         const generated: Alert[] = []
 
-        // Today's task — only show if not yet completed
         if (!todayTask || todayTask.status === 'pending') {
           generated.push({
             ico: '⚡', bg: '#f3eeff',
@@ -58,7 +56,6 @@ export default function AlertsPage() {
           })
         }
 
-        // Streak shield earned — show when shields > 0 and streak just hit a multiple of 5
         if (shields > 0 && streak > 0 && streak % 5 === 0) {
           generated.push({
             ico: '🛡️', bg: '#eef4ff',
@@ -71,13 +68,12 @@ export default function AlertsPage() {
           generated.push({
             ico: '🛡️', bg: '#eef4ff',
             title: `You have ${shields} streak shield${shields > 1 ? 's' : ''}`,
-            body: `Your shield${shields > 1 ? 's' : ''} will automatically protect your streak if you miss a day. Keep going.`,
+            body: `Your shield${shields > 1 ? 's' : ''} will automatically protect your streak if you miss a day.`,
             time: `Day ${streak - (streak % 5)} milestone`,
             unread: false,
           })
         }
 
-        // Streak milestone notifications
         const milestones = [3, 7, 14, 21, 30, 60, 90]
         const hitMilestone = milestones.filter(m => streak >= m).pop()
         if (hitMilestone && streak > 0) {
@@ -94,7 +90,6 @@ export default function AlertsPage() {
           })
         }
 
-        // Weekly report — only when enough tasks done
         if (tasksDone >= 7) {
           generated.push({
             ico: '📊', bg: '#edfaf3',
@@ -105,7 +100,6 @@ export default function AlertsPage() {
           })
         }
 
-        // Bonus tasks milestone
         if (bonusTasks >= 3) {
           generated.push({
             ico: '💪', bg: '#fffbec',
@@ -117,14 +111,13 @@ export default function AlertsPage() {
         } else if (bonusTasks > 0) {
           generated.push({
             ico: '💪', bg: '#fffbec',
-            title: `Bonus task completed`,
-            body: `You went the extra mile. That is the kind of energy that wins.`,
+            title: 'Bonus task completed',
+            body: 'You went the extra mile. That is the kind of energy that wins.',
             time: '2 days ago',
             unread: false,
           })
         }
 
-        // Shield used — fetch from recent task history
         const { data: recentTasks } = await supabase
           .from('daily_tasks')
           .select('task_date, status')
@@ -156,11 +149,23 @@ export default function AlertsPage() {
 
   return (
     <div className="screen" style={{ background: '#f5f5f7' }}>
+      <ThemeColor color="#1a1a2e" />
+
+      {/* Header — stays fixed */}
       <div style={{ background: '#1a1a2e', padding: '52px 22px 22px', flexShrink: 0 }}>
         <h1 style={{ fontSize: '26px', fontWeight: 900, color: '#fff', margin: 0 }}>Alerts</h1>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {/* Scrollable content — white background fills the rest */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        background: '#f5f5f7',
+        padding: '14px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+      }}>
         {!loaded ? (
           <div style={{ padding: '40px', textAlign: 'center' }}>
             <p style={{ color: '#aaa', fontSize: '14px', margin: 0 }}>Loading...</p>
