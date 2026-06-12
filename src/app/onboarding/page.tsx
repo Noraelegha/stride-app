@@ -75,7 +75,7 @@ export default function OnboardingPage() {
     if (step === 1) return data.name.trim().length >= 2 && /\S+@\S+\.\S+/.test(data.email)
     if (step === 2) return !!data.persona
     if (step === 3) {
-      if (!data.goal.trim()) return false
+      if (!data.goal.trim() || data.goal.trim().length < 40) return false
       if (data.persona === 'builder') return !!data.domain
       if (data.persona === 'learner') return data.certSkill.trim().length > 0
       if (data.persona === 'changer') return data.changerRole.trim().length > 0
@@ -151,10 +151,6 @@ export default function OnboardingPage() {
     <div key={i} className={`ob-pd${i < step ? ' on' : ''}`} />
   ))
 
-  const hint = (text: string) => (
-    <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px', lineHeight: 1.5 }}>{text}</div>
-  )
-
   return (
     <div className="ob-screen">
       <ThemeColor color="#ffffff" />
@@ -183,7 +179,7 @@ export default function OnboardingPage() {
               style={{ resize: 'none' }}
             />
           </div>
-          <div className="ob-foot" style={{ marginTop: '24px' }}>
+          <div className="ob-foot">
             <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(2)}>
               Continue
             </button>
@@ -212,7 +208,7 @@ export default function OnboardingPage() {
               </div>
             ))}
           </div>
-          <div className="ob-foot" style={{ marginTop: '24px' }}>
+          <div className="ob-foot">
             <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(3)}>Continue</button>
           </div>
         </>
@@ -230,17 +226,15 @@ export default function OnboardingPage() {
           <div className="ob-body">
             <textarea
               className="ob-ta" rows={4}
-              placeholder={
-                data.persona === 'learner'
-                  ? 'e.g. Pass my ACCA F3 exam in November — currently on chapter 4 of 12, studying alone at home'
-                  : data.persona === 'changer'
-                  ? 'e.g. Get my first UX design interview at a Lagos tech company by August — I currently work in banking with zero portfolio pieces'
-                  : 'e.g. Get my first 3 paying clients for my virtual assistant service in the next 60 days — currently at zero clients'
-              }
+              placeholder="Include what exactly you are doing, a specific number or target, and a timeframe."
               value={data.goal}
               onChange={e => set('goal', e.target.value)}
             />
-            {hint('Include: what exactly you are doing, a specific number or target, and a timeframe.')}
+            {data.goal.trim().length > 0 && data.goal.trim().length < 40 && (
+              <div style={{ fontSize: '11px', color: '#F5A623', marginTop: '2px' }}>
+                Add more detail — include your niche, a number, or a timeframe.
+              </div>
+            )}
 
             {data.persona === 'builder' && (
               <>
@@ -251,7 +245,7 @@ export default function OnboardingPage() {
                   ))}
                 </div>
                 {data.domain === 'Other' && (
-                  <textarea className="ob-ta" rows={1} placeholder="e.g. Hair braiding studio, tax consultancy, tutoring service..." value={data.customDomain} onChange={e => set('customDomain', e.target.value)} style={{ resize: 'none', borderColor: '#F5A623', marginTop: '4px' }} />
+                  <textarea className="ob-ta" rows={1} placeholder="Describe your space" value={data.customDomain} onChange={e => set('customDomain', e.target.value)} style={{ resize: 'none', borderColor: '#F5A623', marginTop: '4px' }} />
                 )}
               </>
             )}
@@ -261,14 +255,14 @@ export default function OnboardingPage() {
                 <div className="ob-lbl" style={{ marginTop: '10px' }}>What are you getting certified or skilled in?</div>
                 <textarea
                   className="ob-ta" rows={2}
-                  placeholder="e.g. ACCA F3 Financial Accounting — currently chapter 4 of 12, exam in November"
+                  placeholder="e.g. ACCA F3, exam in November, currently on chapter 4 of 12"
                   value={data.certSkill}
                   onChange={e => set('certSkill', e.target.value)}
                 />
-                <div className="ob-lbl">Any specific exam body, institution, or platform?</div>
+                <div className="ob-lbl">Exam body, institution, or platform</div>
                 <textarea
                   className="ob-ta" rows={1}
-                  placeholder="e.g. ICAEW, British Council Lagos, Coursera — self-study at home"
+                  placeholder="e.g. ICAEW, British Council, Coursera"
                   value={data.certBody}
                   onChange={e => set('certBody', e.target.value)}
                   style={{ resize: 'none' }}
@@ -278,17 +272,17 @@ export default function OnboardingPage() {
 
             {data.persona === 'changer' && (
               <>
-                <div className="ob-lbl" style={{ marginTop: '10px' }}>What industry or role are you moving toward?</div>
+                <div className="ob-lbl" style={{ marginTop: '10px' }}>What role or industry are you moving toward?</div>
                 <textarea
                   className="ob-ta" rows={2}
-                  placeholder="e.g. UX design at a Lagos fintech — I want to be doing this full-time within 8 months"
+                  placeholder="e.g. UX design at a Lagos fintech, full-time within 8 months"
                   value={data.changerRole}
                   onChange={e => set('changerRole', e.target.value)}
                 />
-                <div className="ob-lbl">Briefly describe where you are coming from</div>
+                <div className="ob-lbl">Where are you coming from?</div>
                 <textarea
                   className="ob-ta" rows={2}
-                  placeholder="e.g. 4 years in customer service, no design experience, completed 2 free Figma tutorials but built nothing yet"
+                  placeholder="e.g. 4 years in customer service, no design experience yet"
                   value={data.changerBackground}
                   onChange={e => set('changerBackground', e.target.value)}
                   style={{ resize: 'none' }}
@@ -296,7 +290,7 @@ export default function OnboardingPage() {
               </>
             )}
           </div>
-          <div className="ob-foot" style={{ marginTop: '24px' }}>
+          <div className="ob-foot">
             <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(4)}>Continue</button>
           </div>
         </>
@@ -339,11 +333,10 @@ export default function OnboardingPage() {
                 <div className="ob-lbl">Tell Dash exactly where you got to</div>
                 <textarea
                   className="ob-ta" rows={4}
-                  placeholder="e.g. I have 847 Instagram followers in the fitness niche, post 2–3x a week, got one paying client 3 months ago but nothing since. I know I need to be more consistent but I always stop after 2 weeks."
+                  placeholder="Current numbers, how often you work on this, and what usually stops you."
                   value={data.priorDetail}
                   onChange={e => set('priorDetail', e.target.value)}
                 />
-                {hint('Include: current numbers, how often you post or work on this, last time you made real progress, and what usually stops you.')}
               </>
             )}
 
@@ -352,15 +345,14 @@ export default function OnboardingPage() {
                 <div className="ob-lbl">What has not worked so far?</div>
                 <textarea
                   className="ob-ta" rows={4}
-                  placeholder="e.g. Tried posting every day for 6 weeks — got 12 likes max per post. Bought a course for ₦40,000 but never finished it. Hired a freelancer once, wasted money. Every time I start I quit after 2–3 weeks."
+                  placeholder="What you tried, how long, and why you think it did not work."
                   value={data.priorDetail}
                   onChange={e => set('priorDetail', e.target.value)}
                 />
-                {hint('Be specific about what you tried, how long you tried it, and why you think it did not work. This is how Dash avoids repeating those exact mistakes.')}
               </>
             )}
           </div>
-          <div className="ob-foot" style={{ marginTop: '24px' }}>
+          <div className="ob-foot">
             <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(5)}>Continue</button>
           </div>
         </>
@@ -378,17 +370,10 @@ export default function OnboardingPage() {
           <div className="ob-body">
             <textarea
               className="ob-ta" rows={3}
-              placeholder={
-                data.persona === 'learner'
-                  ? 'e.g. Qualify for a senior role with a ₦300k salary — right now I earn ₦120k and cannot move up without this cert'
-                  : data.persona === 'changer'
-                  ? 'e.g. Quit my job by January and work in a field I actually chose — not one I fell into 6 years ago'
-                  : 'e.g. Quit my 9-5 by December and replace my ₦200k salary with client income — I have been saying this for 2 years'
-              }
+              placeholder="What changes in your life if this works?"
               value={data.bigPrize}
               onChange={e => set('bigPrize', e.target.value)}
             />
-            {hint('Make it real and personal. The more specific, the more Dash can use it to keep you going on hard days.')}
 
             <div className="ob-lbl" style={{ marginTop: '10px' }}>Does this goal have a deadline?</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -411,13 +396,12 @@ export default function OnboardingPage() {
             <div className="ob-lbl" style={{ marginTop: '10px' }}>In your own words, why does this matter?</div>
             <textarea
               className="ob-ta" rows={3}
-              placeholder="e.g. I have been saying I will do this for 2 years. My younger sister just launched her own business and I am tired of watching other people move while I stay stuck. I need to prove to myself I can actually finish something."
+              placeholder="Why does this matter to you personally?"
               value={data.personalWhy}
               onChange={e => set('personalWhy', e.target.value)}
             />
-            {hint('Not the goal — the reason behind the goal. What happens to you personally if this works? What if it does not?')}
           </div>
-          <div className="ob-foot" style={{ marginTop: '24px' }}>
+          <div className="ob-foot">
             <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(6)}>Continue</button>
           </div>
         </>
@@ -440,7 +424,7 @@ export default function OnboardingPage() {
               </div>
             ))}
           </div>
-          <div className="ob-foot" style={{ marginTop: '24px' }}>
+          <div className="ob-foot">
             <button className="ob-btn" disabled={!canContinue()} onClick={() => setStep(7)}>Continue</button>
           </div>
         </>
@@ -453,7 +437,7 @@ export default function OnboardingPage() {
             <div className="ob-prog">{dots}</div>
             <div className="ob-step">Step 7 of {totalSteps}</div>
             <div className="ob-title">On a typical day, how much time do you actually have?</div>
-            <div className="ob-sub">Dash uses this to size your tasks. No judgment, no commitment.</div>
+            <div className="ob-sub">Dash uses this to size your tasks. No judgment.</div>
           </div>
           <div className="ob-body">
             {TIME_OPTIONS.map(t => (
@@ -463,7 +447,7 @@ export default function OnboardingPage() {
               </div>
             ))}
           </div>
-          <div className="ob-foot" style={{ marginTop: '24px' }}>
+          <div className="ob-foot">
             <button
               className="ob-btn"
               disabled={!canContinue() || isFinishing}
