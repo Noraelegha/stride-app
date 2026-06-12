@@ -151,6 +151,7 @@ export default function HomePage() {
         evening_reminder_complete: task.eveningReminderComplete || null,
         evening_reminder_incomplete: task.eveningReminderIncomplete || null,
         night_reminder: task.nightReminder || null,
+        goal_achieved: task.goalAchieved || false,
       })
 
       if (insertError) {
@@ -168,6 +169,11 @@ export default function HomePage() {
 
       setTaskData(insertedTask)
       setTaskLoading(false)
+
+      if (insertedTask?.goal_achieved) {
+        router.push('/goal-achieved')
+        return
+      }
     } catch (e) {
       console.error('Task fetch failed:', e)
       setTaskLoading(false)
@@ -450,6 +456,13 @@ export default function HomePage() {
           sendEventNotification(
             `Shield earned 🛡️ ${newStreak} consecutive days. Your streak is now protected if you ever miss a day.`
           )
+        }
+
+        // Milestone screen — big streaks get the shareable card instead of the normal streak screen
+        const MILESTONE_STREAKS = [7, 14, 30, 60, 90]
+        if (MILESTONE_STREAKS.includes(newStreak)) {
+          router.push('/milestone')
+          return
         }
       }
 
