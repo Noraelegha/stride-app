@@ -30,13 +30,14 @@ export async function GET(req: NextRequest) {
     for (const user of users) {
       const { data: todayTask } = await supabase
         .from('daily_tasks')
-        .select('task_text, status, morning_reminder, midday_reminder, afternoon_reminder, evening_reminder_complete, evening_reminder_incomplete, night_reminder')
+        .select('task_text, status, morning_reminder, midday_reminder, afternoon_reminder, evening_reminder_complete, evening_reminder_incomplete, night_reminder, bonus_task_active, bonus_task_status, bonus_task_text')
         .eq('user_email', user.email)
         .eq('task_date', today)
         .single()
 
       const isCompleted = todayTask?.status === 'completed'
       const firstName = user.name.split(' ')[0]
+      const hasPendingBonus = todayTask?.bonus_task_active && todayTask?.bonus_task_status === 'pending'
       let message = ''
 
       if (tier === 'morning') {
@@ -58,15 +59,23 @@ export async function GET(req: NextRequest) {
       }
 
       if (tier === 'evening') {
-        message = isCompleted
-          ? (todayTask?.evening_reminder_complete || `Streak locked ${firstName}. See you tomorrow. 🔥`)
-          : (todayTask?.evening_reminder_incomplete || `${firstName}, the day is not over. One task. Streak on the line. ⏳`)
+        if (isCompleted && hasPendingBonus) {
+          message = `${firstName}, your bonus task is still open. Expires at midnight. One more push. ⚡`
+        } else {
+          message = isCompleted
+            ? (todayTask?.evening_reminder_complete || `Streak locked ${firstName}. See you tomorrow. 🔥`)
+            : (todayTask?.evening_reminder_incomplete || `${firstName}, the day is not over. One task. Streak on the line. ⏳`)
+        }
       }
 
       if (tier === 'night') {
-        if (isCompleted) continue
-        message = todayTask?.night_reminder
-          || `Last call ${firstName}. One task. Do it now.`
+        if (isCompleted && hasPendingBonus) {
+          message = `Last call ${firstName}. Bonus task expires at midnight. Want the extra mile? ⚡`
+        } else {
+          if (isCompleted) continue
+          message = todayTask?.night_reminder
+            || `Last call ${firstName}. One task. Do it now.`
+        }
       }
 
       if (!message) continue
