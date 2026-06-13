@@ -137,7 +137,7 @@ export default function HomePage() {
 
       const { error: insertError } = await supabase.from('daily_tasks').insert({
         user_email: userData.email,
-        day_number: (userData.tasksDone || 0) + 1,
+        day_number: (history?.length || 0) + 1,
         task_text: task.taskText,
         dash_message: task.dashMessage,
         task_date: today,
