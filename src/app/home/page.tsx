@@ -180,6 +180,35 @@ export default function HomePage() {
     }
   }
 
+  // Silently prompt for notifications on home load for users who never granted
+  const requestNotificationsIfNeeded = async (userData: any) => {
+    try {
+      const OneSignal = (await import('react-onesignal')).default
+      await OneSignal.init({
+        appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
+        allowLocalhostAsSecureOrigin: true,
+      })
+      const permission = OneSignal.Notifications.permission
+      if (!permission) {
+        await OneSignal.Notifications.requestPermission()
+      }
+      await OneSignal.login(userData.email)
+      await new Promise(r => setTimeout(r, 1500))
+      const id = OneSignal.User.PushSubscription.id
+      if (id) {
+        await supabase
+          .from('stride_users')
+          .update({ onesignal_id: id })
+          .eq('email', userData.email)
+        const updated = { ...userData, onesignal_id: id }
+        localStorage.setItem('stride_user', JSON.stringify(updated))
+        setUser(updated)
+      }
+    } catch (e) {
+      console.error('Silent notification request failed:', e)
+    }
+  }
+
   useEffect(() => {
     const stored = localStorage.getItem('stride_user')
     if (!stored) { router.push('/onboarding'); return }
@@ -190,7 +219,11 @@ export default function HomePage() {
       if (fromRecovery) {
         localStorage.removeItem('stride_from_recovery')
         setUser(userData)
-        if (!userData.onesignal_id) initAndSaveOneSignalId(userData.email)
+        if (!userData.onesignal_id) {
+          requestNotificationsIfNeeded(userData)
+        } else {
+          initAndSaveOneSignalId(userData.email)
+        }
         fetchTodayTask(userData)
         return
       }
@@ -220,13 +253,21 @@ export default function HomePage() {
         const updated = { ...userData, streak: 0 }
         localStorage.setItem('stride_user', JSON.stringify(updated))
         setUser(updated)
-        if (!updated.onesignal_id) initAndSaveOneSignalId(updated.email)
+        if (!updated.onesignal_id) {
+          requestNotificationsIfNeeded(updated)
+        } else {
+          initAndSaveOneSignalId(updated.email)
+        }
         fetchTodayTask(updated)
         return
       }
 
       setUser(userData)
-      if (!userData.onesignal_id) initAndSaveOneSignalId(userData.email)
+      if (!userData.onesignal_id) {
+        requestNotificationsIfNeeded(userData)
+      } else {
+        initAndSaveOneSignalId(userData.email)
+      }
       fetchTodayTask(userData)
 
       const dayLocked = localStorage.getItem('stride_day_locked')

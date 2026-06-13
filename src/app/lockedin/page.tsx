@@ -15,36 +15,63 @@ export default function LockedInPage() {
 
   const handleAllowNotifications = async () => {
     setNotifRequesting(true)
+
+    const timeout = setTimeout(() => {
+      router.push('/home')
+    }, 6000)
+
     try {
       const OneSignal = (await import('react-onesignal')).default
+
       await OneSignal.init({
         appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
         allowLocalhostAsSecureOrigin: true,
       })
-      await OneSignal.Notifications.requestPermission()
+
+      const permission = OneSignal.Notifications.permission
+      if (!permission) {
+        await OneSignal.Notifications.requestPermission()
+      }
+
       const stored = localStorage.getItem('stride_user')
       if (stored) {
         const userData = JSON.parse(stored)
         await OneSignal.login(userData.email)
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        const subscriptionId = OneSignal.User.PushSubscription.id
+        if (subscriptionId) {
+          const { supabase } = await import('@/lib/supabase')
+          await supabase
+            .from('stride_users')
+            .update({ onesignal_id: subscriptionId })
+            .eq('email', userData.email)
+        }
       }
     } catch (e) {
       console.error('Notification setup failed:', e)
     }
+
+    clearTimeout(timeout)
     router.push('/home')
   }
 
   return (
-    <div style={{
-      flex: 1, minHeight: '100vh',
-      background: '#4CAF50',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center',
-      padding: '32px 24px 40px',
-      textAlign: 'center',
-      gap: '18px',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
+    <div
+      style={{
+        flex: 1,
+        minHeight: '100dvh',
+        background: '#4CAF50',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '32px 24px',
+        paddingBottom: 'calc(40px + env(safe-area-inset-bottom))',
+        textAlign: 'center',
+        gap: '18px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
       <ThemeColor color="#4CAF50" />
 
       <div style={{
@@ -54,12 +81,12 @@ export default function LockedInPage() {
 
       <div style={{ position: 'relative', width: '100px', height: '100px' }}>
         {[
-          { bg: '#F5A623', left: '4%',  top: '20%', delay: '0s',   size: 7 },
-          { bg: '#fff',    left: '85%', top: '10%', delay: '.3s',  size: 5 },
-          { bg: '#fff',    left: '18%', top: '5%',  delay: '.6s',  size: 9 },
-          { bg: '#F5A623', left: '75%', top: '30%', delay: '.9s',  size: 5 },
+          { bg: '#F5A623', left: '4%',  top: '20%', delay: '0s', size: 7 },
+          { bg: '#fff',    left: '85%', top: '10%', delay: '.3s', size: 5 },
+          { bg: '#fff',    left: '18%', top: '5%',  delay: '.6s', size: 9 },
+          { bg: '#F5A623', left: '75%', top: '30%', delay: '.9s', size: 5 },
           { bg: '#fff',    left: '50%', top: '2%',  delay: '.45s', size: 7 },
-          { bg: '#F5A623', left: '30%', top: '80%', delay: '1s',   size: 5 },
+          { bg: '#F5A623', left: '30%', top: '80%', delay: '1s', size: 5 },
           { bg: '#fff',    left: '70%', top: '75%', delay: '.75s', size: 9 },
         ].map((c, i) => (
           <div key={i} className="cd" style={{
@@ -115,11 +142,11 @@ export default function LockedInPage() {
       }}>
         <div style={{ marginBottom: '10px' }}>
           <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '3px' }}>Your goal</div>
-          <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>{user?.goalShort || user?.goal || 'Your goal'}</div>
+          <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>{user?.goal || 'Your goal'}</div>
         </div>
         <div>
           <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '3px' }}>Your big prize</div>
-          <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>{user?.prizeShort || user?.bigPrize || 'Your big prize'}</div>
+          <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>{user?.bigPrize || 'Your big prize'}</div>
         </div>
       </div>
 
@@ -141,8 +168,8 @@ export default function LockedInPage() {
           style={{
             width: '100%', background: '#fff', color: '#4CAF50',
             border: 'none', borderRadius: '12px', padding: '14px',
-            fontSize: '15px', fontWeight: 700, cursor: 'pointer',
-            opacity: notifRequesting ? 0.7 : 1,
+            fontSize: '15px', fontWeight: 700, cursor: notifRequesting ? 'default' : 'pointer',
+            opacity: notifRequesting ? 0.8 : 1,
           }}
         >
           {notifRequesting ? 'Setting up...' : 'Allow notifications ⚡'}
