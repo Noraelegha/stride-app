@@ -498,6 +498,11 @@ export default function HomePage() {
             `Shield earned 🛡️ ${newStreak} consecutive days. Your streak is now protected if you ever miss a day.`
           )
         }
+       // Completion confirmation — fires instantly using Dash's personalised text
+       const confirmMsg = isCompleted
+       ? (taskData?.evening_reminder_complete || `Day ${newStreak} locked. 🔥 See you tomorrow.`)
+       : (taskData?.evening_reminder_incomplete?.split('.')[0] || `Partial counts. Come back tomorrow.`)
+     sendEventNotification(confirmMsg)
 
         // Milestone screen — big streaks get the shareable card instead of the normal streak screen
         const MILESTONE_STREAKS = [7, 14, 30, 60, 90]

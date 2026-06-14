@@ -61,10 +61,11 @@ export async function GET(req: NextRequest) {
       if (tier === 'evening') {
         if (isCompleted && hasPendingBonus) {
           message = `${firstName}, your bonus task is still open. Expires at midnight. One more push. ⚡`
+        } else if (isCompleted) {
+          continue // already received personalised confirmation the moment they submitted
         } else {
-          message = isCompleted
-            ? (todayTask?.evening_reminder_complete || `Streak locked ${firstName}. See you tomorrow. 🔥`)
-            : (todayTask?.evening_reminder_incomplete || `${firstName}, the day is not over. One task. Streak on the line. ⏳`)
+          message = todayTask?.evening_reminder_incomplete
+            || `${firstName}, the day is not over. One task. Streak on the line. ⏳`
         }
       }
 
