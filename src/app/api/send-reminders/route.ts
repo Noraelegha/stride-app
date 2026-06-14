@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     }
 
     let sent = 0
-    const today = new Date().toISOString().split('T')[0]
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Lagos' })
 
     for (const user of users) {
       const { data: todayTask } = await supabase
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
         if (isCompleted && hasPendingBonus) {
           message = `${firstName}, your bonus task is still open. Expires at midnight. One more push. ⚡`
         } else if (isCompleted) {
-          continue // already received personalised confirmation the moment they submitted
+          continue
         } else {
           message = todayTask?.evening_reminder_incomplete
             || `${firstName}, the day is not over. One task. Streak on the line. ⏳`
