@@ -42,7 +42,6 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
   const [filter, setFilter] = useState<'all' | 'done' | 'pending' | 'at_risk' | 'no_notif'>('all')
-  const [expandedEmail, setExpandedEmail] = useState<string | null>(null)
   const [selectedUser, setSelectedUser] = useState<UserStat | null>(null)
 
   const fetchData = async () => {
@@ -89,8 +88,6 @@ export default function AdminPage() {
     setUsers(prev => prev.map(u =>
       u.email === email ? { ...u, history: data || [], historyLoading: false } : u
     ))
-
-    // Also update selectedUser if it's this user
     setSelectedUser(prev => prev?.email === email ? { ...prev, history: data || [], historyLoading: false } : prev)
   }
 
@@ -121,9 +118,9 @@ export default function AdminPage() {
   const avgStreak = users.length > 0 ? Math.round(users.reduce((a, u) => a + (u.streak || 0), 0) / users.length) : 0
   const avgScore = users.length > 0 ? Math.round(users.reduce((a, u) => a + (u.score || 0), 0) / users.length) : 0
 
-  const statusColor = (s: string) => ({ completed: '#4CAF50', partial: '#F5A623', pending: '#4A9EDB', blocked: '#888' }[s] || '#e0e0e0')
-  const statusLabel = (s: string) => ({ completed: '✅ Done', partial: '⏳ Partial', pending: '⏱ Pending', blocked: '🚧 Blocked' }[s] || '— No task')
+  const statusColor = (s: string) => ({ completed: '#4CAF50', partial: '#F5A623', pending: '#4A9EDB', blocked: '#888' }[s] || '#ccc')
   const statusBg = (s: string) => ({ completed: '#f0faf0', partial: '#fffbec', pending: '#eef4ff', blocked: '#f5f5f5' }[s] || '#f5f5f5')
+  const statusLabel = (s: string) => ({ completed: '✅ Done', partial: '⏳ Partial', pending: '⏱ Pending', blocked: '🚧 Blocked' }[s] || '— No task')
   const riskLabel = (d: number) => {
     if (d === 0) return { text: 'Active', color: '#4CAF50' }
     if (d === 1) return { text: '1 day missed', color: '#F5A623' }
@@ -133,14 +130,13 @@ export default function AdminPage() {
   const coachEmoji = (s: string | null) => ({ tough: '💪', strategic: '🤝', friend: '😏', mentor: '🧘' }[s || ''] || '🎭')
   const replyLabel = (r: string | null) => {
     if (!r) return null
-    const map: Record<string, string> = { chip1: 'Completed it', chip2: 'Partial', more: 'Did more', blocked: 'Hit a wall', partial: 'Partial', other: 'Something else' }
-    return map[r] || r
+    return ({ chip1: 'Completed it', chip2: 'Partial', more: 'Did more', blocked: 'Hit a wall', partial: 'Partial', other: 'Something else' }[r] || r)
   }
 
   if (!authed) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0f1117', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ background: '#fff', borderRadius: '20px', padding: '40px 36px', width: '360px', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+      <div style={{ minHeight: '100vh', background: '#f5f5f7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ background: '#fff', borderRadius: '20px', padding: '40px 36px', width: '360px', textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
           <div style={{ width: 52, height: 52, background: '#1a1a2e', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '22px' }}>⚡</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1a2e', marginBottom: '6px' }}>Stride Admin</div>
           <div style={{ fontSize: '13px', color: '#888', marginBottom: '28px' }}>Enter your password to continue</div>
@@ -162,50 +158,47 @@ export default function AdminPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f1117', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', height: '100vh', background: '#f5f5f7', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       {/* Top nav */}
-      <div style={{ background: '#1a1a2e', borderBottom: '1px solid rgba(255,255,255,.08)', padding: '0 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '60px', flexShrink: 0 }}>
+      <div style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', padding: '0 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '56px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: 30, height: 30, background: '#F5A623', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>⚡</div>
-          <span style={{ fontSize: '16px', fontWeight: 800, color: '#fff' }}>Stride Admin</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,.3)' }}>
+          <div style={{ width: 28, height: 28, background: '#1a1a2e', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }}>⚡</div>
+          <span style={{ fontSize: '15px', fontWeight: 800, color: '#1a1a2e' }}>Stride Admin</span>
+          <span style={{ fontSize: '11px', color: '#bbb', marginLeft: '4px' }}>
             {lastRefreshed ? `Updated ${lastRefreshed.toLocaleTimeString()}` : ''}
           </span>
-          <button onClick={fetchData} disabled={loading} style={{ background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', color: '#fff', padding: '7px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
-            {loading ? 'Refreshing...' : '↻ Refresh'}
-          </button>
         </div>
+        <button onClick={fetchData} disabled={loading} style={{ background: '#f5f5f7', border: '1px solid #e8e8e8', color: '#555', padding: '7px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+          {loading ? 'Refreshing...' : '↻ Refresh'}
+        </button>
       </div>
 
-      {/* Body — split layout */}
+      {/* Body */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
-        {/* Left panel — user list */}
-        <div style={{ width: selectedUser ? '420px' : '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,.06)', overflow: 'hidden' }}>
+        {/* Left — user list */}
+        <div style={{ width: '380px', flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid #e8e8e8', background: '#fff', overflow: 'hidden' }}>
 
-          {/* Stats row */}
-          <div style={{ padding: '20px 24px 0', display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
+          {/* Stats */}
+          <div style={{ padding: '16px 16px 0', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
             {[
-              { label: 'Users', value: users.length, ico: '👥', color: '#fff' },
-              { label: 'Done today', value: completedToday, ico: '✅', color: '#4CAF50' },
-              { label: 'Pending', value: pendingToday, ico: '⏱', color: '#4A9EDB' },
-              { label: 'At risk', value: atRisk, ico: '⚠️', color: '#ff6b35' },
-              { label: 'Avg streak', value: `${avgStreak}d`, ico: '🔥', color: '#F5A623' },
-              { label: 'Avg score', value: `${avgScore}%`, ico: '📊', color: '#a78bfa' },
+              { label: 'Total users', value: users.length, color: '#1a1a2e' },
+              { label: 'Done today', value: completedToday, color: '#4CAF50' },
+              { label: 'Pending', value: pendingToday, color: '#4A9EDB' },
+              { label: 'At risk', value: atRisk, color: '#ff6b35' },
+              { label: 'Avg streak', value: `${avgStreak}d`, color: '#F5A623' },
+              { label: 'Avg score', value: `${avgScore}%`, color: '#7c3aed' },
             ].map((s, i) => (
-              <div key={i} style={{ background: 'rgba(255,255,255,.05)', borderRadius: '10px', padding: '12px', textAlign: 'center', border: '1px solid rgba(255,255,255,.06)' }}>
-                <div style={{ fontSize: '16px', marginBottom: '4px' }}>{s.ico}</div>
-                <div style={{ fontSize: '20px', fontWeight: 800, color: s.color }}>{s.value}</div>
-                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,.35)', marginTop: '2px' }}>{s.label}</div>
+              <div key={i} style={{ background: '#f9f9f9', borderRadius: '10px', padding: '10px', textAlign: 'center', border: '1px solid #f0f0f0' }}>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: s.color }}>{s.value}</div>
+                <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>{s.label}</div>
               </div>
             ))}
           </div>
 
-          {/* Filter tabs */}
-          <div style={{ padding: '14px 24px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          {/* Filters */}
+          <div style={{ padding: '12px 16px', display: 'flex', gap: '6px', flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0' }}>
             {[
               { id: 'all', label: `All (${users.length})` },
               { id: 'done', label: `Done (${completedToday})` },
@@ -213,16 +206,16 @@ export default function AdminPage() {
               { id: 'at_risk', label: `At risk (${atRisk})` },
               { id: 'no_notif', label: `No notifs (${noNotif})` },
             ].map(f => (
-              <button key={f.id} onClick={() => setFilter(f.id as any)} style={{ padding: '5px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, border: `1px solid ${filter === f.id ? '#F5A623' : 'rgba(255,255,255,.1)'}`, background: filter === f.id ? 'rgba(245,166,35,.15)' : 'transparent', color: filter === f.id ? '#F5A623' : 'rgba(255,255,255,.4)', cursor: 'pointer' }}>
+              <button key={f.id} onClick={() => setFilter(f.id as any)} style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, border: `1.5px solid ${filter === f.id ? '#1a1a2e' : '#eee'}`, background: filter === f.id ? '#1a1a2e' : '#fff', color: filter === f.id ? '#fff' : '#666', cursor: 'pointer' }}>
                 {f.label}
               </button>
             ))}
           </div>
 
           {/* User rows */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>
+          <div style={{ flex: 1, overflowY: 'auto' }}>
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(255,255,255,.3)', fontSize: '13px' }}>Loading...</div>
+              <div style={{ textAlign: 'center', padding: '40px', color: '#aaa', fontSize: '13px' }}>Loading...</div>
             ) : filtered.map((u, i) => {
               const risk = riskLabel(u.daysMissed)
               const isSelected = selectedUser?.email === u.email
@@ -231,33 +224,33 @@ export default function AdminPage() {
                   key={i}
                   onClick={() => handleSelectUser(u)}
                   style={{
-                    background: isSelected ? 'rgba(245,166,35,.08)' : 'rgba(255,255,255,.03)',
-                    border: `1px solid ${isSelected ? 'rgba(245,166,35,.3)' : 'rgba(255,255,255,.06)'}`,
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #f5f5f5',
                     borderLeft: `3px solid ${statusColor(u.todayStatus)}`,
-                    borderRadius: '10px', padding: '12px 14px', marginBottom: '6px',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px',
-                    transition: 'all .15s',
+                    background: isSelected ? '#f9f9ff' : '#fff',
+                    cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '12px',
                   }}
                 >
                   <div style={{ width: 36, height: 36, background: '#F5A623', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: '#1a1a2e', flexShrink: 0 }}>
                     {(u.name || '?')[0].toUpperCase()}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>{u.name}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '1px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a2e' }}>{u.name}</span>
                       <span style={{ fontSize: '11px' }}>{coachEmoji(u.coach_style)}</span>
+                      {!u.onesignal_id && <span style={{ fontSize: '10px' }}>🔕</span>}
                     </div>
-                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '4px' }}>{u.goal || 'No goal'}</div>
+                    <div style={{ fontSize: '11px', color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '3px' }}>{u.goal || 'No goal'}</div>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <span style={{ fontSize: '10px', color: 'rgba(255,255,255,.4)' }}>🔥 {u.streak || 0}</span>
-                      <span style={{ fontSize: '10px', color: 'rgba(255,255,255,.4)' }}>✅ {u.tasks_done || 0}</span>
-                      <span style={{ fontSize: '10px', color: 'rgba(255,255,255,.4)' }}>📊 {u.score || 0}%</span>
-                      {!u.onesignal_id && <span style={{ fontSize: '10px', color: '#f44' }}>🔕</span>}
+                      <span style={{ fontSize: '10px', color: '#888' }}>🔥 {u.streak || 0}</span>
+                      <span style={{ fontSize: '10px', color: '#888' }}>✅ {u.tasks_done || 0}</span>
+                      <span style={{ fontSize: '10px', color: '#888' }}>📊 {u.score || 0}%</span>
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: statusColor(u.todayStatus), marginBottom: '3px' }}>{statusLabel(u.todayStatus)}</div>
-                    <div style={{ fontSize: '10px', color: risk.color }}>{risk.text}</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: statusColor(u.todayStatus), marginBottom: '2px' }}>{statusLabel(u.todayStatus)}</div>
+                    <div style={{ fontSize: '10px', color: risk.color, fontWeight: 600 }}>{risk.text}</div>
                   </div>
                 </div>
               )
@@ -265,132 +258,123 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Right panel — user detail */}
-        {selectedUser && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* Right — detail panel */}
+        {selectedUser ? (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#f5f5f7' }}>
 
-            {/* Detail header */}
-            <div style={{ padding: '20px 28px', borderBottom: '1px solid rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+            {/* User header */}
+            <div style={{ background: '#fff', padding: '20px 28px', borderBottom: '1px solid #e8e8e8', display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
               <div style={{ width: 48, height: 48, background: '#F5A623', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, color: '#1a1a2e', flexShrink: 0 }}>
                 {(selectedUser.name || '?')[0].toUpperCase()}
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: '#fff', marginBottom: '2px' }}>{selectedUser.name}</div>
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.35)' }}>{selectedUser.email}</div>
+                <div style={{ fontSize: '17px', fontWeight: 800, color: '#1a1a2e', marginBottom: '2px' }}>{selectedUser.name}</div>
+                <div style={{ fontSize: '12px', color: '#888' }}>{selectedUser.email}</div>
               </div>
               <div style={{ display: 'flex', gap: '10px' }}>
                 {[
                   { label: 'Streak', value: `${selectedUser.streak || 0}d`, color: '#F5A623' },
                   { label: 'Tasks', value: selectedUser.tasks_done || 0, color: '#4CAF50' },
-                  { label: 'Score', value: `${selectedUser.score || 0}%`, color: '#a78bfa' },
+                  { label: 'Score', value: `${selectedUser.score || 0}%`, color: '#7c3aed' },
                 ].map((s, i) => (
-                  <div key={i} style={{ background: 'rgba(255,255,255,.05)', borderRadius: '10px', padding: '10px 16px', textAlign: 'center', border: '1px solid rgba(255,255,255,.08)' }}>
-                    <div style={{ fontSize: '18px', fontWeight: 800, color: s.color }}>{s.value}</div>
-                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,.3)', marginTop: '2px' }}>{s.label}</div>
+                  <div key={i} style={{ background: '#f9f9f9', borderRadius: '10px', padding: '10px 16px', textAlign: 'center', border: '1px solid #eee' }}>
+                    <div style={{ fontSize: '16px', fontWeight: 800, color: s.color }}>{s.value}</div>
+                    <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>{s.label}</div>
                   </div>
                 ))}
               </div>
-              <button onClick={() => setSelectedUser(null)} style={{ background: 'rgba(255,255,255,.08)', border: 'none', color: 'rgba(255,255,255,.5)', width: 32, height: 32, borderRadius: '8px', cursor: 'pointer', fontSize: '16px' }}>×</button>
+              <button onClick={() => setSelectedUser(null)} style={{ background: '#f5f5f7', border: '1px solid #eee', color: '#888', width: 32, height: 32, borderRadius: '8px', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
             </div>
 
-            {/* Goal + meta */}
-            <div style={{ padding: '16px 28px', borderBottom: '1px solid rgba(255,255,255,.06)', display: 'flex', gap: '20px', flexShrink: 0 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Goal</div>
-                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.8)', lineHeight: 1.5 }}>{selectedUser.goal || '—'}</div>
+            {/* Meta row */}
+            <div style={{ background: '#fff', padding: '12px 28px', borderBottom: '1px solid #e8e8e8', display: 'flex', gap: '32px', flexShrink: 0 }}>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>Goal</div>
+                <div style={{ fontSize: '12px', color: '#555', maxWidth: '400px' }}>{selectedUser.goal || '—'}</div>
               </div>
               <div style={{ flexShrink: 0 }}>
-                <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Coach style</div>
-                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.8)' }}>{coachEmoji(selectedUser.coach_style)} {selectedUser.coach_style || '—'}</div>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>Coach</div>
+                <div style={{ fontSize: '12px', color: '#555' }}>{coachEmoji(selectedUser.coach_style)} {selectedUser.coach_style || '—'}</div>
               </div>
               <div style={{ flexShrink: 0 }}>
-                <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Notifications</div>
-                <div style={{ fontSize: '13px', color: selectedUser.onesignal_id ? '#4CAF50' : '#f44' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>Notifications</div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: selectedUser.onesignal_id ? '#4CAF50' : '#f44' }}>
                   {selectedUser.onesignal_id ? '✓ Enabled' : '✗ Not enabled'}
                 </div>
               </div>
               <div style={{ flexShrink: 0 }}>
-                <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Joined</div>
-                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.8)' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>Joined</div>
+                <div style={{ fontSize: '12px', color: '#555' }}>
                   {selectedUser.joined_at ? new Date(selectedUser.joined_at).toLocaleDateString() : '—'}
                 </div>
               </div>
             </div>
 
-            {/* Task history */}
+            {/* History */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '14px' }}>
-                Task History ({selectedUser.history?.length || 0} days)
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '14px' }}>
+                Task History — {selectedUser.history?.length || 0} days
               </div>
 
               {selectedUser.historyLoading ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(255,255,255,.3)', fontSize: '13px' }}>Loading history...</div>
+                <div style={{ textAlign: 'center', padding: '40px', color: '#aaa', fontSize: '13px' }}>Loading...</div>
               ) : !selectedUser.history || selectedUser.history.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(255,255,255,.3)', fontSize: '13px' }}>No task history yet.</div>
+                <div style={{ textAlign: 'center', padding: '40px', color: '#aaa', fontSize: '13px' }}>No history yet.</div>
               ) : selectedUser.history.map((t, j) => (
-                <div key={j} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.06)', borderLeft: `3px solid ${statusColor(t.status)}`, borderRadius: '10px', padding: '14px 16px', marginBottom: '10px' }}>
+                <div key={j} style={{ background: '#fff', border: '1px solid #eee', borderLeft: `3px solid ${statusColor(t.status)}`, borderRadius: '12px', padding: '14px 16px', marginBottom: '10px' }}>
 
-                  {/* Day header */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span style={{ fontSize: '11px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.06em' }}>Day {t.day_number}</span>
-                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,.25)' }}>{t.task_date}</span>
+                      <span style={{ fontSize: '11px', color: '#bbb' }}>{t.task_date}</span>
                       {t.chip_type === 'checkin' && (
-                        <span style={{ fontSize: '10px', background: 'rgba(124,58,237,.2)', color: '#a78bfa', borderRadius: '6px', padding: '2px 7px', fontWeight: 600 }}>Check-in</span>
+                        <span style={{ fontSize: '10px', background: '#f3eeff', color: '#7c3aed', borderRadius: '6px', padding: '2px 7px', fontWeight: 600 }}>Check-in</span>
                       )}
                     </div>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: statusColor(t.status), background: statusBg(t.status) + '22', padding: '3px 8px', borderRadius: '6px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: statusColor(t.status), background: statusBg(t.status), padding: '3px 10px', borderRadius: '6px' }}>
                       {statusLabel(t.status)}
                     </span>
                   </div>
 
-                  {/* Dash message */}
                   {t.dash_message && (
-                    <div style={{ background: 'rgba(26,26,46,.8)', borderRadius: '8px', borderBottomLeftRadius: '2px', padding: '8px 12px', marginBottom: '8px', border: '1px solid rgba(255,255,255,.06)' }}>
-                      <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>Dash said</div>
-                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.7)', lineHeight: 1.5 }}>{t.dash_message}</div>
+                    <div style={{ background: '#1a1a2e', borderRadius: '8px', borderBottomLeftRadius: '2px', padding: '8px 12px', marginBottom: '8px' }}>
+                      <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>Dash</div>
+                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.8)', lineHeight: 1.5 }}>{t.dash_message}</div>
                     </div>
                   )}
 
-                  {/* Task */}
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,.85)', lineHeight: 1.5, marginBottom: t.user_reply || t.hint_text || t.bonus_task_text ? '10px' : '0' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e', lineHeight: 1.5, marginBottom: (t.user_reply || t.hint_text || t.bonus_task_text) ? '10px' : 0 }}>
                     {t.task_text}
                   </div>
 
-                  {/* Reply row */}
                   {t.user_reply && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: t.hint_text ? '8px' : '0' }}>
-                      <span style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,.25)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Reply</span>
-                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,.5)', background: 'rgba(255,255,255,.06)', padding: '2px 8px', borderRadius: '6px' }}>{replyLabel(t.user_reply)}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: t.hint_text ? '8px' : 0 }}>
+                      <span style={{ fontSize: '10px', fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '.06em' }}>Reply</span>
+                      <span style={{ fontSize: '11px', color: '#555', background: '#f5f5f7', padding: '2px 8px', borderRadius: '6px' }}>{replyLabel(t.user_reply)}</span>
                     </div>
                   )}
 
-                  {/* User note */}
                   {t.hint_text && (
-                    <div style={{ background: 'rgba(245,166,35,.06)', borderLeft: '2px solid #F5A623', borderRadius: '0 6px 6px 0', padding: '8px 10px', marginBottom: t.bonus_task_text ? '8px' : '0' }}>
+                    <div style={{ background: '#fffbf0', borderLeft: '2px solid #F5A623', borderRadius: '0 8px 8px 0', padding: '8px 10px', marginBottom: t.bonus_task_text ? '8px' : 0 }}>
                       <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>User wrote</div>
-                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.6)', lineHeight: 1.5 }}>{t.hint_text}</div>
+                      <div style={{ fontSize: '12px', color: '#555', lineHeight: 1.5 }}>{t.hint_text}</div>
                     </div>
                   )}
 
-                  {/* Bonus task */}
                   {t.bonus_task_text && (
-                    <div style={{ background: 'rgba(245,166,35,.06)', borderLeft: '2px solid #F5A623', borderRadius: '0 6px 6px 0', padding: '8px 10px' }}>
+                    <div style={{ background: '#fffbf0', borderLeft: '2px solid #F5A623', borderRadius: '0 8px 8px 0', padding: '8px 10px' }}>
                       <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>
                         Bonus — {t.bonus_task_status || 'pending'}
                       </div>
-                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.6)', lineHeight: 1.5 }}>{t.bonus_task_text}</div>
+                      <div style={{ fontSize: '12px', color: '#555', lineHeight: 1.5 }}>{t.bonus_task_text}</div>
                     </div>
                   )}
                 </div>
               ))}
             </div>
           </div>
-        )}
-
-        {/* Empty state when no user selected */}
-        {!selectedUser && !loading && (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.15)', fontSize: '14px' }}>
+        ) : (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', fontSize: '14px', background: '#f5f5f7' }}>
             ← Select a user to view their full history
           </div>
         )}
