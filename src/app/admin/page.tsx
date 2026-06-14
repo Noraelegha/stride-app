@@ -43,6 +43,7 @@ export default function AdminPage() {
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
   const [filter, setFilter] = useState<'all' | 'done' | 'pending' | 'at_risk' | 'no_notif'>('all')
   const [expandedEmail, setExpandedEmail] = useState<string | null>(null)
+  const [selectedUser, setSelectedUser] = useState<UserStat | null>(null)
 
   const fetchData = async () => {
     setLoading(true)
@@ -69,11 +70,7 @@ export default function AdminPage() {
       const daysMissed = last
         ? Math.max(0, Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24)) - 1)
         : 99
-      return {
-        ...u,
-        todayStatus: (todayMap[u.email] as any) || 'none',
-        daysMissed,
-      }
+      return { ...u, todayStatus: (todayMap[u.email] as any) || 'none', daysMissed }
     })
 
     setUsers(stats)
@@ -83,7 +80,6 @@ export default function AdminPage() {
 
   const fetchHistory = async (email: string) => {
     setUsers(prev => prev.map(u => u.email === email ? { ...u, historyLoading: true } : u))
-
     const { data } = await supabase
       .from('daily_tasks')
       .select('task_date, day_number, task_text, dash_message, status, user_reply, hint_text, chip_type, bonus_task_text, bonus_task_status')
@@ -93,21 +89,17 @@ export default function AdminPage() {
     setUsers(prev => prev.map(u =>
       u.email === email ? { ...u, history: data || [], historyLoading: false } : u
     ))
+
+    // Also update selectedUser if it's this user
+    setSelectedUser(prev => prev?.email === email ? { ...prev, history: data || [], historyLoading: false } : prev)
   }
 
-  const toggleExpand = async (email: string) => {
-    if (expandedEmail === email) {
-      setExpandedEmail(null)
-      return
-    }
-    setExpandedEmail(email)
-    const user = users.find(u => u.email === email)
-    if (!user?.history) await fetchHistory(email)
+  const handleSelectUser = async (u: UserStat) => {
+    setSelectedUser(u)
+    if (!u.history) await fetchHistory(u.email)
   }
 
-  useEffect(() => {
-    if (authed) fetchData()
-  }, [authed])
+  useEffect(() => { if (authed) fetchData() }, [authed])
 
   const handleLogin = () => {
     if (password === ADMIN_PASSWORD) { setAuthed(true); setWrongPassword(false) }
@@ -129,8 +121,9 @@ export default function AdminPage() {
   const avgStreak = users.length > 0 ? Math.round(users.reduce((a, u) => a + (u.streak || 0), 0) / users.length) : 0
   const avgScore = users.length > 0 ? Math.round(users.reduce((a, u) => a + (u.score || 0), 0) / users.length) : 0
 
-  const statusColor = (s: string) => ({ completed: '#4CAF50', partial: '#F5A623', pending: '#4A9EDB', blocked: '#888' }[s] || '#ddd')
+  const statusColor = (s: string) => ({ completed: '#4CAF50', partial: '#F5A623', pending: '#4A9EDB', blocked: '#888' }[s] || '#e0e0e0')
   const statusLabel = (s: string) => ({ completed: '✅ Done', partial: '⏳ Partial', pending: '⏱ Pending', blocked: '🚧 Blocked' }[s] || '— No task')
+  const statusBg = (s: string) => ({ completed: '#f0faf0', partial: '#fffbec', pending: '#eef4ff', blocked: '#f5f5f5' }[s] || '#f5f5f5')
   const riskLabel = (d: number) => {
     if (d === 0) return { text: 'Active', color: '#4CAF50' }
     if (d === 1) return { text: '1 day missed', color: '#F5A623' }
@@ -146,22 +139,22 @@ export default function AdminPage() {
 
   if (!authed) {
     return (
-      <div style={{ minHeight: '100vh', background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-        <div style={{ background: '#fff', borderRadius: '20px', padding: '32px 28px', width: '100%', maxWidth: '380px', textAlign: 'center' }}>
-          <div style={{ fontSize: '28px', marginBottom: '8px' }}>⚡</div>
-          <div style={{ fontSize: '20px', fontWeight: 800, color: '#1a1a2e', marginBottom: '4px' }}>Stride Admin</div>
-          <div style={{ fontSize: '13px', color: '#888', marginBottom: '24px' }}>Enter your password to continue</div>
+      <div style={{ minHeight: '100vh', background: '#0f1117', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ background: '#fff', borderRadius: '20px', padding: '40px 36px', width: '360px', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+          <div style={{ width: 52, height: 52, background: '#1a1a2e', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '22px' }}>⚡</div>
+          <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1a2e', marginBottom: '6px' }}>Stride Admin</div>
+          <div style={{ fontSize: '13px', color: '#888', marginBottom: '28px' }}>Enter your password to continue</div>
           <input
             type="password"
             placeholder="Admin password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleLogin()}
-            style={{ width: '100%', border: `1.5px solid ${wrongPassword ? '#f44' : '#eee'}`, borderRadius: '12px', padding: '13px 15px', fontSize: '15px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', marginBottom: '10px', boxSizing: 'border-box' }}
+            style={{ width: '100%', border: `1.5px solid ${wrongPassword ? '#f44' : '#e5e7eb'}`, borderRadius: '10px', padding: '12px 14px', fontSize: '14px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', marginBottom: '10px', boxSizing: 'border-box' }}
           />
           {wrongPassword && <div style={{ fontSize: '12px', color: '#f44', marginBottom: '10px' }}>Wrong password.</div>}
-          <button onClick={handleLogin} style={{ width: '100%', background: '#1a1a2e', color: '#fff', border: 'none', padding: '14px', borderRadius: '12px', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}>
-            Enter
+          <button onClick={handleLogin} style={{ width: '100%', background: '#1a1a2e', color: '#fff', border: 'none', padding: '13px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>
+            Enter dashboard
           </button>
         </div>
       </div>
@@ -169,182 +162,238 @@ export default function AdminPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f5f7', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#0f1117', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', display: 'flex', flexDirection: 'column' }}>
 
-      <div style={{ background: '#1a1a2e', padding: '24px 28px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '960px', margin: '0 auto' }}>
-          <div>
-            <div style={{ fontSize: '22px', fontWeight: 900, color: '#fff' }}>⚡ Stride Admin</div>
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.4)', marginTop: '2px' }}>
-              {lastRefreshed ? `Last refreshed ${lastRefreshed.toLocaleTimeString()}` : 'Loading...'}
-            </div>
-          </div>
-          <button onClick={fetchData} disabled={loading} style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.2)', color: '#fff', padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+      {/* Top nav */}
+      <div style={{ background: '#1a1a2e', borderBottom: '1px solid rgba(255,255,255,.08)', padding: '0 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '60px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: 30, height: 30, background: '#F5A623', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>⚡</div>
+          <span style={{ fontSize: '16px', fontWeight: 800, color: '#fff' }}>Stride Admin</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,.3)' }}>
+            {lastRefreshed ? `Updated ${lastRefreshed.toLocaleTimeString()}` : ''}
+          </span>
+          <button onClick={fetchData} disabled={loading} style={{ background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', color: '#fff', padding: '7px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
             {loading ? 'Refreshing...' : '↻ Refresh'}
           </button>
         </div>
       </div>
 
-      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '20px' }}>
+      {/* Body — split layout */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
-        {/* Summary cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
-          {[
-            { label: 'Total users', value: users.length, ico: '👥', color: '#1a1a2e' },
-            { label: 'Done today', value: completedToday, ico: '✅', color: '#4CAF50' },
-            { label: 'Still pending', value: pendingToday, ico: '⏱', color: '#4A9EDB' },
-            { label: 'At risk', value: atRisk, ico: '⚠️', color: '#ff6b35' },
-            { label: 'Avg streak', value: `${avgStreak}d`, ico: '🔥', color: '#F5A623' },
-            { label: 'Avg score', value: `${avgScore}%`, ico: '📊', color: '#1a1a2e' },
-          ].map((s, i) => (
-            <div key={i} style={{ background: '#fff', borderRadius: '14px', padding: '14px', textAlign: 'center' }}>
-              <div style={{ fontSize: '20px', marginBottom: '4px' }}>{s.ico}</div>
-              <div style={{ fontSize: '22px', fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
+        {/* Left panel — user list */}
+        <div style={{ width: selectedUser ? '420px' : '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,.06)', overflow: 'hidden' }}>
 
-        {/* Filter tabs */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-          {[
-            { id: 'all', label: `All (${users.length})` },
-            { id: 'done', label: `Done today (${completedToday})` },
-            { id: 'pending', label: `Pending (${pendingToday})` },
-            { id: 'at_risk', label: `At risk (${atRisk})` },
-            { id: 'no_notif', label: `No notifications (${noNotif})` },
-          ].map(f => (
-            <button key={f.id} onClick={() => setFilter(f.id as any)} style={{ padding: '7px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, border: `1.5px solid ${filter === f.id ? '#1a1a2e' : '#eee'}`, background: filter === f.id ? '#1a1a2e' : '#fff', color: filter === f.id ? '#fff' : '#555', cursor: 'pointer' }}>
-              {f.label}
-            </button>
-          ))}
-        </div>
+          {/* Stats row */}
+          <div style={{ padding: '20px 24px 0', display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
+            {[
+              { label: 'Users', value: users.length, ico: '👥', color: '#fff' },
+              { label: 'Done today', value: completedToday, ico: '✅', color: '#4CAF50' },
+              { label: 'Pending', value: pendingToday, ico: '⏱', color: '#4A9EDB' },
+              { label: 'At risk', value: atRisk, ico: '⚠️', color: '#ff6b35' },
+              { label: 'Avg streak', value: `${avgStreak}d`, ico: '🔥', color: '#F5A623' },
+              { label: 'Avg score', value: `${avgScore}%`, ico: '📊', color: '#a78bfa' },
+            ].map((s, i) => (
+              <div key={i} style={{ background: 'rgba(255,255,255,.05)', borderRadius: '10px', padding: '12px', textAlign: 'center', border: '1px solid rgba(255,255,255,.06)' }}>
+                <div style={{ fontSize: '16px', marginBottom: '4px' }}>{s.ico}</div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: s.color }}>{s.value}</div>
+                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,.35)', marginTop: '2px' }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
 
-        {/* User list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#aaa' }}>Loading users...</div>
-          ) : filtered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#aaa' }}>No users in this filter.</div>
-          ) : filtered.map((u, i) => {
-            const risk = riskLabel(u.daysMissed)
-            const isExpanded = expandedEmail === u.email
-            return (
-              <div key={i} style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', borderLeft: `4px solid ${statusColor(u.todayStatus)}` }}>
+          {/* Filter tabs */}
+          <div style={{ padding: '14px 24px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {[
+              { id: 'all', label: `All (${users.length})` },
+              { id: 'done', label: `Done (${completedToday})` },
+              { id: 'pending', label: `Pending (${pendingToday})` },
+              { id: 'at_risk', label: `At risk (${atRisk})` },
+              { id: 'no_notif', label: `No notifs (${noNotif})` },
+            ].map(f => (
+              <button key={f.id} onClick={() => setFilter(f.id as any)} style={{ padding: '5px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, border: `1px solid ${filter === f.id ? '#F5A623' : 'rgba(255,255,255,.1)'}`, background: filter === f.id ? 'rgba(245,166,35,.15)' : 'transparent', color: filter === f.id ? '#F5A623' : 'rgba(255,255,255,.4)', cursor: 'pointer' }}>
+                {f.label}
+              </button>
+            ))}
+          </div>
 
-                {/* User row — clickable */}
+          {/* User rows */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(255,255,255,.3)', fontSize: '13px' }}>Loading...</div>
+            ) : filtered.map((u, i) => {
+              const risk = riskLabel(u.daysMissed)
+              const isSelected = selectedUser?.email === u.email
+              return (
                 <div
-                  onClick={() => toggleExpand(u.email)}
-                  style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer' }}
+                  key={i}
+                  onClick={() => handleSelectUser(u)}
+                  style={{
+                    background: isSelected ? 'rgba(245,166,35,.08)' : 'rgba(255,255,255,.03)',
+                    border: `1px solid ${isSelected ? 'rgba(245,166,35,.3)' : 'rgba(255,255,255,.06)'}`,
+                    borderLeft: `3px solid ${statusColor(u.todayStatus)}`,
+                    borderRadius: '10px', padding: '12px 14px', marginBottom: '6px',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px',
+                    transition: 'all .15s',
+                  }}
                 >
-                  <div style={{ width: 40, height: 40, background: '#F5A623', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, color: '#1a1a2e', flexShrink: 0 }}>
+                  <div style={{ width: 36, height: 36, background: '#F5A623', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: '#1a1a2e', flexShrink: 0 }}>
                     {(u.name || '?')[0].toUpperCase()}
                   </div>
-
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e' }}>{u.name || '—'}</div>
-                      <div style={{ fontSize: '11px' }}>{coachEmoji(u.coach_style)}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>{u.name}</span>
+                      <span style={{ fontSize: '11px' }}>{coachEmoji(u.coach_style)}</span>
                     </div>
-                    <div style={{ fontSize: '11px', color: '#888', marginBottom: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
-                    <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {u.goal || 'No goal set'}
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '11px', color: '#555' }}>🔥 {u.streak || 0} streak</span>
-                      <span style={{ fontSize: '11px', color: '#555' }}>✅ {u.tasks_done || 0} tasks</span>
-                      <span style={{ fontSize: '11px', color: '#555' }}>📊 {u.score || 0}%</span>
-                      {!u.onesignal_id && <span style={{ fontSize: '11px', color: '#f44' }}>🔕 No notifs</span>}
+                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '4px' }}>{u.goal || 'No goal'}</div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <span style={{ fontSize: '10px', color: 'rgba(255,255,255,.4)' }}>🔥 {u.streak || 0}</span>
+                      <span style={{ fontSize: '10px', color: 'rgba(255,255,255,.4)' }}>✅ {u.tasks_done || 0}</span>
+                      <span style={{ fontSize: '10px', color: 'rgba(255,255,255,.4)' }}>📊 {u.score || 0}%</span>
+                      {!u.onesignal_id && <span style={{ fontSize: '10px', color: '#f44' }}>🔕</span>}
                     </div>
                   </div>
-
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: statusColor(u.todayStatus), marginBottom: '4px' }}>
-                      {statusLabel(u.todayStatus)}
-                    </div>
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: risk.color, marginBottom: '8px' }}>
-                      {risk.text}
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#bbb' }}>{isExpanded ? '▲ collapse' : '▼ history'}</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: statusColor(u.todayStatus), marginBottom: '3px' }}>{statusLabel(u.todayStatus)}</div>
+                    <div style={{ fontSize: '10px', color: risk.color }}>{risk.text}</div>
                   </div>
                 </div>
-
-                {/* Expanded task history */}
-                {isExpanded && (
-                  <div style={{ borderTop: '1px solid #f5f5f5', padding: '0 16px 16px' }}>
-                    {u.historyLoading ? (
-                      <div style={{ padding: '20px', textAlign: 'center', color: '#aaa', fontSize: '13px' }}>Loading history...</div>
-                    ) : !u.history || u.history.length === 0 ? (
-                      <div style={{ padding: '20px', textAlign: 'center', color: '#aaa', fontSize: '13px' }}>No task history yet.</div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '14px' }}>
-                        {u.history.map((t, j) => (
-                          <div key={j} style={{ background: '#f9f9f9', borderRadius: '12px', padding: '12px', borderLeft: `3px solid ${statusColor(t.status)}` }}>
-
-                            {/* Day + date + status */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontSize: '11px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.06em' }}>
-                                  Day {t.day_number}
-                                </span>
-                                <span style={{ fontSize: '11px', color: '#bbb' }}>{t.task_date}</span>
-                                {t.chip_type === 'checkin' && (
-                                  <span style={{ fontSize: '10px', background: '#f3eeff', color: '#7c3aed', borderRadius: '6px', padding: '2px 6px', fontWeight: 600 }}>Check-in</span>
-                                )}
-                              </div>
-                              <span style={{ fontSize: '11px', fontWeight: 700, color: statusColor(t.status) }}>
-                                {statusLabel(t.status)}
-                              </span>
-                            </div>
-
-                            {/* Dash message */}
-                            {t.dash_message && (
-                              <div style={{ background: '#1a1a2e', borderRadius: '8px', borderBottomLeftRadius: '2px', padding: '8px 10px', marginBottom: '8px' }}>
-                                <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>Dash</div>
-                                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.85)', lineHeight: 1.45 }}>{t.dash_message}</div>
-                              </div>
-                            )}
-
-                            {/* Task */}
-                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e', lineHeight: 1.5, marginBottom: '8px' }}>
-                              {t.task_text}
-                            </div>
-
-                            {/* User reply */}
-                            {t.user_reply && (
-                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: t.hint_text ? '6px' : '0' }}>
-                                <span style={{ fontSize: '11px', fontWeight: 700, color: '#888', flexShrink: 0 }}>Reply:</span>
-                                <span style={{ fontSize: '11px', color: '#555' }}>{replyLabel(t.user_reply)}</span>
-                              </div>
-                            )}
-
-                            {/* User's written note */}
-                            {t.hint_text && (
-                              <div style={{ background: '#fffbf0', borderLeft: '3px solid #F5A623', borderRadius: '0 8px 8px 0', padding: '8px 10px', marginBottom: '6px' }}>
-                                <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>User note</div>
-                                <div style={{ fontSize: '12px', color: '#555', lineHeight: 1.45 }}>{t.hint_text}</div>
-                              </div>
-                            )}
-
-                            {/* Bonus task */}
-                            {t.bonus_task_text && (
-                              <div style={{ background: '#fff8ec', borderLeft: '3px solid #F5A623', borderRadius: '0 8px 8px 0', padding: '8px 10px', marginTop: '6px' }}>
-                                <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>
-                                  Bonus — {t.bonus_task_status || 'pending'}
-                                </div>
-                                <div style={{ fontSize: '12px', color: '#555', lineHeight: 1.45 }}>{t.bonus_task_text}</div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
+
+        {/* Right panel — user detail */}
+        {selectedUser && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+            {/* Detail header */}
+            <div style={{ padding: '20px 28px', borderBottom: '1px solid rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+              <div style={{ width: 48, height: 48, background: '#F5A623', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, color: '#1a1a2e', flexShrink: 0 }}>
+                {(selectedUser.name || '?')[0].toUpperCase()}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#fff', marginBottom: '2px' }}>{selectedUser.name}</div>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.35)' }}>{selectedUser.email}</div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                {[
+                  { label: 'Streak', value: `${selectedUser.streak || 0}d`, color: '#F5A623' },
+                  { label: 'Tasks', value: selectedUser.tasks_done || 0, color: '#4CAF50' },
+                  { label: 'Score', value: `${selectedUser.score || 0}%`, color: '#a78bfa' },
+                ].map((s, i) => (
+                  <div key={i} style={{ background: 'rgba(255,255,255,.05)', borderRadius: '10px', padding: '10px 16px', textAlign: 'center', border: '1px solid rgba(255,255,255,.08)' }}>
+                    <div style={{ fontSize: '18px', fontWeight: 800, color: s.color }}>{s.value}</div>
+                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,.3)', marginTop: '2px' }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setSelectedUser(null)} style={{ background: 'rgba(255,255,255,.08)', border: 'none', color: 'rgba(255,255,255,.5)', width: 32, height: 32, borderRadius: '8px', cursor: 'pointer', fontSize: '16px' }}>×</button>
+            </div>
+
+            {/* Goal + meta */}
+            <div style={{ padding: '16px 28px', borderBottom: '1px solid rgba(255,255,255,.06)', display: 'flex', gap: '20px', flexShrink: 0 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Goal</div>
+                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.8)', lineHeight: 1.5 }}>{selectedUser.goal || '—'}</div>
+              </div>
+              <div style={{ flexShrink: 0 }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Coach style</div>
+                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.8)' }}>{coachEmoji(selectedUser.coach_style)} {selectedUser.coach_style || '—'}</div>
+              </div>
+              <div style={{ flexShrink: 0 }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Notifications</div>
+                <div style={{ fontSize: '13px', color: selectedUser.onesignal_id ? '#4CAF50' : '#f44' }}>
+                  {selectedUser.onesignal_id ? '✓ Enabled' : '✗ Not enabled'}
+                </div>
+              </div>
+              <div style={{ flexShrink: 0 }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Joined</div>
+                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.8)' }}>
+                  {selectedUser.joined_at ? new Date(selectedUser.joined_at).toLocaleDateString() : '—'}
+                </div>
+              </div>
+            </div>
+
+            {/* Task history */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '14px' }}>
+                Task History ({selectedUser.history?.length || 0} days)
+              </div>
+
+              {selectedUser.historyLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(255,255,255,.3)', fontSize: '13px' }}>Loading history...</div>
+              ) : !selectedUser.history || selectedUser.history.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(255,255,255,.3)', fontSize: '13px' }}>No task history yet.</div>
+              ) : selectedUser.history.map((t, j) => (
+                <div key={j} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.06)', borderLeft: `3px solid ${statusColor(t.status)}`, borderRadius: '10px', padding: '14px 16px', marginBottom: '10px' }}>
+
+                  {/* Day header */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.06em' }}>Day {t.day_number}</span>
+                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,.25)' }}>{t.task_date}</span>
+                      {t.chip_type === 'checkin' && (
+                        <span style={{ fontSize: '10px', background: 'rgba(124,58,237,.2)', color: '#a78bfa', borderRadius: '6px', padding: '2px 7px', fontWeight: 600 }}>Check-in</span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: statusColor(t.status), background: statusBg(t.status) + '22', padding: '3px 8px', borderRadius: '6px' }}>
+                      {statusLabel(t.status)}
+                    </span>
+                  </div>
+
+                  {/* Dash message */}
+                  {t.dash_message && (
+                    <div style={{ background: 'rgba(26,26,46,.8)', borderRadius: '8px', borderBottomLeftRadius: '2px', padding: '8px 12px', marginBottom: '8px', border: '1px solid rgba(255,255,255,.06)' }}>
+                      <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>Dash said</div>
+                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.7)', lineHeight: 1.5 }}>{t.dash_message}</div>
+                    </div>
+                  )}
+
+                  {/* Task */}
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,.85)', lineHeight: 1.5, marginBottom: t.user_reply || t.hint_text || t.bonus_task_text ? '10px' : '0' }}>
+                    {t.task_text}
+                  </div>
+
+                  {/* Reply row */}
+                  {t.user_reply && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: t.hint_text ? '8px' : '0' }}>
+                      <span style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,.25)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Reply</span>
+                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,.5)', background: 'rgba(255,255,255,.06)', padding: '2px 8px', borderRadius: '6px' }}>{replyLabel(t.user_reply)}</span>
+                    </div>
+                  )}
+
+                  {/* User note */}
+                  {t.hint_text && (
+                    <div style={{ background: 'rgba(245,166,35,.06)', borderLeft: '2px solid #F5A623', borderRadius: '0 6px 6px 0', padding: '8px 10px', marginBottom: t.bonus_task_text ? '8px' : '0' }}>
+                      <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>User wrote</div>
+                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.6)', lineHeight: 1.5 }}>{t.hint_text}</div>
+                    </div>
+                  )}
+
+                  {/* Bonus task */}
+                  {t.bonus_task_text && (
+                    <div style={{ background: 'rgba(245,166,35,.06)', borderLeft: '2px solid #F5A623', borderRadius: '0 6px 6px 0', padding: '8px 10px' }}>
+                      <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>
+                        Bonus — {t.bonus_task_status || 'pending'}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.6)', lineHeight: 1.5 }}>{t.bonus_task_text}</div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Empty state when no user selected */}
+        {!selectedUser && !loading && (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.15)', fontSize: '14px' }}>
+            ← Select a user to view their full history
+          </div>
+        )}
       </div>
     </div>
   )
