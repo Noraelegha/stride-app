@@ -133,9 +133,21 @@ export default function AdminPage() {
     return ({ chip1: 'Completed it', chip2: 'Partial', more: 'Did more', blocked: 'Hit a wall', partial: 'Partial', other: 'Something else' }[r] || r)
   }
 
+  // ── The outer wrapper uses position:fixed + inset:0 to fully escape the app-shell ──
+  const wrapStyle: React.CSSProperties = {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 9999,
+    background: '#f5f5f7',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  }
+
   if (!authed) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f5f5f7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ ...wrapStyle, alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ background: '#fff', borderRadius: '20px', padding: '40px 36px', width: '360px', textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
           <div style={{ width: 52, height: 52, background: '#1a1a2e', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '22px' }}>⚡</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1a2e', marginBottom: '6px' }}>Stride Admin</div>
@@ -158,7 +170,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', height: '100vh', background: '#f5f5f7', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={wrapStyle}>
 
       {/* Top nav */}
       <div style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', padding: '0 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '56px', flexShrink: 0 }}>
@@ -227,7 +239,7 @@ export default function AdminPage() {
                     padding: '12px 16px',
                     borderBottom: '1px solid #f5f5f5',
                     borderLeft: `3px solid ${statusColor(u.todayStatus)}`,
-                    background: isSelected ? '#f9f9ff' : '#fff',
+                    background: isSelected ? '#f5f5ff' : '#fff',
                     cursor: 'pointer',
                     display: 'flex', alignItems: 'center', gap: '12px',
                   }}
@@ -258,11 +270,10 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Right — detail panel */}
+        {/* Right — detail */}
         {selectedUser ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#f5f5f7' }}>
 
-            {/* User header */}
             <div style={{ background: '#fff', padding: '20px 28px', borderBottom: '1px solid #e8e8e8', display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
               <div style={{ width: 48, height: 48, background: '#F5A623', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, color: '#1a1a2e', flexShrink: 0 }}>
                 {(selectedUser.name || '?')[0].toUpperCase()}
@@ -283,14 +294,13 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
-              <button onClick={() => setSelectedUser(null)} style={{ background: '#f5f5f7', border: '1px solid #eee', color: '#888', width: 32, height: 32, borderRadius: '8px', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+              <button onClick={() => setSelectedUser(null)} style={{ background: '#f5f5f7', border: '1px solid #eee', color: '#888', width: 32, height: 32, borderRadius: '8px', cursor: 'pointer', fontSize: '16px' }}>×</button>
             </div>
 
-            {/* Meta row */}
             <div style={{ background: '#fff', padding: '12px 28px', borderBottom: '1px solid #e8e8e8', display: 'flex', gap: '32px', flexShrink: 0 }}>
-              <div>
+              <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '10px', fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>Goal</div>
-                <div style={{ fontSize: '12px', color: '#555', maxWidth: '400px' }}>{selectedUser.goal || '—'}</div>
+                <div style={{ fontSize: '12px', color: '#555' }}>{selectedUser.goal || '—'}</div>
               </div>
               <div style={{ flexShrink: 0 }}>
                 <div style={{ fontSize: '10px', fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>Coach</div>
@@ -304,13 +314,10 @@ export default function AdminPage() {
               </div>
               <div style={{ flexShrink: 0 }}>
                 <div style={{ fontSize: '10px', fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>Joined</div>
-                <div style={{ fontSize: '12px', color: '#555' }}>
-                  {selectedUser.joined_at ? new Date(selectedUser.joined_at).toLocaleDateString() : '—'}
-                </div>
+                <div style={{ fontSize: '12px', color: '#555' }}>{selectedUser.joined_at ? new Date(selectedUser.joined_at).toLocaleDateString() : '—'}</div>
               </div>
             </div>
 
-            {/* History */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px' }}>
               <div style={{ fontSize: '11px', fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '14px' }}>
                 Task History — {selectedUser.history?.length || 0} days
@@ -322,7 +329,6 @@ export default function AdminPage() {
                 <div style={{ textAlign: 'center', padding: '40px', color: '#aaa', fontSize: '13px' }}>No history yet.</div>
               ) : selectedUser.history.map((t, j) => (
                 <div key={j} style={{ background: '#fff', border: '1px solid #eee', borderLeft: `3px solid ${statusColor(t.status)}`, borderRadius: '12px', padding: '14px 16px', marginBottom: '10px' }}>
-
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span style={{ fontSize: '11px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.06em' }}>Day {t.day_number}</span>
@@ -374,7 +380,7 @@ export default function AdminPage() {
             </div>
           </div>
         ) : (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', fontSize: '14px', background: '#f5f5f7' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', fontSize: '14px' }}>
             ← Select a user to view their full history
           </div>
         )}
