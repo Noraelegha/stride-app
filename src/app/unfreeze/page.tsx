@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 import ThemeColor from '@/components/ThemeColor'
 
 export default function UnfreezePage() {
@@ -8,11 +9,84 @@ export default function UnfreezePage() {
   const [phase, setPhase] = useState<1 | 2>(1)
   const [p1Out, setP1Out] = useState(false)
   const [p2In, setP2In] = useState(false)
+  const [actualStreak, setActualStreak] = useState(0)
+  const [weekData, setWeekData] = useState<Array<'done' | 'missed' | 'today' | 'future'>>([])
+  const [loading, setLoading] = useState(true)
+
+  const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
   useEffect(() => {
     setPhase(1)
     setP1Out(false)
     setP2In(false)
+
+    const stored = localStorage.getItem('stride_user')
+    if (!stored) { router.push('/onboarding'); return }
+    const userData = JSON.parse(stored)
+
+    // Streak is maintained when shield activates — read directly from localStorage
+    setActualStreak(userData.streak || 0)
+
+    const loadWeekData = async () => {
+      try {
+        // Get the dates for this week (Sun to Sat)
+        const today = new Date()
+        const todayIdx = today.getDay()
+        const weekStart = new Date(today)
+        weekStart.setDate(today.getDate() - todayIdx)
+        weekStart.setHours(0, 0, 0, 0)
+
+        const weekDates = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(weekStart)
+          d.setDate(weekStart.getDate() + i)
+          return d.toISOString().split('T')[0]
+        })
+
+        // Fetch this week's tasks from Supabase
+        const { data: tasks } = await supabase
+          .from('daily_tasks')
+          .select('task_date, status')
+          .eq('user_email', userData.email)
+          .in('task_date', weekDates)
+
+        const taskMap: Record<string, string> = {}
+        tasks?.forEach((t: any) => { taskMap[t.task_date] = t.status })
+
+        const yesterday = new Date(today)
+        yesterday.setDate(today.getDate() - 1)
+        const yesterdayStr = yesterday.toISOString().split('T')[0]
+        const todayStr = today.toISOString().split('T')[0]
+
+        const data: Array<'done' | 'missed' | 'today' | 'future'> = weekDates.map((dateStr, i) => {
+          if (dateStr === todayStr) return 'today'
+          if (dateStr === yesterdayStr) return 'missed' // This is the shielded day
+          if (i > todayIdx) return 'future'
+          // For past days this week — check actual DB status
+          const status = taskMap[dateStr]
+          if (status === 'completed' || status === 'partial') return 'done'
+          if (dateStr < todayStr && dateStr < yesterdayStr) return 'done' // Part of active streak before missed day
+          return 'future'
+        })
+
+        setWeekData(data)
+      } catch (e) {
+        console.error('Failed to load week data:', e)
+        // Fallback — mark all past days as done, yesterday as missed, today as today
+        const today = new Date()
+        const todayIdx = today.getDay()
+        const fallback: Array<'done' | 'missed' | 'today' | 'future'> = weekDays.map((_, i) => {
+          if (i === todayIdx) return 'today'
+          if (i === todayIdx - 1) return 'missed'
+          if (i < todayIdx) return 'done'
+          return 'future'
+        })
+        setWeekData(fallback)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadWeekData()
   }, [])
 
   const handlePhase1Tap = () => {
@@ -25,16 +99,6 @@ export default function UnfreezePage() {
     router.push('/home')
   }
 
-  const today = new Date()
-  const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-  const todayIdx = today.getDay()
-  type DayStatus = 'done' | 'missed' | 'today' | 'future'
-  const weekData: DayStatus[] = weekDays.map((_, i) => {
-    if (i < todayIdx) return i === todayIdx - 2 ? 'missed' : 'done'
-    if (i === todayIdx) return 'today'
-    return 'future'
-  })
-
   return (
     <div style={{ position: 'relative', flex: 1, minHeight: '100vh', overflow: 'hidden' }}>
       <ThemeColor color={p2In ? '#ffffff' : '#29B6F6'} />
@@ -45,7 +109,7 @@ export default function UnfreezePage() {
         @keyframes clap { 0%{transform:rotate(-18deg)} 50%{transform:rotate(8deg)} 100%{transform:rotate(-18deg)} }
       `}</style>
 
-      {/* Phase 1 */}
+      {/* PHASE 1 — Blue shield screen */}
       <div
         onClick={handlePhase1Tap}
         style={{
@@ -62,6 +126,7 @@ export default function UnfreezePage() {
         }}
       >
         <div style={{ position: 'relative', width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Sunrays */}
           <svg width="220" height="220" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', opacity: 0.28, zIndex: 0 }} viewBox="0 0 220 220">
             <g stroke="white" strokeWidth="3" strokeLinecap="round">
               <line x1="178" y1="110" x2="210" y2="110" />
@@ -78,6 +143,7 @@ export default function UnfreezePage() {
               <line x1="168.9" y1="76" x2="196.6" y2="60" />
             </g>
           </svg>
+          {/* Shield */}
           <div style={{ width: 130, height: 130, position: 'relative', zIndex: 1, animation: 'shieldPulse 2.2s ease-in-out infinite', filter: 'drop-shadow(0 0 18px rgba(255,255,255,0.45))' }}>
             <svg width="130" height="130" viewBox="0 0 120 130" fill="none">
               <defs>
@@ -111,7 +177,7 @@ export default function UnfreezePage() {
         <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', width: '130px', height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.3)' }} />
       </div>
 
-      {/* Phase 2 */}
+      {/* PHASE 2 — White streak reveal with real data */}
       <div style={{
         position: 'absolute', inset: 0,
         background: '#fff',
@@ -124,34 +190,68 @@ export default function UnfreezePage() {
         pointerEvents: p2In ? 'auto' : 'none',
         zIndex: p2In ? 2 : 1,
       }}>
+        {/* Clapping hands — animated */}
         <div style={{ fontSize: '90px', lineHeight: 1, animation: 'clap 0.8s ease-in-out infinite', transformOrigin: 'bottom center', userSelect: 'none', marginBottom: '20px' }}>
           👏
         </div>
-        <div style={{ fontSize: '96px', fontWeight: 900, color: '#FF9500', lineHeight: 1, marginBottom: '4px' }}>8</div>
-        <div style={{ fontSize: '22px', fontWeight: 700, color: '#FF9500', marginBottom: '28px' }}>day streak</div>
 
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', marginBottom: '36px' }}>
-          {weekDays.map((d, i) => {
-            const status = weekData[i]
-            const active = status === 'today' || status === 'done'
-            const missed = status === 'missed'
-            return (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: active ? '#FF9500' : '#bbb' }}>{d}</div>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: active ? '#FF9500' : missed ? '#ffeded' : '#f0f0f0', border: missed ? '1.5px solid #ffb3b3' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {active && (
-                    <svg viewBox="0 0 16 16" width="16" height="16" fill="none">
-                      <polyline points="3,8 6.5,12 13,5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                  {missed && <span style={{ fontSize: '13px', color: '#ff6b6b', fontWeight: 700 }}>–</span>}
-                </div>
-              </div>
-            )
-          })}
+        {/* Real streak number from localStorage */}
+        <div style={{ fontSize: '96px', fontWeight: 900, color: '#FF9500', lineHeight: 1, marginBottom: '4px' }}>
+          {actualStreak}
+        </div>
+        <div style={{ fontSize: '22px', fontWeight: 700, color: '#FF9500', marginBottom: '28px' }}>
+          {actualStreak === 1 ? 'day streak' : 'day streak'}
         </div>
 
-        <button onClick={handleContinue} style={{ width: '100%', maxWidth: '320px', background: '#1a1a2e', color: '#fff', border: 'none', padding: '16px', borderRadius: '16px', fontSize: '16px', fontWeight: 700, cursor: 'pointer' }}>
+        {/* Real week data dots */}
+        {!loading && weekData.length === 7 && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', marginBottom: '36px' }}>
+            {weekDays.map((d, i) => {
+              const status = weekData[i]
+              const isDone = status === 'done'
+              const isMissed = status === 'missed'
+              const isToday = status === 'today'
+              const isFuture = status === 'future'
+
+              return (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: isDone || isToday ? '#FF9500' : '#bbb' }}>{d}</div>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    background: isDone ? '#FF9500' : isMissed ? '#ffeded' : '#f0f0f0',
+                    border: isMissed ? '1.5px solid #ffb3b3' : isToday ? '2px dashed #FF9500' : 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {isDone && (
+                      <svg viewBox="0 0 16 16" width="16" height="16" fill="none">
+                        <polyline points="3,8 6.5,12 13,5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                    {isMissed && <span style={{ fontSize: '13px', color: '#ff6b6b', fontWeight: 700 }}>–</span>}
+                    {isToday && <span style={{ fontSize: '10px', color: '#FF9500', fontWeight: 700 }}>•</span>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Loading state for dots */}
+        {loading && (
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '36px' }}>
+            {weekDays.map((_, i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+                <div style={{ width: 20, height: 8, background: '#f0f0f0', borderRadius: 4 }} />
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#f0f0f0' }} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          onClick={handleContinue}
+          style={{ width: '100%', maxWidth: '320px', background: '#1a1a2e', color: '#fff', border: 'none', padding: '16px', borderRadius: '16px', fontSize: '16px', fontWeight: 700, cursor: 'pointer' }}
+        >
           Continue
         </button>
       </div>

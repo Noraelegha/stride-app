@@ -10,11 +10,18 @@ type TaskHistory = {
   task_text: string
   dash_message: string
   status: string
+  completed_at: string | null
   user_reply: string | null
   hint_text: string | null
   chip_type: string
   bonus_task_text: string | null
   bonus_task_status: string | null
+}
+
+type NotifLog = {
+  tier: string
+  message: string
+  sent_at: string
 }
 
 type UserStat = {
@@ -32,6 +39,8 @@ type UserStat = {
   daysMissed: number
   history?: TaskHistory[]
   historyLoading?: boolean
+  notifLogs?: NotifLog[]
+  notifLoading?: boolean
 }
 
 export default function AdminPage() {
@@ -43,6 +52,7 @@ export default function AdminPage() {
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
   const [filter, setFilter] = useState<'all' | 'done' | 'pending' | 'at_risk' | 'no_notif'>('all')
   const [selectedUser, setSelectedUser] = useState<UserStat | null>(null)
+  const [detailTab, setDetailTab] = useState<'tasks' | 'notifications'>('tasks')
 
   const fetchData = async () => {
     setLoading(true)
@@ -81,7 +91,7 @@ export default function AdminPage() {
     setUsers(prev => prev.map(u => u.email === email ? { ...u, historyLoading: true } : u))
     const { data } = await supabase
       .from('daily_tasks')
-      .select('task_date, day_number, task_text, dash_message, status, user_reply, hint_text, chip_type, bonus_task_text, bonus_task_status')
+      .select('task_date, day_number, task_text, dash_message, status, completed_at, user_reply, hint_text, chip_type, bonus_task_text, bonus_task_status')
       .eq('user_email', email)
       .order('task_date', { ascending: false })
 
@@ -91,9 +101,32 @@ export default function AdminPage() {
     setSelectedUser(prev => prev?.email === email ? { ...prev, history: data || [], historyLoading: false } : prev)
   }
 
+  const fetchNotifLogs = async (email: string) => {
+    setUsers(prev => prev.map(u => u.email === email ? { ...u, notifLoading: true } : u))
+    const { data } = await supabase
+      .from('notification_logs')
+      .select('tier, message, sent_at')
+      .eq('user_email', email)
+      .order('sent_at', { ascending: false })
+      .limit(100)
+
+    setUsers(prev => prev.map(u =>
+      u.email === email ? { ...u, notifLogs: data || [], notifLoading: false } : u
+    ))
+    setSelectedUser(prev => prev?.email === email ? { ...prev, notifLogs: data || [], notifLoading: false } : prev)
+  }
+
   const handleSelectUser = async (u: UserStat) => {
     setSelectedUser(u)
+    setDetailTab('tasks')
     if (!u.history) await fetchHistory(u.email)
+  }
+
+  const handleTabChange = async (tab: 'tasks' | 'notifications') => {
+    setDetailTab(tab)
+    if (tab === 'notifications' && selectedUser && !selectedUser.notifLogs) {
+      await fetchNotifLogs(selectedUser.email)
+    }
   }
 
   useEffect(() => { if (authed) fetchData() }, [authed])
@@ -132,17 +165,17 @@ export default function AdminPage() {
     if (!r) return null
     return ({ chip1: 'Completed it', chip2: 'Partial', more: 'Did more', blocked: 'Hit a wall', partial: 'Partial', other: 'Something else' }[r] || r)
   }
+  const tierLabel = (t: string) => ({ morning: '🌅 Morning', midday: '☀️ Midday', afternoon: '🕒 Afternoon', evening: '🌆 Evening', night: '🌙 Night' }[t] || t)
+  const fmtTime = (iso: string | null) => {
+    if (!iso) return '—'
+    return new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+  }
 
-  // ── The outer wrapper uses position:fixed + inset:0 to fully escape the app-shell ──
   const wrapStyle: React.CSSProperties = {
-    position: 'fixed',
-    inset: 0,
-    zIndex: 9999,
+    position: 'fixed', inset: 0, zIndex: 9999,
     background: '#f5f5f7',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
+    display: 'flex', flexDirection: 'column', overflow: 'hidden',
   }
 
   if (!authed) {
@@ -152,10 +185,7 @@ export default function AdminPage() {
           <div style={{ width: 52, height: 52, background: '#1a1a2e', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '22px' }}>⚡</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#1a1a2e', marginBottom: '6px' }}>Stride Admin</div>
           <div style={{ fontSize: '13px', color: '#888', marginBottom: '28px' }}>Enter your password to continue</div>
-          <input
-            type="password"
-            placeholder="Admin password"
-            value={password}
+          <input type="password" placeholder="Admin password" value={password}
             onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleLogin()}
             style={{ width: '100%', border: `1.5px solid ${wrongPassword ? '#f44' : '#e5e7eb'}`, borderRadius: '10px', padding: '12px 14px', fontSize: '14px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', marginBottom: '10px', boxSizing: 'border-box' }}
@@ -186,7 +216,6 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {/* Body */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
         {/* Left — user list */}
@@ -232,18 +261,8 @@ export default function AdminPage() {
               const risk = riskLabel(u.daysMissed)
               const isSelected = selectedUser?.email === u.email
               return (
-                <div
-                  key={i}
-                  onClick={() => handleSelectUser(u)}
-                  style={{
-                    padding: '12px 16px',
-                    borderBottom: '1px solid #f5f5f5',
-                    borderLeft: `3px solid ${statusColor(u.todayStatus)}`,
-                    background: isSelected ? '#f5f5ff' : '#fff',
-                    cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: '12px',
-                  }}
-                >
+                <div key={i} onClick={() => handleSelectUser(u)}
+                  style={{ padding: '12px 16px', borderBottom: '1px solid #f5f5f5', borderLeft: `3px solid ${statusColor(u.todayStatus)}`, background: isSelected ? '#f5f5ff' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{ width: 36, height: 36, background: '#F5A623', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: '#1a1a2e', flexShrink: 0 }}>
                     {(u.name || '?')[0].toUpperCase()}
                   </div>
@@ -274,6 +293,7 @@ export default function AdminPage() {
         {selectedUser ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#f5f5f7' }}>
 
+            {/* User header */}
             <div style={{ background: '#fff', padding: '20px 28px', borderBottom: '1px solid #e8e8e8', display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
               <div style={{ width: 48, height: 48, background: '#F5A623', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, color: '#1a1a2e', flexShrink: 0 }}>
                 {(selectedUser.name || '?')[0].toUpperCase()}
@@ -297,6 +317,7 @@ export default function AdminPage() {
               <button onClick={() => setSelectedUser(null)} style={{ background: '#f5f5f7', border: '1px solid #eee', color: '#888', width: 32, height: 32, borderRadius: '8px', cursor: 'pointer', fontSize: '16px' }}>×</button>
             </div>
 
+            {/* Meta row */}
             <div style={{ background: '#fff', padding: '12px 28px', borderBottom: '1px solid #e8e8e8', display: 'flex', gap: '32px', flexShrink: 0 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '10px', fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>Goal</div>
@@ -318,70 +339,109 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '14px' }}>
-                Task History — {selectedUser.history?.length || 0} days
-              </div>
-
-              {selectedUser.historyLoading ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: '#aaa', fontSize: '13px' }}>Loading...</div>
-              ) : !selectedUser.history || selectedUser.history.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: '#aaa', fontSize: '13px' }}>No history yet.</div>
-              ) : selectedUser.history.map((t, j) => (
-                <div key={j} style={{ background: '#fff', border: '1px solid #eee', borderLeft: `3px solid ${statusColor(t.status)}`, borderRadius: '12px', padding: '14px 16px', marginBottom: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.06em' }}>Day {t.day_number}</span>
-                      <span style={{ fontSize: '11px', color: '#bbb' }}>{t.task_date}</span>
-                      {t.chip_type === 'checkin' && (
-                        <span style={{ fontSize: '10px', background: '#f3eeff', color: '#7c3aed', borderRadius: '6px', padding: '2px 7px', fontWeight: 600 }}>Check-in</span>
-                      )}
-                    </div>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: statusColor(t.status), background: statusBg(t.status), padding: '3px 10px', borderRadius: '6px' }}>
-                      {statusLabel(t.status)}
-                    </span>
-                  </div>
-
-                  {t.dash_message && (
-                    <div style={{ background: '#1a1a2e', borderRadius: '8px', borderBottomLeftRadius: '2px', padding: '8px 12px', marginBottom: '8px' }}>
-                      <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>Dash</div>
-                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.8)', lineHeight: 1.5 }}>{t.dash_message}</div>
-                    </div>
-                  )}
-
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e', lineHeight: 1.5, marginBottom: (t.user_reply || t.hint_text || t.bonus_task_text) ? '10px' : 0 }}>
-                    {t.task_text}
-                  </div>
-
-                  {t.user_reply && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: t.hint_text ? '8px' : 0 }}>
-                      <span style={{ fontSize: '10px', fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '.06em' }}>Reply</span>
-                      <span style={{ fontSize: '11px', color: '#555', background: '#f5f5f7', padding: '2px 8px', borderRadius: '6px' }}>{replyLabel(t.user_reply)}</span>
-                    </div>
-                  )}
-
-                  {t.hint_text && (
-                    <div style={{ background: '#fffbf0', borderLeft: '2px solid #F5A623', borderRadius: '0 8px 8px 0', padding: '8px 10px', marginBottom: t.bonus_task_text ? '8px' : 0 }}>
-                      <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>User wrote</div>
-                      <div style={{ fontSize: '12px', color: '#555', lineHeight: 1.5 }}>{t.hint_text}</div>
-                    </div>
-                  )}
-
-                  {t.bonus_task_text && (
-                    <div style={{ background: '#fffbf0', borderLeft: '2px solid #F5A623', borderRadius: '0 8px 8px 0', padding: '8px 10px' }}>
-                      <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>
-                        Bonus — {t.bonus_task_status || 'pending'}
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#555', lineHeight: 1.5 }}>{t.bonus_task_text}</div>
-                    </div>
-                  )}
-                </div>
+            {/* Tabs */}
+            <div style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', padding: '0 28px', display: 'flex', gap: '0', flexShrink: 0 }}>
+              {[
+                { id: 'tasks', label: `Task History (${selectedUser.history?.length || 0})` },
+                { id: 'notifications', label: `Notifications (${selectedUser.notifLogs?.length || '…'})` },
+              ].map(t => (
+                <button key={t.id} onClick={() => handleTabChange(t.id as any)}
+                  style={{ padding: '12px 20px', fontSize: '12px', fontWeight: 600, border: 'none', borderBottom: `2px solid ${detailTab === t.id ? '#1a1a2e' : 'transparent'}`, background: 'none', color: detailTab === t.id ? '#1a1a2e' : '#aaa', cursor: 'pointer' }}>
+                  {t.label}
+                </button>
               ))}
+            </div>
+
+            {/* Tab content */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px' }}>
+
+              {/* Tasks tab */}
+              {detailTab === 'tasks' && (
+                selectedUser.historyLoading ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#aaa', fontSize: '13px' }}>Loading...</div>
+                ) : !selectedUser.history || selectedUser.history.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#aaa', fontSize: '13px' }}>No history yet.</div>
+                ) : selectedUser.history.map((t, j) => (
+                  <div key={j} style={{ background: '#fff', border: '1px solid #eee', borderLeft: `3px solid ${statusColor(t.status)}`, borderRadius: '12px', padding: '14px 16px', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.06em' }}>Day {t.day_number}</span>
+                        <span style={{ fontSize: '11px', color: '#bbb' }}>{t.task_date}</span>
+                        {t.completed_at && (
+                          <span style={{ fontSize: '11px', color: '#4CAF50', fontWeight: 600 }}>✓ {fmtTime(t.completed_at)}</span>
+                        )}
+                        {t.chip_type === 'checkin' && (
+                          <span style={{ fontSize: '10px', background: '#f3eeff', color: '#7c3aed', borderRadius: '6px', padding: '2px 7px', fontWeight: 600 }}>Check-in</span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: statusColor(t.status), background: statusBg(t.status), padding: '3px 10px', borderRadius: '6px' }}>
+                        {statusLabel(t.status)}
+                      </span>
+                    </div>
+
+                    {t.dash_message && (
+                      <div style={{ background: '#1a1a2e', borderRadius: '8px', borderBottomLeftRadius: '2px', padding: '8px 12px', marginBottom: '8px' }}>
+                        <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>Dash</div>
+                        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,.8)', lineHeight: 1.5 }}>{t.dash_message}</div>
+                      </div>
+                    )}
+
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e', lineHeight: 1.5, marginBottom: (t.user_reply || t.hint_text || t.bonus_task_text) ? '10px' : 0 }}>
+                      {t.task_text}
+                    </div>
+
+                    {t.user_reply && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: t.hint_text ? '8px' : 0 }}>
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '.06em' }}>Reply</span>
+                        <span style={{ fontSize: '11px', color: '#555', background: '#f5f5f7', padding: '2px 8px', borderRadius: '6px' }}>{replyLabel(t.user_reply)}</span>
+                      </div>
+                    )}
+
+                    {t.hint_text && (
+                      <div style={{ background: '#fffbf0', borderLeft: '2px solid #F5A623', borderRadius: '0 8px 8px 0', padding: '8px 10px', marginBottom: t.bonus_task_text ? '8px' : 0 }}>
+                        <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>User wrote</div>
+                        <div style={{ fontSize: '12px', color: '#555', lineHeight: 1.5 }}>{t.hint_text}</div>
+                      </div>
+                    )}
+
+                    {t.bonus_task_text && (
+                      <div style={{ background: '#fffbf0', borderLeft: '2px solid #F5A623', borderRadius: '0 8px 8px 0', padding: '8px 10px' }}>
+                        <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>
+                          Bonus — {t.bonus_task_status || 'pending'}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#555', lineHeight: 1.5 }}>{t.bonus_task_text}</div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+
+              {/* Notifications tab */}
+              {detailTab === 'notifications' && (
+                selectedUser.notifLoading ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#aaa', fontSize: '13px' }}>Loading...</div>
+                ) : !selectedUser.notifLogs || selectedUser.notifLogs.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#aaa', fontSize: '13px' }}>No notifications sent yet.</div>
+                ) : selectedUser.notifLogs.map((n, j) => (
+                  <div key={j} style={{ background: '#fff', border: '1px solid #eee', borderRadius: '10px', padding: '12px 16px', marginBottom: '8px', display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+                    <div style={{ flexShrink: 0, paddingTop: '2px' }}>
+                      <span style={{ fontSize: '13px' }}>{tierLabel(n.tier).split(' ')[0]}</span>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#1a1a2e' }}>{tierLabel(n.tier).split(' ').slice(1).join(' ')}</span>
+                        <span style={{ fontSize: '10px', color: '#bbb' }}>{fmtTime(n.sent_at)}</span>
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#555', lineHeight: 1.5 }}>{n.message}</div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         ) : (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', fontSize: '14px' }}>
-            ← Select a user to view their full history
+            ← Select a user to view their history and notifications
           </div>
         )}
       </div>
