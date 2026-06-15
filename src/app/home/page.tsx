@@ -362,10 +362,13 @@ export default function HomePage() {
         const justEarnedShield = newStreak % 5 === 0 && newShields > currentShields
         if (justEarnedShield) sendEventNotification(`Shield earned 🛡️ ${newStreak} consecutive days. Your streak is now protected if you ever miss a day.`)
 
-        const confirmMsg = isCompleted
-          ? (taskData?.evening_reminder_complete || `Day ${newStreak} locked. 🔥 See you tomorrow.`)
-          : (taskData?.evening_reminder_incomplete?.split('.')[0] || `Partial counts. Come back tomorrow.`)
-        sendEventNotification(confirmMsg)
+        // Instant completion confirmation — celebratory only, never urgency message
+        if (isCompleted || isPartial) {
+          const confirmMsg = isCompleted
+            ? (taskData?.evening_reminder_complete || `Day ${newStreak} locked. 🔥 See you tomorrow.`)
+            : `Partial counts. Dash has it noted. Come back tomorrow.`
+          sendEventNotification(confirmMsg)
+        }
 
         const MILESTONE_STREAKS = [7, 14, 30, 60, 90]
         if (MILESTONE_STREAKS.includes(newStreak)) { router.push('/milestone'); return }
