@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   try {
     const { data: users } = await supabase
       .from('stride_users')
-      .select('email, name, onesignal_id, timezone, morning_reminder, evening_reminder')
+      .select('email, name, onesignal_id, timezone, big_prize, personal_why')
       .not('onesignal_id', 'is', null)
 
     if (!users || users.length === 0) {
@@ -45,6 +45,23 @@ export async function GET(req: NextRequest) {
         .eq('task_date', yesterday)
         .single()
 
+      // Count consecutive missed days by checking recent task history
+      const { data: recentTasks } = await supabase
+        .from('daily_tasks')
+        .select('task_date, status')
+        .eq('user_email', user.email)
+        .order('task_date', { ascending: false })
+        .limit(10)
+
+      let consecutiveMissed = 0
+      if (recentTasks) {
+        for (const t of recentTasks) {
+          if (t.task_date === today) continue
+          if (t.status === 'completed' || t.status === 'partial') break
+          consecutiveMissed++
+        }
+      }
+
       const isCompleted = todayTask?.status === 'completed'
       const firstName = user.name.split(' ')[0]
       const hasPendingBonus = todayTask?.bonus_task_active && todayTask?.bonus_task_status === 'pending'
@@ -52,11 +69,34 @@ export async function GET(req: NextRequest) {
         yesterdayTask.status !== 'completed' &&
         yesterdayTask.status !== 'partial'
 
+      // Personalised missed-day anchors
+      const whyAnchor = user.personal_why
+        ? user.personal_why.split('.')[0].trim()
+        : null
+      const prizeAnchor = user.big_prize
+        ? user.big_prize.split('.')[0].trim()
+        : null
+
       // If no task row exists yet for today, still send morning reminder
       if (!todayTask && tier === 'morning') {
-        const message = missedYesterday
-          ? `${firstName}, yesterday didn't get done. Today is the reset. Open the app. ⚡`
-          : `${firstName}. Your Stride task is ready. Open the app. ⚡`
+        let message = ''
+
+        if (consecutiveMissed >= 8) {
+          // Ultra-gentle, every 3 days — handled by skipping non-multiples
+          // For simplicity cron still runs daily but message is softer
+          message = `${firstName}. No pressure. Dash is still here. The goal has not changed. Whenever you are ready. ⚡`
+        } else if (consecutiveMissed >= 4) {
+          message = whyAnchor
+            ? `${firstName}. You said: "${whyAnchor}." Dash has not forgotten. One step today. That is all.`
+            : `${firstName}. Dash is still here. No lecture. Just one step today when you are ready. ⚡`
+        } else if (missedYesterday) {
+          message = prizeAnchor
+            ? `${firstName}, yesterday slipped. "${prizeAnchor}" still needs you. One task today. ⚡`
+            : `${firstName}, yesterday slipped. Today is the reset. Open Stride. ⚡`
+        } else {
+          message = `${firstName}. Your Stride task is ready. Open the app. ⚡`
+        }
+
         await fetch('https://onesignal.com/api/v1/notifications', {
           method: 'POST',
           headers: {
@@ -80,18 +120,34 @@ export async function GET(req: NextRequest) {
 
       if (tier === 'morning') {
         if (isCompleted) continue
-        if (missedYesterday) {
-          message = `${firstName}, yesterday didn't get done. Today is the reset. Your task is ready. ⚡`
+
+        if (consecutiveMissed >= 8) {
+          message = `${firstName}. No pressure. Dash is still here. One step today changes the direction.`
+        } else if (consecutiveMissed >= 4) {
+          message = whyAnchor
+            ? `${firstName}. "${whyAnchor}." That reason is still real. One task today. ⚡`
+            : `${firstName}. Dash is still here. No lecture. One step today.`
+        } else if (missedYesterday) {
+          message = prizeAnchor
+            ? `${firstName}, yesterday slipped. "${prizeAnchor}" still needs you. One task today. ⚡`
+            : `${firstName}, yesterday didn't get done. Today is the reset. Your task is ready. ⚡`
         } else {
           message = todayTask?.morning_reminder
-            || `${firstName}. Your Stride task is ready. 5 minutes. Go.`
+            || `${firstName}. Your Stride task is ready. One step closer. ⚡`
         }
       }
 
       if (tier === 'midday') {
         if (isCompleted) continue
-        if (missedYesterday) {
-          message = `${firstName}, two days is a pattern starting to form. Still time today. Open the app.`
+
+        if (consecutiveMissed >= 4) {
+          message = prizeAnchor
+            ? `${firstName}. Still time today. "${prizeAnchor}" starts with one task. Right now.`
+            : `${firstName}. Still here. Still time today. One task is all it takes.`
+        } else if (missedYesterday) {
+          message = prizeAnchor
+            ? `${firstName}, you said you want "${prizeAnchor}." That does not happen without today. Still time. ⏰`
+            : `${firstName}, two days is a pattern starting to form. Still time today.`
         } else {
           message = todayTask?.midday_reminder
             || `${firstName}, still time to knock this out. Task is waiting. ⏰`
@@ -100,8 +156,13 @@ export async function GET(req: NextRequest) {
 
       if (tier === 'afternoon') {
         if (isCompleted) continue
-        if (missedYesterday) {
-          message = `${firstName}. Yesterday and today. Don't let it become the default. One task. Right now.`
+
+        if (consecutiveMissed >= 4) {
+          message = whyAnchor
+            ? `${firstName}. "${whyAnchor}." You meant that. One task. This afternoon. ⏳`
+            : `${firstName}. One task. This afternoon. That is all Dash is asking. ⏳`
+        } else if (missedYesterday) {
+          message = `${firstName}. One task. That is all that stands between you and the streak restarting right now. ⏳`
         } else {
           message = todayTask?.afternoon_reminder
             || `${firstName}. Afternoon check. Task not done yet. Clock is ticking. ⏳`
@@ -112,9 +173,13 @@ export async function GET(req: NextRequest) {
         if (isCompleted && hasPendingBonus) {
           message = `${firstName}, your bonus task is still open. Expires at midnight. One more push. ⚡`
         } else if (isCompleted) {
-          continue // already received personalised confirmation the moment they submitted
+          continue
+        } else if (consecutiveMissed >= 4) {
+          message = whyAnchor
+            ? `${firstName}. Evening. "${whyAnchor}." The reason has not changed. One task before midnight.`
+            : `${firstName}. Dash is still here. Evening. One task before midnight.`
         } else if (missedYesterday) {
-          message = `${firstName}. Two days now. The streak is waiting to restart. One task closes both. ⏳`
+          message = `${firstName}. Two days now. The gap widens every day you wait. One thing tonight. ⏳`
         } else {
           message = todayTask?.evening_reminder_incomplete
             || `${firstName}, the day is not over. One task. Streak on the line. ⏳`
@@ -126,8 +191,14 @@ export async function GET(req: NextRequest) {
           message = `Last call ${firstName}. Bonus task expires at midnight. Want the extra mile? ⚡`
         } else if (isCompleted) {
           continue
+        } else if (consecutiveMissed >= 4) {
+          message = prizeAnchor
+            ? `${firstName}. Final call tonight. "${prizeAnchor}" is waiting on the other side of one task. Now.`
+            : `${firstName}. Final call. One task. Tonight. Dash is not giving up on you.`
         } else if (missedYesterday) {
-          message = `${firstName}. Final call. Two days unfinished. One task tonight changes the direction. Now.`
+          message = prizeAnchor
+            ? `${firstName}. Final call. "${prizeAnchor}" does not move without you. One task. Now or first thing tomorrow. No more gaps.`
+            : `Last call ${firstName}. Two days unfinished. One task tonight changes the direction.`
         } else {
           message = todayTask?.night_reminder
             || `Last call ${firstName}. One task. Do it now.`

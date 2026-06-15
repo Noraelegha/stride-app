@@ -3,7 +3,7 @@ import { DASH_SYSTEM_PROMPT } from '@/lib/dashPrompt'
 
 export async function POST(req: NextRequest) {
   try {
-    const { user, taskHistory } = await req.json()
+    const { user, taskHistory, extraContext } = await req.json()
 
     if (!user) {
       return NextResponse.json({ error: 'User data required' }, { status: 400 })
@@ -94,6 +94,7 @@ Phase: ${user.phase || 1}
 Completion Score: ${user.score || 0}%
 Shields Available: ${user.shields || 0}
 Bonus Tasks Completed Total: ${user.bonusTasks || 0}
+Consecutive Missed Days: ${user.consecutiveMissed || 0}
 ${sprintContext}
 
 TODAY'S CONTEXT:
@@ -115,6 +116,7 @@ DASH MESSAGE RULES FOR THIS RESPONSE:
 - ${coachToneExamples[user.coachStyle] || ''}
 
 Generate today's task for ${user.name}. Return valid JSON only.
+${extraContext ? `\n\nSPECIAL INSTRUCTION:\n${extraContext}` : ''}
 `
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -129,7 +131,6 @@ Generate today's task for ${user.name}. Return valid JSON only.
         max_tokens: 1500,
         system: DASH_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userContext }],
-        
       }),
     })
 
