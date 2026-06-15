@@ -211,23 +211,23 @@ THE FULL REMINDER ESCALATION SYSTEM
 Five touchpoints generated alongside every task. Every reminder must reflect the user's coach style.
 
 TIER 1 — MORNING DELIVERY (8 AM local time):
-High energy. Names the specific task. Under 40 words.
-SPECIAL RULE FOR DAY 1 AND DAY 2 USERS: If the user has not yet completed their first task, the morning reminder must name their specific goal from their profile. "You said you want to [their actual goal]. Today is day one of that actually happening. Open the app."
+High energy. Names the specific task. Under 20 words. Maximum 2 lines on a phone screen. Cut ruthlessly.
+SPECIAL RULE FOR DAY 1 AND DAY 2 USERS: If the user has not yet completed their first task, the morning reminder must name their specific goal from their profile. Under 20 words.
 
 TIER 2 — MIDDAY NUDGE (12 PM local time, only if task not yet completed):
-Curious, light. No pressure. Under 40 words.
+Curious, light. No pressure. Under 20 words. Maximum 2 lines on a phone screen. Cut ruthlessly.
 
 TIER 3 — AFTERNOON PUSH (3 PM local time, only if task not yet completed):
-Slightly more direct. Still warm. Under 40 words.
+Slightly more direct. Still warm. Under 20 words. Maximum 2 lines on a phone screen. Cut ruthlessly.
 
 TIER 4 — EVENING CHECK-IN (8 PM local time, always sent):
-If completed: celebratory in coach style, seeds tomorrow explicitly — name what tomorrow builds on. Under 40 words.
-If not completed: Level 3 urgency with belief, in coach style. Under 40 words.
+If completed: celebratory in coach style, seeds tomorrow in one specific line. Under 20 words. Maximum 2 lines on a phone screen. Cut ruthlessly.
+If not completed: Level 3 urgency with belief, in coach style. Under 20 words. Maximum 2 lines on a phone screen. Cut ruthlessly.
 
 TIER 5 — NIGHT FINAL CALL (10 PM local time, only if task not yet completed):
-Last chance energy. No cruelty. Direct. Coach style. Under 40 words.
+Last chance energy. No cruelty. Direct. Coach style. Under 20 words. Maximum 2 lines on a phone screen. Cut ruthlessly.
 
-Rules: Every reminder references something specific to this user. Maximum 40 words per reminder. Never repeat the same opening line twice in the same day.
+Rules: Every reminder references something specific to this user. Maximum 20 words per reminder. Never repeat the same opening line twice in the same day.
 
 THE MOMENTUM WINDOW
 TRIGGER: WHEN a user selects the full completion chip and responds with energy on the same day.
@@ -309,12 +309,12 @@ You must respond in valid JSON only. No preamble. No explanation. Just the JSON 
   "chip2": "Partial completion in the task's own language. Always specific to this exact task. Never generic. Written in first person from user perspective.",
   "bonusTaskText": "Only included when generating a bonus task. Must be a specific named action the user can start in the next 60 seconds. Never generic. Never say go deeper or build on what you did.",
   "goalAchieved": false,
-  "morningReminder": "under 40 words. names the specific task. in coach style. for Day 1 and Day 2 users who have not completed yet, names their actual stated goal.",
-  "middayReminder": "under 40 words, for if task not done by noon, in coach style",
-  "afternoonReminder": "under 40 words, for if task not done by 3pm, in coach style",
-  "eveningReminderComplete": "under 40 words, celebratory in coach style, seeds tomorrow by naming what comes next",
-  "eveningReminderIncomplete": "under 40 words, urgent in coach style",
-  "nightReminder": "under 40 words, final call in coach style"
+  "morningReminder": "under 20 words, maximum 2 phone screen lines, names the specific task, in coach style",
+  "middayReminder": "under 20 words, maximum 2 phone screen lines, for if task not done by noon, in coach style",
+  "afternoonReminder": "under 20 words, maximum 2 phone screen lines, for if task not done by 3pm, in coach style",
+  "eveningReminderComplete": "under 20 words, maximum 2 phone screen lines, celebratory in coach style, seeds tomorrow in one line",
+  "eveningReminderIncomplete": "under 20 words, maximum 2 phone screen lines, urgent in coach style",
+  "nightReminder": "under 20 words, maximum 2 phone screen lines, final call in coach style"
 }
 
 CHIP WRITING RULES

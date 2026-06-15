@@ -6,6 +6,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+const truncate = (msg: string): string => {
+  const words = msg.trim().split(/\s+/)
+  return words.length > 20 ? words.slice(0, 20).join(' ') + '.' : msg
+}
+
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -45,7 +50,6 @@ export async function GET(req: NextRequest) {
         .eq('task_date', yesterday)
         .single()
 
-      // Count consecutive missed days by checking recent task history
       const { data: recentTasks } = await supabase
         .from('daily_tasks')
         .select('task_date, status')
@@ -69,7 +73,6 @@ export async function GET(req: NextRequest) {
         yesterdayTask.status !== 'completed' &&
         yesterdayTask.status !== 'partial'
 
-      // Personalised missed-day anchors
       const whyAnchor = user.personal_why
         ? user.personal_why.split('.')[0].trim()
         : null
@@ -77,24 +80,22 @@ export async function GET(req: NextRequest) {
         ? user.big_prize.split('.')[0].trim()
         : null
 
-      // If no task row exists yet for today, still send morning reminder
+      // No task row yet — send morning reminder anyway
       if (!todayTask && tier === 'morning') {
         let message = ''
 
         if (consecutiveMissed >= 8) {
-          // Ultra-gentle, every 3 days — handled by skipping non-multiples
-          // For simplicity cron still runs daily but message is softer
-          message = `${firstName}. No pressure. Dash is still here. The goal has not changed. Whenever you are ready. ⚡`
+          message = truncate(`${firstName}. No pressure. Dash is still here. One step today. ⚡`)
         } else if (consecutiveMissed >= 4) {
-          message = whyAnchor
-            ? `${firstName}. You said: "${whyAnchor}." Dash has not forgotten. One step today. That is all.`
-            : `${firstName}. Dash is still here. No lecture. Just one step today when you are ready. ⚡`
+          message = truncate(whyAnchor
+            ? `${firstName}. "${whyAnchor}." One step today. That is all.`
+            : `${firstName}. Still here. One step today when you are ready. ⚡`)
         } else if (missedYesterday) {
-          message = prizeAnchor
-            ? `${firstName}, yesterday slipped. "${prizeAnchor}" still needs you. One task today. ⚡`
-            : `${firstName}, yesterday slipped. Today is the reset. Open Stride. ⚡`
+          message = truncate(prizeAnchor
+            ? `${firstName}, yesterday slipped. "${prizeAnchor}" still needs you. ⚡`
+            : `${firstName}, yesterday slipped. Today is the reset. ⚡`)
         } else {
-          message = `${firstName}. Your Stride task is ready. Open the app. ⚡`
+          message = truncate(`${firstName}. Your Stride task is ready. One step closer. ⚡`)
         }
 
         await fetch('https://onesignal.com/api/v1/notifications', {
@@ -122,18 +123,18 @@ export async function GET(req: NextRequest) {
         if (isCompleted) continue
 
         if (consecutiveMissed >= 8) {
-          message = `${firstName}. No pressure. Dash is still here. One step today changes the direction.`
+          message = truncate(`${firstName}. No pressure. One step today changes the direction.`)
         } else if (consecutiveMissed >= 4) {
-          message = whyAnchor
-            ? `${firstName}. "${whyAnchor}." That reason is still real. One task today. ⚡`
-            : `${firstName}. Dash is still here. No lecture. One step today.`
+          message = truncate(whyAnchor
+            ? `${firstName}. "${whyAnchor}." One task today. ⚡`
+            : `${firstName}. Dash is still here. One step today.`)
         } else if (missedYesterday) {
-          message = prizeAnchor
-            ? `${firstName}, yesterday slipped. "${prizeAnchor}" still needs you. One task today. ⚡`
-            : `${firstName}, yesterday didn't get done. Today is the reset. Your task is ready. ⚡`
+          message = truncate(prizeAnchor
+            ? `${firstName}, yesterday slipped. "${prizeAnchor}" still needs you. ⚡`
+            : `${firstName}, yesterday didn't get done. Today is the reset. ⚡`)
         } else {
-          message = todayTask?.morning_reminder
-            || `${firstName}. Your Stride task is ready. One step closer. ⚡`
+          message = truncate(todayTask?.morning_reminder
+            || `${firstName}. Your Stride task is ready. One step closer. ⚡`)
         }
       }
 
@@ -141,16 +142,16 @@ export async function GET(req: NextRequest) {
         if (isCompleted) continue
 
         if (consecutiveMissed >= 4) {
-          message = prizeAnchor
-            ? `${firstName}. Still time today. "${prizeAnchor}" starts with one task. Right now.`
-            : `${firstName}. Still here. Still time today. One task is all it takes.`
+          message = truncate(prizeAnchor
+            ? `${firstName}. Still time. "${prizeAnchor}" starts with one task.`
+            : `${firstName}. Still here. Still time today.`)
         } else if (missedYesterday) {
-          message = prizeAnchor
-            ? `${firstName}, you said you want "${prizeAnchor}." That does not happen without today. Still time. ⏰`
-            : `${firstName}, two days is a pattern starting to form. Still time today.`
+          message = truncate(prizeAnchor
+            ? `${firstName}, "${prizeAnchor}" needs today. Still time. ⏰`
+            : `${firstName}, two days forming a pattern. Still time today.`)
         } else {
-          message = todayTask?.midday_reminder
-            || `${firstName}, still time to knock this out. Task is waiting. ⏰`
+          message = truncate(todayTask?.midday_reminder
+            || `${firstName}, still time to knock this out. ⏰`)
         }
       }
 
@@ -158,50 +159,50 @@ export async function GET(req: NextRequest) {
         if (isCompleted) continue
 
         if (consecutiveMissed >= 4) {
-          message = whyAnchor
-            ? `${firstName}. "${whyAnchor}." You meant that. One task. This afternoon. ⏳`
-            : `${firstName}. One task. This afternoon. That is all Dash is asking. ⏳`
+          message = truncate(whyAnchor
+            ? `${firstName}. "${whyAnchor}." One task. This afternoon. ⏳`
+            : `${firstName}. One task. This afternoon. That is all. ⏳`)
         } else if (missedYesterday) {
-          message = `${firstName}. One task. That is all that stands between you and the streak restarting right now. ⏳`
+          message = truncate(`${firstName}. One task. Streak restarts right now. ⏳`)
         } else {
-          message = todayTask?.afternoon_reminder
-            || `${firstName}. Afternoon check. Task not done yet. Clock is ticking. ⏳`
+          message = truncate(todayTask?.afternoon_reminder
+            || `${firstName}. Afternoon check. Still not done. ⏳`)
         }
       }
 
       if (tier === 'evening') {
         if (isCompleted && hasPendingBonus) {
-          message = `${firstName}, your bonus task is still open. Expires at midnight. One more push. ⚡`
+          message = truncate(`${firstName}, bonus task still open. Expires midnight. ⚡`)
         } else if (isCompleted) {
           continue
         } else if (consecutiveMissed >= 4) {
-          message = whyAnchor
-            ? `${firstName}. Evening. "${whyAnchor}." The reason has not changed. One task before midnight.`
-            : `${firstName}. Dash is still here. Evening. One task before midnight.`
+          message = truncate(whyAnchor
+            ? `${firstName}. "${whyAnchor}." One task before midnight.`
+            : `${firstName}. Still here. One task before midnight.`)
         } else if (missedYesterday) {
-          message = `${firstName}. Two days now. The gap widens every day you wait. One thing tonight. ⏳`
+          message = truncate(`${firstName}. Two days now. One task tonight closes both. ⏳`)
         } else {
-          message = todayTask?.evening_reminder_incomplete
-            || `${firstName}, the day is not over. One task. Streak on the line. ⏳`
+          message = truncate(todayTask?.evening_reminder_incomplete
+            || `${firstName}, day not over. One task. Streak on the line. ⏳`)
         }
       }
 
       if (tier === 'night') {
         if (isCompleted && hasPendingBonus) {
-          message = `Last call ${firstName}. Bonus task expires at midnight. Want the extra mile? ⚡`
+          message = truncate(`Last call ${firstName}. Bonus task expires midnight. ⚡`)
         } else if (isCompleted) {
           continue
         } else if (consecutiveMissed >= 4) {
-          message = prizeAnchor
-            ? `${firstName}. Final call tonight. "${prizeAnchor}" is waiting on the other side of one task. Now.`
-            : `${firstName}. Final call. One task. Tonight. Dash is not giving up on you.`
+          message = truncate(prizeAnchor
+            ? `${firstName}. Final call. "${prizeAnchor}" needs tonight.`
+            : `${firstName}. Final call. One task. Dash is not giving up.`)
         } else if (missedYesterday) {
-          message = prizeAnchor
-            ? `${firstName}. Final call. "${prizeAnchor}" does not move without you. One task. Now or first thing tomorrow. No more gaps.`
-            : `Last call ${firstName}. Two days unfinished. One task tonight changes the direction.`
+          message = truncate(prizeAnchor
+            ? `${firstName}. Final call. "${prizeAnchor}" needs you. Now.`
+            : `Last call ${firstName}. Two days unfinished. One task. Now.`)
         } else {
-          message = todayTask?.night_reminder
-            || `Last call ${firstName}. One task. Do it now.`
+          message = truncate(todayTask?.night_reminder
+            || `Last call ${firstName}. One task. Do it now.`)
         }
       }
 
