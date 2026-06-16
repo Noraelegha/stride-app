@@ -41,14 +41,14 @@ export async function GET(req: NextRequest) {
         .select('task_text, status, morning_reminder, midday_reminder, afternoon_reminder, evening_reminder_complete, evening_reminder_incomplete, night_reminder, bonus_task_active, bonus_task_status, bonus_task_text')
         .eq('user_email', user.email)
         .eq('task_date', today)
-        .single()
+        .maybeSingle()
 
       const { data: yesterdayTask } = await supabase
         .from('daily_tasks')
         .select('status')
         .eq('user_email', user.email)
         .eq('task_date', yesterday)
-        .single()
+        .maybeSingle()
 
       const { data: recentTasks } = await supabase
         .from('daily_tasks')
@@ -80,10 +80,10 @@ export async function GET(req: NextRequest) {
         ? user.big_prize.split('.')[0].trim()
         : null
 
+      let message = ''
+
       // No task row yet — send morning reminder anyway
       if (!todayTask && tier === 'morning') {
-        let message = ''
-
         if (consecutiveMissed >= 8) {
           message = truncate(`${firstName}. No pressure. Dash is still here. One step today. ⚡`)
         } else if (consecutiveMissed >= 4) {
@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
           message = truncate(`${firstName}. Your Stride task is ready. One step closer. ⚡`)
         }
 
-        await fetch('https://onesignal.com/api/v1/notifications', {
+        const oneSignalRes = await fetch('https://onesignal.com/api/v1/notifications', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -111,13 +111,20 @@ export async function GET(req: NextRequest) {
             contents: { en: message },
           }),
         })
-        sent++
+
+        if (oneSignalRes.ok) {
+          await supabase.from('notification_logs').insert({
+            user_email: user.email,
+            tier,
+            message,
+            sent_at: new Date().toISOString(),
+          })
+          sent++
+        }
         continue
       }
 
       if (!todayTask) continue
-
-      let message = ''
 
       if (tier === 'morning') {
         if (isCompleted) continue
@@ -208,7 +215,7 @@ export async function GET(req: NextRequest) {
 
       if (!message) continue
 
-      await fetch('https://onesignal.com/api/v1/notifications', {
+      const oneSignalRes = await fetch('https://onesignal.com/api/v1/notifications', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -222,7 +229,15 @@ export async function GET(req: NextRequest) {
         }),
       })
 
-      sent++
+      if (oneSignalRes.ok) {
+        await supabase.from('notification_logs').insert({
+          user_email: user.email,
+          tier,
+          message,
+          sent_at: new Date().toISOString(),
+        })
+        sent++
+      }
     }
 
     return NextResponse.json({ sent, tier })
