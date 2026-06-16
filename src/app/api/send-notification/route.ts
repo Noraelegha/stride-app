@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
         app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
         include_aliases: { external_id: [email] },
         target_channel: 'push',
-        headings: { en: 'Stride ⚡' },
+        headings: { en: 'Dash' },
         contents: { en: message },
       }),
     })
