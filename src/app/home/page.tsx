@@ -117,6 +117,8 @@ export default function HomePage() {
         evening_reminder_incomplete: task.eveningReminderIncomplete || null,
         night_reminder: task.nightReminder || null,
         goal_achieved: task.goalAchieved || false,
+        workstream: task.workstream || null,
+        goal_protection_flagged: task.goalProtectionFlagged || false,
       })
       if (insertError) { console.error('Task insert failed:', insertError); setTaskLoading(false); return }
 

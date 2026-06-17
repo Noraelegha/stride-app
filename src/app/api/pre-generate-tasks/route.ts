@@ -139,6 +139,8 @@ export async function GET(req: NextRequest) {
           evening_reminder_incomplete: task.eveningReminderIncomplete || null,
           night_reminder: task.nightReminder || null,
           goal_achieved: task.goalAchieved || false,
+          workstream: task.workstream || null,
+          goal_protection_flagged: task.goalProtectionFlagged || false,
         })
 
         if (todayMissed) {
