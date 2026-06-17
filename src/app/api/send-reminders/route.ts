@@ -87,13 +87,9 @@ export async function GET(req: NextRequest) {
         if (consecutiveMissed >= 8) {
           message = truncate(`${firstName}. No pressure. Dash is still here. One step today. ⚡`)
         } else if (consecutiveMissed >= 4) {
-          message = truncate(whyAnchor
-            ? `${firstName}. "${whyAnchor}." One step today. That is all.`
-            : `${firstName}. Still here. One step today when you are ready. ⚡`)
+          message = truncate(`${firstName}. The goal hasn't moved on its own. One step today changes that.`)
         } else if (missedYesterday) {
-          message = truncate(prizeAnchor
-            ? `${firstName}, yesterday slipped. "${prizeAnchor}" still needs you. ⚡`
-            : `${firstName}, yesterday slipped. Today is the reset. ⚡`)
+          message = truncate(`${firstName}, yesterday slipped. Don't let it become the pattern. One task today.`)
         } else {
           message = truncate(`${firstName}. Your Stride task is ready. One step closer. ⚡`)
         }
@@ -132,13 +128,9 @@ export async function GET(req: NextRequest) {
         if (consecutiveMissed >= 8) {
           message = truncate(`${firstName}. No pressure. One step today changes the direction.`)
         } else if (consecutiveMissed >= 4) {
-          message = truncate(whyAnchor
-            ? `${firstName}. "${whyAnchor}." One task today. ⚡`
-            : `${firstName}. Dash is still here. One step today.`)
+          message = truncate(`${firstName}. Future you is watching what present you does today. One task.`)
         } else if (missedYesterday) {
-          message = truncate(prizeAnchor
-            ? `${firstName}, yesterday slipped. "${prizeAnchor}" still needs you. ⚡`
-            : `${firstName}, yesterday didn't get done. Today is the reset. ⚡`)
+          message = truncate(`${firstName}, yesterday slipped. Don't be the reason this stalls. One task today.`)
         } else {
           message = truncate(todayTask?.morning_reminder
             || `${firstName}. Your Stride task is ready. One step closer. ⚡`)
@@ -149,13 +141,9 @@ export async function GET(req: NextRequest) {
         if (isCompleted) continue
 
         if (consecutiveMissed >= 4) {
-          message = truncate(prizeAnchor
-            ? `${firstName}. Still time. "${prizeAnchor}" starts with one task.`
-            : `${firstName}. Still here. Still time today.`)
+          message = truncate(`${firstName}. Still here. Still time today. One task changes the math.`)
         } else if (missedYesterday) {
-          message = truncate(prizeAnchor
-            ? `${firstName}, "${prizeAnchor}" needs today. Still time. ⏰`
-            : `${firstName}, two days forming a pattern. Still time today.`)
+          message = truncate(`${firstName}, two days forming a pattern. Still time today. ⏰`)
         } else {
           message = truncate(todayTask?.midday_reminder
             || `${firstName}, still time to knock this out. ⏰`)
@@ -166,9 +154,7 @@ export async function GET(req: NextRequest) {
         if (isCompleted) continue
 
         if (consecutiveMissed >= 4) {
-          message = truncate(whyAnchor
-            ? `${firstName}. "${whyAnchor}." One task. This afternoon. ⏳`
-            : `${firstName}. One task. This afternoon. That is all. ⏳`)
+          message = truncate(`${firstName}. The reason you started hasn't changed. One task. This afternoon. ⏳`)
         } else if (missedYesterday) {
           message = truncate(`${firstName}. One task. Streak restarts right now. ⏳`)
         } else {
@@ -183,9 +169,7 @@ export async function GET(req: NextRequest) {
         } else if (isCompleted) {
           continue
         } else if (consecutiveMissed >= 4) {
-          message = truncate(whyAnchor
-            ? `${firstName}. "${whyAnchor}." One task before midnight.`
-            : `${firstName}. Still here. One task before midnight.`)
+          message = truncate(`${firstName}. Still here. Don't let today be another quiet one. One task before midnight.`)
         } else if (missedYesterday) {
           message = truncate(`${firstName}. Two days now. One task tonight closes both. ⏳`)
         } else {
@@ -200,13 +184,9 @@ export async function GET(req: NextRequest) {
         } else if (isCompleted) {
           continue
         } else if (consecutiveMissed >= 4) {
-          message = truncate(prizeAnchor
-            ? `${firstName}. Final call. "${prizeAnchor}" needs tonight.`
-            : `${firstName}. Final call. One task. Dash is not giving up.`)
+          message = truncate(`${firstName}. Final call. Dash is not giving up on this. One task. Tonight.`)
         } else if (missedYesterday) {
-          message = truncate(prizeAnchor
-            ? `${firstName}. Final call. "${prizeAnchor}" needs you. Now.`
-            : `Last call ${firstName}. Two days unfinished. One task. Now.`)
+          message = truncate(`Last call ${firstName}. Two days unfinished. What would future you say about tonight?`)
         } else {
           message = truncate(todayTask?.night_reminder
             || `Last call ${firstName}. One task. Do it now.`)
