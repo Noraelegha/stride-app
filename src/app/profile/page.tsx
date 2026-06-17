@@ -44,7 +44,13 @@ export default function ProfilePage() {
     setEditCoach(false)
   }
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    try {
+      const OneSignal = (await import('react-onesignal')).default
+      await OneSignal.logout()
+    } catch (e) {
+      console.error('OneSignal logout failed:', e)
+    }
     localStorage.removeItem('stride_user')
     router.push('/')
   }
