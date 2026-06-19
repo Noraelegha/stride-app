@@ -53,10 +53,11 @@ export default function AdminPage() {
   const [filter, setFilter] = useState<'all' | 'done' | 'pending' | 'at_risk' | 'no_notif'>('all')
   const [selectedUser, setSelectedUser] = useState<UserStat | null>(null)
   const [detailTab, setDetailTab] = useState<'tasks' | 'notifications'>('tasks')
+  const [viewDate, setViewDate] = useState<string>(new Date().toISOString().split('T')[0])
 
-  const fetchData = async () => {
+  const fetchData = async (date?: string) => {
     setLoading(true)
-    const today = new Date().toISOString().split('T')[0]
+    const targetDate = date || viewDate
 
     const { data: allUsers } = await supabase
       .from('stride_users')
@@ -65,13 +66,13 @@ export default function AdminPage() {
 
     if (!allUsers) { setLoading(false); return }
 
-    const { data: todayTasks } = await supabase
+    const { data: dateTasks } = await supabase
       .from('daily_tasks')
       .select('user_email, status')
-      .eq('task_date', today)
+      .eq('task_date', targetDate)
 
-    const todayMap: Record<string, string> = {}
-    todayTasks?.forEach((t: any) => { todayMap[t.user_email] = t.status })
+    const dateMap: Record<string, string> = {}
+    dateTasks?.forEach((t: any) => { dateMap[t.user_email] = t.status })
 
     const now = new Date()
     const stats: UserStat[] = allUsers.map((u: any) => {
@@ -79,7 +80,7 @@ export default function AdminPage() {
       const daysMissed = last
         ? Math.max(0, Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24)) - 1)
         : 99
-      return { ...u, todayStatus: (todayMap[u.email] as any) || 'none', daysMissed }
+      return { ...u, todayStatus: (dateMap[u.email] as any) || 'none', daysMissed }
     })
 
     setUsers(stats)
@@ -129,6 +130,13 @@ export default function AdminPage() {
     }
   }
 
+  const handleDateChange = (date: string) => {
+    setViewDate(date)
+    fetchData(date)
+  }
+
+  const isToday = viewDate === new Date().toISOString().split('T')[0]
+
   useEffect(() => { if (authed) fetchData() }, [authed])
 
   const handleLogin = () => {
@@ -144,8 +152,8 @@ export default function AdminPage() {
     return true
   })
 
-  const completedToday = users.filter(u => u.todayStatus === 'completed' || u.todayStatus === 'partial').length
-  const pendingToday = users.filter(u => u.todayStatus === 'pending' || u.todayStatus === 'none').length
+  const completedOnDate = users.filter(u => u.todayStatus === 'completed' || u.todayStatus === 'partial').length
+  const pendingOnDate = users.filter(u => u.todayStatus === 'pending' || u.todayStatus === 'none').length
   const atRisk = users.filter(u => u.daysMissed >= 1).length
   const noNotif = users.filter(u => !u.onesignal_id).length
   const avgStreak = users.length > 0 ? Math.round(users.reduce((a, u) => a + (u.streak || 0), 0) / users.length) : 0
@@ -169,6 +177,10 @@ export default function AdminPage() {
   const fmtTime = (iso: string | null) => {
     if (!iso) return '—'
     return new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+  }
+  const fmtDate = (d: string) => {
+    if (isToday) return 'Today'
+    return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
   }
 
   const wrapStyle: React.CSSProperties = {
@@ -211,7 +223,7 @@ export default function AdminPage() {
             {lastRefreshed ? `Updated ${lastRefreshed.toLocaleTimeString()}` : ''}
           </span>
         </div>
-        <button onClick={fetchData} disabled={loading} style={{ background: '#f5f5f7', border: '1px solid #e8e8e8', color: '#555', padding: '7px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+        <button onClick={() => fetchData()} disabled={loading} style={{ background: '#f5f5f7', border: '1px solid #e8e8e8', color: '#555', padding: '7px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
           {loading ? 'Refreshing...' : '↻ Refresh'}
         </button>
       </div>
@@ -221,19 +233,39 @@ export default function AdminPage() {
         {/* Left — user list */}
         <div style={{ width: '380px', flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid #e8e8e8', background: '#fff', overflow: 'hidden' }}>
 
+          {/* Date picker */}
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#999', textTransform: 'uppercase', letterSpacing: '.06em', flexShrink: 0 }}>Viewing</span>
+            <input
+              type="date"
+              value={viewDate}
+              max={new Date().toISOString().split('T')[0]}
+              onChange={e => handleDateChange(e.target.value)}
+              style={{ flex: 1, border: '1.5px solid #eee', borderRadius: '8px', padding: '6px 10px', fontSize: '12px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
+            />
+            {!isToday && (
+              <button
+                onClick={() => handleDateChange(new Date().toISOString().split('T')[0])}
+                style={{ fontSize: '11px', fontWeight: 600, color: '#1a1a2e', background: '#f5f5f7', border: '1px solid #eee', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', flexShrink: 0 }}
+              >
+                Today
+              </button>
+            )}
+          </div>
+
           {/* Stats */}
-          <div style={{ padding: '16px 16px 0', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+          <div style={{ padding: '12px 16px 0', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
             {[
               { label: 'Total users', value: users.length, color: '#1a1a2e' },
-              { label: 'Done today', value: completedToday, color: '#4CAF50' },
-              { label: 'Pending', value: pendingToday, color: '#4A9EDB' },
-              { label: 'At risk', value: atRisk, color: '#ff6b35' },
+              { label: isToday ? 'Done today' : `Done ${fmtDate(viewDate)}`, value: completedOnDate, color: '#4CAF50' },
+              { label: isToday ? 'Pending' : 'Not done', value: pendingOnDate, color: '#4A9EDB' },
+              { label: 'At risk now', value: atRisk, color: '#ff6b35' },
               { label: 'Avg streak', value: `${avgStreak}d`, color: '#F5A623' },
               { label: 'Avg score', value: `${avgScore}%`, color: '#7c3aed' },
             ].map((s, i) => (
               <div key={i} style={{ background: '#f9f9f9', borderRadius: '10px', padding: '10px', textAlign: 'center', border: '1px solid #f0f0f0' }}>
                 <div style={{ fontSize: '18px', fontWeight: 800, color: s.color }}>{s.value}</div>
-                <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>{s.label}</div>
+                <div style={{ fontSize: '10px', color: '#999', marginTop: '2px', lineHeight: 1.3 }}>{s.label}</div>
               </div>
             ))}
           </div>
@@ -242,8 +274,8 @@ export default function AdminPage() {
           <div style={{ padding: '12px 16px', display: 'flex', gap: '6px', flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0' }}>
             {[
               { id: 'all', label: `All (${users.length})` },
-              { id: 'done', label: `Done (${completedToday})` },
-              { id: 'pending', label: `Pending (${pendingToday})` },
+              { id: 'done', label: `Done (${completedOnDate})` },
+              { id: 'pending', label: `Not done (${pendingOnDate})` },
               { id: 'at_risk', label: `At risk (${atRisk})` },
               { id: 'no_notif', label: `No notifs (${noNotif})` },
             ].map(f => (
@@ -340,7 +372,7 @@ export default function AdminPage() {
             </div>
 
             {/* Tabs */}
-            <div style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', padding: '0 28px', display: 'flex', gap: '0', flexShrink: 0 }}>
+            <div style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', padding: '0 28px', display: 'flex', flexShrink: 0 }}>
               {[
                 { id: 'tasks', label: `Task History (${selectedUser.history?.length || 0})` },
                 { id: 'notifications', label: `Notifications (${selectedUser.notifLogs?.length || '…'})` },
@@ -355,7 +387,6 @@ export default function AdminPage() {
             {/* Tab content */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px' }}>
 
-              {/* Tasks tab */}
               {detailTab === 'tasks' && (
                 selectedUser.historyLoading ? (
                   <div style={{ textAlign: 'center', padding: '40px', color: '#aaa', fontSize: '13px' }}>Loading...</div>
@@ -416,7 +447,6 @@ export default function AdminPage() {
                 ))
               )}
 
-              {/* Notifications tab */}
               {detailTab === 'notifications' && (
                 selectedUser.notifLoading ? (
                   <div style={{ textAlign: 'center', padding: '40px', color: '#aaa', fontSize: '13px' }}>Loading...</div>
