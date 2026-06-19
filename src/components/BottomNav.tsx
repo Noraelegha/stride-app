@@ -16,7 +16,6 @@ export default function BottomNav() {
 
   return (
     <>
-      {/* Spacer so content doesn't hide behind the fixed nav */}
       <div style={{ height: 'calc(56px + env(safe-area-inset-bottom))', flexShrink: 0 }} />
 
       <nav style={{
@@ -29,7 +28,7 @@ export default function BottomNav() {
         background: '#ffffff',
         borderTop: '0.5px solid #e8e8e8',
         display: 'flex',
-        padding: `8px 6px env(safe-area-inset-bottom)`,
+        padding: `4px 6px calc(env(safe-area-inset-bottom))`,
         zIndex: 1000,
         boxShadow: '0 -1px 0 rgba(0,0,0,0.06)',
       }}>
