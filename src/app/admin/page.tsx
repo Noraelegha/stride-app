@@ -54,6 +54,7 @@ export default function AdminPage() {
   const [selectedUser, setSelectedUser] = useState<UserStat | null>(null)
   const [detailTab, setDetailTab] = useState<'tasks' | 'notifications'>('tasks')
   const [viewDate, setViewDate] = useState<string>(new Date().toISOString().split('T')[0])
+  const [downloading, setDownloading] = useState(false)
 
   const fetchData = async (date?: string) => {
     setLoading(true)
@@ -100,6 +101,7 @@ export default function AdminPage() {
       u.email === email ? { ...u, history: data || [], historyLoading: false } : u
     ))
     setSelectedUser(prev => prev?.email === email ? { ...prev, history: data || [], historyLoading: false } : prev)
+    return data || []
   }
 
   const fetchNotifLogs = async (email: string) => {
@@ -109,12 +111,13 @@ export default function AdminPage() {
       .select('tier, message, sent_at')
       .eq('user_email', email)
       .order('sent_at', { ascending: false })
-      .limit(100)
+      .limit(500)
 
     setUsers(prev => prev.map(u =>
       u.email === email ? { ...u, notifLogs: data || [], notifLoading: false } : u
     ))
     setSelectedUser(prev => prev?.email === email ? { ...prev, notifLogs: data || [], notifLoading: false } : prev)
+    return data || []
   }
 
   const handleSelectUser = async (u: UserStat) => {
@@ -133,6 +136,135 @@ export default function AdminPage() {
   const handleDateChange = (date: string) => {
     setViewDate(date)
     fetchData(date)
+  }
+
+  const escapeCSV = (val: any): string => {
+    if (val === null || val === undefined) return ''
+    const str = String(val).replace(/"/g, '""')
+    return str.includes(',') || str.includes('"') || str.includes('\n') ? `"${str}"` : str
+  }
+
+  const downloadUserData = async () => {
+    if (!selectedUser) return
+    setDownloading(true)
+
+    try {
+      // Fetch fresh data if not already loaded
+      const history = selectedUser.history?.length
+        ? selectedUser.history
+        : await fetchHistory(selectedUser.email)
+
+      const notifLogs = selectedUser.notifLogs?.length
+        ? selectedUser.notifLogs
+        : await fetchNotifLogs(selectedUser.email)
+
+      const lines: string[] = []
+
+      // ── SECTION 1: User Summary ──
+      lines.push('STRIDE USER EXPORT')
+      lines.push(`Generated,${new Date().toLocaleString('en-GB')}`)
+      lines.push('')
+      lines.push('USER SUMMARY')
+      lines.push(`Name,${escapeCSV(selectedUser.name)}`)
+      lines.push(`Email,${escapeCSV(selectedUser.email)}`)
+      lines.push(`Goal,${escapeCSV(selectedUser.goal)}`)
+      lines.push(`Coach Style,${escapeCSV(selectedUser.coach_style)}`)
+      lines.push(`Joined,${selectedUser.joined_at ? new Date(selectedUser.joined_at).toLocaleDateString('en-GB') : '—'}`)
+      lines.push(`Current Streak,${selectedUser.streak || 0} days`)
+      lines.push(`Total Tasks Done,${selectedUser.tasks_done || 0}`)
+      lines.push(`Score,${selectedUser.score || 0}%`)
+      lines.push(`Notifications Enabled,${selectedUser.onesignal_id ? 'Yes' : 'No'}`)
+      lines.push(`Last Active,${selectedUser.last_active ? new Date(selectedUser.last_active).toLocaleString('en-GB') : '—'}`)
+      lines.push('')
+
+      // ── SECTION 2: Task History ──
+      lines.push('TASK HISTORY')
+      lines.push([
+        'Day',
+        'Date',
+        'Status',
+        'Completed At',
+        'Task',
+        'Dash Message',
+        'User Reply',
+        'User Note',
+        'Bonus Task',
+        'Bonus Status',
+      ].map(escapeCSV).join(','))
+
+      const replyLabel = (r: string | null) => {
+        if (!r) return ''
+        return ({ chip1: 'Completed it', chip2: 'Partial', more: 'Did more', blocked: 'Hit a wall', partial: 'Partial', other: 'Something else' }[r] || r)
+      }
+
+      for (const t of (history as TaskHistory[])) {
+        lines.push([
+          t.day_number,
+          t.task_date,
+          t.status,
+          t.completed_at ? new Date(t.completed_at).toLocaleString('en-GB') : '',
+          t.task_text,
+          t.dash_message,
+          replyLabel(t.user_reply),
+          t.hint_text || '',
+          t.bonus_task_text || '',
+          t.bonus_task_status || '',
+        ].map(escapeCSV).join(','))
+      }
+
+      lines.push('')
+
+      // ── SECTION 3: Daily Notification Summary ──
+      lines.push('DAILY NOTIFICATION SUMMARY')
+      lines.push(['Date', 'Notifications Sent', 'Tiers'].map(escapeCSV).join(','))
+
+      const notifByDay: Record<string, { count: number; tiers: string[] }> = {}
+      for (const n of (notifLogs as NotifLog[])) {
+        const day = n.sent_at.split('T')[0]
+        if (!notifByDay[day]) notifByDay[day] = { count: 0, tiers: [] }
+        notifByDay[day].count++
+        notifByDay[day].tiers.push(n.tier)
+      }
+
+      for (const [day, info] of Object.entries(notifByDay).sort((a, b) => b[0].localeCompare(a[0]))) {
+        lines.push([
+          day,
+          info.count,
+          [...new Set(info.tiers)].join(' / '),
+        ].map(escapeCSV).join(','))
+      }
+
+      lines.push('')
+
+      // ── SECTION 4: Full Notification Log ──
+      lines.push('FULL NOTIFICATION LOG')
+      lines.push(['Date & Time', 'Tier', 'Message'].map(escapeCSV).join(','))
+
+      for (const n of (notifLogs as NotifLog[])) {
+        lines.push([
+          new Date(n.sent_at).toLocaleString('en-GB'),
+          n.tier,
+          n.message,
+        ].map(escapeCSV).join(','))
+      }
+
+      // ── Trigger download ──
+      const csv = lines.join('\n')
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      const safeName = (selectedUser.name || 'user').toLowerCase().replace(/\s+/g, '-')
+      link.href = url
+      link.download = `stride-${safeName}-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error('Download failed:', e)
+    }
+
+    setDownloading(false)
   }
 
   const isToday = viewDate === new Date().toISOString().split('T')[0]
@@ -244,10 +376,8 @@ export default function AdminPage() {
               style={{ flex: 1, border: '1.5px solid #eee', borderRadius: '8px', padding: '6px 10px', fontSize: '12px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
             />
             {!isToday && (
-              <button
-                onClick={() => handleDateChange(new Date().toISOString().split('T')[0])}
-                style={{ fontSize: '11px', fontWeight: 600, color: '#1a1a2e', background: '#f5f5f7', border: '1px solid #eee', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', flexShrink: 0 }}
-              >
+              <button onClick={() => handleDateChange(new Date().toISOString().split('T')[0])}
+                style={{ fontSize: '11px', fontWeight: 600, color: '#1a1a2e', background: '#f5f5f7', border: '1px solid #eee', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', flexShrink: 0 }}>
                 Today
               </button>
             )}
@@ -346,6 +476,14 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
+              {/* Download button */}
+              <button
+                onClick={downloadUserData}
+                disabled={downloading}
+                style={{ background: downloading ? '#f5f5f7' : '#1a1a2e', border: '1px solid #eee', color: downloading ? '#aaa' : '#fff', padding: '8px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: downloading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}
+              >
+                {downloading ? '⏳ Preparing...' : '⬇ Export CSV'}
+              </button>
               <button onClick={() => setSelectedUser(null)} style={{ background: '#f5f5f7', border: '1px solid #eee', color: '#888', width: 32, height: 32, borderRadius: '8px', cursor: 'pointer', fontSize: '16px' }}>×</button>
             </div>
 
