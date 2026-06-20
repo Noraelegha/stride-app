@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
 
 export const metadata: Metadata = {
   title: 'Stride — Stop Guessing. Start Stepping.',
@@ -20,7 +19,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body>
-        <ServiceWorkerRegistration />
         <div className="app-shell">
           {children}
         </div>
