@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
 
 export const metadata: Metadata = {
   title: 'Stride — Stop Guessing. Start Stepping.',
@@ -17,31 +18,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Stride" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            if ('serviceWorker' in navigator) {
-              window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js')
-                  .then(function(reg) {
-                    // When a new service worker is waiting, activate it immediately
-                    reg.addEventListener('updatefound', function() {
-                      const newWorker = reg.installing
-                      if (newWorker) {
-                        newWorker.addEventListener('statechange', function() {
-                          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            // New version available — reload to get fresh cache
-                            window.location.reload()
-                          }
-                        })
-                      }
-                    })
-                  })
-              })
-            }
-          `
-        }} />
       </head>
       <body>
+        <ServiceWorkerRegistration />
         <div className="app-shell">
           {children}
         </div>
