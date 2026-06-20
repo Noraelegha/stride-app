@@ -137,7 +137,7 @@ export default function HomePage() {
 
       const { error: insertError } = await supabase.from('daily_tasks').insert({
         user_email: userData.email,
-        day_number: (userData.tasksDone || 0) + 1,
+        day_number: (history?.length || 0) + 1,
         task_text: task.taskText,
         dash_message: task.dashMessage,
         task_date: today,
@@ -180,31 +180,51 @@ export default function HomePage() {
     }
   }
 
-  // Silently prompt for notifications on home load for users who never granted
+  // TEMPORARY DEBUG VERSION — shows alert popups at every step
   const requestNotificationsIfNeeded = async (userData: any) => {
+    alert('Step 1: Function started')
     try {
       const OneSignal = (await import('react-onesignal')).default
+      alert('Step 2: OneSignal module loaded')
+
       await OneSignal.init({
         appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
         allowLocalhostAsSecureOrigin: true,
       })
+      alert('Step 3: OneSignal.init() completed')
+
       const permission = OneSignal.Notifications.permission
+      alert('Step 4: Current permission state = ' + permission)
+
       if (!permission) {
+        alert('Step 5: About to request permission')
         await OneSignal.Notifications.requestPermission()
+        alert('Step 6: requestPermission() call completed')
+      } else {
+        alert('Step 5b: Permission already true, skipping request')
       }
+
       await OneSignal.login(userData.email)
+      alert('Step 7: OneSignal.login() completed for ' + userData.email)
+
       await new Promise(r => setTimeout(r, 1500))
       const id = OneSignal.User.PushSubscription.id
+      alert('Step 8: Subscription ID = ' + id)
+
       if (id) {
         await supabase
           .from('stride_users')
           .update({ onesignal_id: id })
           .eq('email', userData.email)
+        alert('Step 9: Saved to Supabase successfully')
         const updated = { ...userData, onesignal_id: id }
         localStorage.setItem('stride_user', JSON.stringify(updated))
         setUser(updated)
+      } else {
+        alert('Step 9: No ID available, nothing saved')
       }
-    } catch (e) {
+    } catch (e: any) {
+      alert('ERROR: ' + (e?.message || JSON.stringify(e)))
       console.error('Silent notification request failed:', e)
     }
   }
