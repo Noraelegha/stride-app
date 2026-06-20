@@ -16,7 +16,15 @@ export default function BottomNav() {
 
   return (
     <>
-      <div style={{ height: 'calc(56px + env(safe-area-inset-bottom))', flexShrink: 0 }} />
+      {/*
+        Spacer: reserves space so content is not hidden behind the fixed nav.
+        48px = nav icon+label area
+        + env(safe-area-inset-bottom) = home indicator space on iPhone
+      */}
+      <div style={{
+        height: 'calc(48px + env(safe-area-inset-bottom))',
+        flexShrink: 0,
+      }} />
 
       <nav style={{
         position: 'fixed',
@@ -27,10 +35,21 @@ export default function BottomNav() {
         maxWidth: '430px',
         background: '#ffffff',
         borderTop: '0.5px solid #e8e8e8',
-        display: 'flex',
-        padding: `4px 6px calc(env(safe-area-inset-bottom))`,
-        zIndex: 1000,
         boxShadow: '0 -1px 0 rgba(0,0,0,0.06)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        /*
+          Top padding: 8px above icons
+          Bottom padding: env(safe-area-inset-bottom) fills the home indicator zone
+          This means the nav background extends into the safe area (like Duolingo/LinkedIn)
+          but the tappable icons sit above it
+        */
+        paddingTop: '8px',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: '6px',
+        paddingRight: '6px',
+        zIndex: 1000,
+        boxSizing: 'border-box',
       }}>
         {navItems.map(({ icon: Icon, label, path }) => {
           const active = pathname === path
@@ -47,13 +66,24 @@ export default function BottomNav() {
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                padding: '4px 4px 0',
+                padding: '0 4px 6px',
                 color: active ? '#1a1a2e' : '#cccccc',
                 transition: 'color 0.2s',
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
-              <Icon size={22} strokeWidth={active ? 2.5 : 1.8} color={active ? '#1a1a2e' : '#cccccc'} />
-              <span style={{ fontSize: '9px', fontWeight: active ? 600 : 400 }}>{label}</span>
+              <Icon
+                size={22}
+                strokeWidth={active ? 2.5 : 1.8}
+                color={active ? '#1a1a2e' : '#cccccc'}
+              />
+              <span style={{
+                fontSize: '9px',
+                fontWeight: active ? 700 : 400,
+                lineHeight: 1,
+              }}>
+                {label}
+              </span>
             </button>
           )
         })}
