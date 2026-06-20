@@ -16,13 +16,8 @@ export default function BottomNav() {
 
   return (
     <>
-      {/*
-        Spacer: reserves space so content is not hidden behind the fixed nav.
-        48px = nav icon+label area
-        + env(safe-area-inset-bottom) = home indicator space on iPhone
-      */}
       <div style={{
-        height: 'calc(48px + env(safe-area-inset-bottom))',
+        height: 'calc(48px + max(env(safe-area-inset-bottom), 8px))',
         flexShrink: 0,
       }} />
 
@@ -38,18 +33,12 @@ export default function BottomNav() {
         boxShadow: '0 -1px 0 rgba(0,0,0,0.06)',
         display: 'flex',
         alignItems: 'flex-start',
-        /*
-          Top padding: 8px above icons
-          Bottom padding: env(safe-area-inset-bottom) fills the home indicator zone
-          This means the nav background extends into the safe area (like Duolingo/LinkedIn)
-          but the tappable icons sit above it
-        */
         paddingTop: '8px',
-        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
         paddingLeft: '6px',
         paddingRight: '6px',
         zIndex: 1000,
-        boxSizing: 'border-box',
+        boxSizing: 'border-box' as const,
       }}>
         {navItems.map(({ icon: Icon, label, path }) => {
           const active = pathname === path
