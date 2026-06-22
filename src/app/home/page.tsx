@@ -33,6 +33,7 @@ export default function HomePage() {
   const bgHintRef = useRef<HTMLDivElement>(null)
   const drag = useRef({ active: false, startX: 0, curX: 0 })
   const engagedReplyRef = useRef(false)
+  const checksRanRef = useRef(false) // ← NEW: prevents double-trigger on re-focus
 
   const checkMissedDays = (userData: any, lastActiveDate: string | null): number => {
     if (!lastActiveDate) return 0
@@ -135,6 +136,9 @@ export default function HomePage() {
     if (!stored) { router.push('/onboarding'); return }
     const userData = JSON.parse(stored)
     const runChecks = async () => {
+      if (checksRanRef.current) return // ← NEW: only run once per session
+      checksRanRef.current = true
+
       const fromRecovery = localStorage.getItem('stride_from_recovery')
       if (fromRecovery) {
         localStorage.removeItem('stride_from_recovery')
@@ -539,7 +543,6 @@ export default function HomePage() {
               {panel === 'hint' && (
                 <div style={{ position: 'relative', background: '#fff', borderRadius: '20px', border: '1.5px solid #F5A623', padding: '16px 18px 20px', display: 'flex', flexDirection: 'column', gap: '12px', zIndex: 5 }}>
                   <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>Hint from Dash 💡</div>
-
                   {hintType === 'choose' && (
                     <>
                       <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a2e' }}>What is getting in the way?</div>
@@ -564,7 +567,6 @@ export default function HomePage() {
                       </button>
                     </>
                   )}
-
                   {hintType !== 'choose' && (() => {
                     const content = hintContent[hintType as 'simplifier' | 'toolDrop' | 'permissionSlip']
                     return (
@@ -578,7 +580,7 @@ export default function HomePage() {
                         <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                           <button onClick={() => setHintType('choose')}
                             style={{ flex: 1, background: 'none', border: '1.5px solid #eee', padding: '11px', borderRadius: '12px', fontSize: '13px', color: '#aaa', cursor: 'pointer' }}>
-                            ← Different hint
+                            Different hint
                           </button>
                           <button onClick={() => setPanel('srp')}
                             style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '11px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>
@@ -596,11 +598,9 @@ export default function HomePage() {
                 inset: panel === 'srp' ? 'unset' : 0,
                 background: '#fff', borderRadius: '20px', border: '1.5px solid #1a1a2e',
                 padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px',
-                overflowY: 'auto',
-                opacity: panel === 'srp' ? 1 : 0,
+                overflowY: 'auto', opacity: panel === 'srp' ? 1 : 0,
                 pointerEvents: panel === 'srp' ? 'auto' : 'none',
-                transition: 'opacity .3s ease',
-                zIndex: panel === 'srp' ? 20 : 0,
+                transition: 'opacity .3s ease', zIndex: panel === 'srp' ? 20 : 0,
               }}>
                 <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>Dash</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e', lineHeight: 1.3 }}>How did it go today?</div>
@@ -683,7 +683,7 @@ export default function HomePage() {
                     {bonusError ? (
                       <>
                         <button onClick={handleBonusSkip} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '12px', borderRadius: '13px', fontSize: '13px', color: '#888', cursor: 'pointer' }}>Skip</button>
-                        <button onClick={handleBonusYes} style={{ flex: 2, background: '#F5A623', border: 'none', padding: '12px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#1a1a2e', cursor: 'pointer' }}>Retry ↺</button>
+                        <button onClick={handleBonusYes} style={{ flex: 2, background: '#F5A623', border: 'none', padding: '12px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#1a1a2e', cursor: 'pointer' }}>Retry</button>
                       </>
                     ) : (
                       <>
