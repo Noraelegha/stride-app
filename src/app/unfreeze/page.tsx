@@ -174,7 +174,6 @@ export default function UnfreezePage() {
           Tap anywhere to continue
         </p>
 
-        <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', width: '130px', height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.3)' }} />
       </div>
 
       {/* PHASE 2 — White streak reveal with real data */}
