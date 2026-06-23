@@ -110,7 +110,7 @@ export default function OnboardingPage() {
       tasksDone: 0,
       score: 0,
       bonusTasks: 0,
-      shields: 0,
+      shields: 1,
       joinedAt: new Date().toISOString(),
     }
 
@@ -138,7 +138,7 @@ export default function OnboardingPage() {
         tasks_done: 0,
         score: 0,
         bonus_tasks: 0,
-        shields: 0,
+        shields: 1,
       })
     } catch (e) {
       console.error('Supabase save failed:', e)
