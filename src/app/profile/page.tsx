@@ -125,10 +125,19 @@ export default function ProfilePage() {
           <div style={{ fontSize: '12px', fontWeight: 700, color: '#1a1a2e', marginBottom: '6px' }}>
             Phase {user?.phase || 1}: {user?.phase === 2 ? 'Momentum' : user?.phase === 3 ? 'Acceleration' : 'Foundation'}
           </div>
-          <div style={{ height: '4px', background: '#f0f0f0', borderRadius: '2px' }}>
-            <div style={{ width: `${user?.score || 0}%`, height: '100%', background: '#1a1a2e', borderRadius: '2px', transition: 'width 0.5s ease' }} />
-          </div>
-          <div style={{ fontSize: '11px', color: '#888', marginTop: '4px', textAlign: 'right' }}>{user?.score || 0}%</div>
+          {(() => {
+            const calculatedPhase = (user?.tasksDone || 0) >= 60 ? 3 : (user?.tasksDone || 0) >= 30 ? 2 : 1
+            const tasksInPhase = Math.max(0, (user?.tasksDone || 0) - ((calculatedPhase - 1) * 30))
+            const phaseProgress = Math.min(Math.round((tasksInPhase / 30) * 100), 100)
+            return (
+              <>
+                <div style={{ height: '4px', background: '#f0f0f0', borderRadius: '2px' }}>
+                  <div style={{ width: `${phaseProgress}%`, height: '100%', background: '#1a1a2e', borderRadius: '2px', transition: 'width 0.5s ease' }} />
+                </div>
+                <div style={{ fontSize: '11px', color: '#888', marginTop: '4px', textAlign: 'right' }}>{phaseProgress}%</div>
+              </>
+            )
+          })()}
         </div>
 
         {/* Dash settings */}

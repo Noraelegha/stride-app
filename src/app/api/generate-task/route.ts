@@ -147,6 +147,21 @@ ${extraContext ? `\n\nSPECIAL INSTRUCTION:\n${extraContext}` : ''}
     }
 
     const task = JSON.parse(jsonMatch[0])
+
+    // Strip em dashes from all text fields
+    const sanitize = (str: string) => str?.replace(/—/g, ' ') || str
+    if (task.taskText) task.taskText = sanitize(task.taskText)
+    if (task.dashMessage) task.dashMessage = sanitize(task.dashMessage)
+    if (task.chip1) task.chip1 = sanitize(task.chip1)
+    if (task.chip2) task.chip2 = sanitize(task.chip2)
+    if (task.bonusTaskText) task.bonusTaskText = sanitize(task.bonusTaskText)
+    if (task.morningReminder) task.morningReminder = sanitize(task.morningReminder)
+    if (task.middayReminder) task.middayReminder = sanitize(task.middayReminder)
+    if (task.afternoonReminder) task.afternoonReminder = sanitize(task.afternoonReminder)
+    if (task.eveningReminderComplete) task.eveningReminderComplete = sanitize(task.eveningReminderComplete)
+    if (task.eveningReminderIncomplete) task.eveningReminderIncomplete = sanitize(task.eveningReminderIncomplete)
+    if (task.nightReminder) task.nightReminder = sanitize(task.nightReminder)
+
     return NextResponse.json({ task })
 
   } catch (error) {
