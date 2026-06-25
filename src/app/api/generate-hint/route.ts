@@ -88,6 +88,8 @@ Respond in valid JSON only:
     }
 
     const hint = JSON.parse(jsonMatch[0])
+    hint.hintMessage = hint.hintMessage?.replace(/—/g, ' ')
+hint.hintTask = hint.hintTask?.replace(/—/g, ' ')
     return NextResponse.json({ hint })
 
   } catch (error) {
