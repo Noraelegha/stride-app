@@ -37,6 +37,14 @@ export async function POST(req: NextRequest) {
         }).join('\n')
       : 'No tasks yet. This is Day 1.'
 
+    // Extract the most recent task output note if present
+    const yesterday = recentTasks[recentTasks.length - 1]
+    const yesterdayOutputNote = yesterday?.hint_text && 
+      yesterday?.user_reply !== 'blocked' &&
+      yesterday?.hint_type !== 'blocked'
+        ? yesterday.hint_text.trim()
+        : null
+
     const compactHistory = olderTasks.length > 0
       ? olderTasks.map((t: any) => {
           const status = t.status === 'completed' ? '✅' : t.bonus_completed ? '⬆️' : t.status === 'partial' ? '🔄' : '❌'
@@ -106,6 +114,15 @@ Weekend: ${isWeekend ? 'YES, avoid tasks requiring going out or making calls' : 
 TASK HISTORY (all time):
 ${compactHistory ? `Full history: ${compactHistory}\n\n` : ''}Recent detail (last 7 days):
 ${recentHistory}
+${yesterdayOutputNote ? `
+USER OUTPUT FROM YESTERDAY — CRITICAL:
+The user shared this after completing yesterday's task: "${yesterdayOutputNote}"
+This is real output from their actual work — a bio they wrote, a link they created, a number they hit, something they typed out. 
+Your job today:
+- Build tomorrow's task as the direct natural next step from what they shared. Do not start from scratch.
+- Reference what they shared naturally in the dashMessage, the way a coach would who actually saw their work. Never quote it back mechanically.
+- If what they shared reveals something that conflicts with their Big Prize or suggests they are drifting from their goal, flag it once using the Goal Protection System (set goalProtectionFlagged: true). One line, coach style, no lecture.
+- If what they shared is strong work, acknowledge the specific thing that is strong — not generically.` : ''}
 
 DASH MESSAGE RULES FOR THIS RESPONSE:
 - Maximum 2 short sentences. Never more.
