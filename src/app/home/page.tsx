@@ -27,6 +27,7 @@ export default function HomePage() {
   const [submitError, setSubmitError] = useState('')
   const [bonusTask, setBonusTask] = useState<{ text: string; dashMessage: string } | null>(null)
   const [bonusError, setBonusError] = useState(false)
+  const [outputNote, setOutputNote] = useState('')
 
   const cardRef = useRef<HTMLDivElement>(null)
   const bgDoneRef = useRef<HTMLDivElement>(null)
@@ -284,7 +285,7 @@ export default function HomePage() {
           swipe_direction: panel === 'hint' ? 'left' : 'right',
           user_reply: pickedWall || pickedChip,
           hint_type: pickedWall || null,
-          hint_text: chipType === 'checkin' ? checkinNote.trim() : (wallNote.trim() || null),
+          hint_text: chipType === 'checkin' ? checkinNote.trim() : (wallNote.trim() || outputNote.trim() || null),
         }).eq('user_email', user.email).eq('task_date', today)
         if (dailyTaskError) { setSubmitError('Something went wrong saving your response. Please try again.'); return }
       }
@@ -306,6 +307,16 @@ export default function HomePage() {
         if (chipType === 'checkin' && checkinNote.trim().length >= 15) {
           await supabase.from('stride_users').update({ prior_detail: checkinNote.trim() }).eq('email', user.email)
           const enriched = { ...updatedUser, priorDetail: checkinNote.trim() }
+          localStorage.setItem('stride_user', JSON.stringify(enriched))
+          setUser(enriched)
+        } else if (outputNote.trim().length > 0) {
+          // Save task output to prior_detail so Dash always has this context
+          const existingDetail = user.priorDetail || ''
+          const updatedDetail = existingDetail
+            ? `${existingDetail}\n\n[${new Date().toLocaleDateString()}] ${outputNote.trim()}`
+            : outputNote.trim()
+          await supabase.from('stride_users').update({ prior_detail: updatedDetail }).eq('email', user.email)
+          const enriched = { ...updatedUser, priorDetail: updatedDetail }
           localStorage.setItem('stride_user', JSON.stringify(enriched))
           setUser(enriched)
         } else {
@@ -639,6 +650,20 @@ export default function HomePage() {
                         <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>💬</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>Something else happened.</span>
                       </div>
+                      {(pickedChip === 'chip1' || pickedChip === 'chip2') && !showWall && (
+                        <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                          <div style={{ fontSize: '12px', fontWeight: 600, color: '#888' }}>
+                            Anything Dash should know from today? <span style={{ fontWeight: 400 }}>(optional)</span>
+                          </div>
+                          <textarea
+                            rows={2}
+                            placeholder="Paste your bio, a link, numbers, what you wrote — anything Dash should remember."
+                            value={outputNote}
+                            onChange={e => setOutputNote(e.target.value)}
+                            style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '8px 11px', fontSize: '12px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%', lineHeight: 1.5, background: '#fafafa' }}
+                          />
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
