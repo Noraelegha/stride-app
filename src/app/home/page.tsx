@@ -14,6 +14,8 @@ export default function HomePage() {
   const [user, setUser] = useState<any>(null)
   const [panel, setPanel] = useState<Panel>('task')
   const [hintType, setHintType] = useState<HintType>('choose')
+  const [hintApiContent, setHintApiContent] = useState<{ hintMessage: string; hintTask: string } | null>(null)
+  const [hintLoading, setHintLoading] = useState(false)
   const [showTut, setShowTut] = useState(true)
   const [pickedChip, setPickedChip] = useState('')
   const [showWall, setShowWall] = useState(false)
@@ -34,7 +36,7 @@ export default function HomePage() {
   const bgHintRef = useRef<HTMLDivElement>(null)
   const drag = useRef({ active: false, startX: 0, curX: 0 })
   const engagedReplyRef = useRef(false)
-  const checksRanRef = useRef(false) // ← NEW: prevents double-trigger on re-focus
+  const checksRanRef = useRef(false)
 
   const checkMissedDays = (userData: any, lastActiveDate: string | null): number => {
     if (!lastActiveDate) return 0
@@ -132,14 +134,35 @@ export default function HomePage() {
     } catch (e) { console.error('Silent notification request failed:', e) }
   }
 
+  const fetchHint = async (type: 'simplifier' | 'toolDrop' | 'permissionSlip') => {
+    if (!user || !taskData) return
+    const currentTaskText = taskData?.task_text || taskData?.taskText || null
+    const currentDashMessage = taskData?.dash_message || taskData?.dashMessage || null
+    if (!currentTaskText) return
+    setHintLoading(true)
+    setHintApiContent(null)
+    try {
+      const res = await fetch('/api/generate-hint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user, taskText: currentTaskText, dashMessage: currentDashMessage, hintType: type }),
+      })
+      const data = await res.json()
+      if (data.hint) setHintApiContent(data.hint)
+    } catch (e) {
+      console.error('Hint generation failed:', e)
+    } finally {
+      setHintLoading(false)
+    }
+  }
+
   useEffect(() => {
     const stored = localStorage.getItem('stride_user')
     if (!stored) { router.push('/onboarding'); return }
     const userData = JSON.parse(stored)
     const runChecks = async () => {
-      if (checksRanRef.current) return // ← NEW: only run once per session
+      if (checksRanRef.current) return
       checksRanRef.current = true
-
       const fromRecovery = localStorage.getItem('stride_from_recovery')
       if (fromRecovery) {
         localStorage.removeItem('stride_from_recovery')
@@ -233,6 +256,7 @@ export default function HomePage() {
       }
       setTimeout(() => {
         setHintType('choose')
+        setHintApiContent(null)
         setPanel('hint')
         if (bgHintRef.current) bgHintRef.current.style.opacity = '0'
       }, 300)
@@ -310,7 +334,6 @@ export default function HomePage() {
           localStorage.setItem('stride_user', JSON.stringify(enriched))
           setUser(enriched)
         } else if (outputNote.trim().length > 0) {
-          // Save task output to prior_detail so Dash always has this context
           const existingDetail = user.priorDetail || ''
           const updatedDetail = existingDetail
             ? `${existingDetail}\n\n[${new Date().toLocaleDateString()}] ${outputNote.trim()}`
@@ -416,21 +439,6 @@ export default function HomePage() {
   const calculatedPhase = (user.tasksDone || 0) >= 60 ? 3 : (user.tasksDone || 0) >= 30 ? 2 : 1
   const tasksInCurrentPhase = Math.max(0, (user.tasksDone || 0) - ((calculatedPhase - 1) * 30))
   const phaseProgress = Math.min(Math.round((tasksInCurrentPhase / 30) * 100), 100)
-
-  const hintContent = {
-    simplifier: {
-      dash: 'Too big? Strip it down. Do the very first physical action only — nothing else.',
-      task: taskText ? `First step only: ${taskText.split('.')[0].split(',')[0].trim()}.` : 'Do the smallest possible version. One sentence. One action. That is it.',
-    },
-    toolDrop: {
-      dash: 'Not sure where to start? Open the one tool or app this task needs. That is your only job right now.',
-      task: taskText ? `Open whatever you need to do this and stay there for 5 minutes: ${taskText.substring(0, 60)}...` : 'Open the right tool, stay on it for 5 minutes. Nothing else.',
-    },
-    permissionSlip: {
-      dash: 'It does not have to be good. First drafts are supposed to be bad. Done beats perfect.',
-      task: taskText ? `Do a rough version of: ${taskText} — imperfect is fine.` : 'Do a rough version. Imperfect, unfinished, messy. Done beats perfect every time.',
-    },
-  }
 
   if (panel === 'streakShow') {
     return (
@@ -559,11 +567,11 @@ export default function HomePage() {
                       <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a2e' }}>What is getting in the way?</div>
                       <div style={{ fontSize: '12px', color: '#888', marginTop: '-4px' }}>Pick the one that fits and Dash will adjust.</div>
                       {[
-                        { type: 'simplifier' as HintType, icon: '🔽', label: 'It feels too big', sub: 'Make the task smaller' },
-                        { type: 'toolDrop' as HintType, icon: '🔧', label: "I don't know where to start", sub: 'Get an exact starting point' },
-                        { type: 'permissionSlip' as HintType, icon: '✅', label: 'I am overthinking it', sub: 'Permission to do it imperfectly' },
+                        { type: 'simplifier' as const, icon: '🔽', label: 'It feels too big', sub: 'Make the task smaller' },
+                        { type: 'toolDrop' as const, icon: '🔧', label: "I don't know where to start", sub: 'Get an exact starting point' },
+                        { type: 'permissionSlip' as const, icon: '✅', label: 'I am overthinking it', sub: 'Permission to do it imperfectly' },
                       ].map(opt => (
-                        <div key={opt.type} onClick={() => setHintType(opt.type)}
+                        <div key={opt.type} onClick={() => { setHintType(opt.type); fetchHint(opt.type) }}
                           style={{ border: '1.5px solid #eee', borderRadius: '13px', padding: '11px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', background: '#fafafa' }}>
                           <span style={{ fontSize: '20px' }}>{opt.icon}</span>
                           <div>
@@ -572,35 +580,38 @@ export default function HomePage() {
                           </div>
                         </div>
                       ))}
-                      <button onClick={() => { setHintType('choose'); setPanel('task'); if (cardRef.current) { cardRef.current.style.transform = 'none'; cardRef.current.style.opacity = '1' } }}
+                      <button onClick={() => { setHintType('choose'); setHintApiContent(null); setPanel('task'); if (cardRef.current) { cardRef.current.style.transform = 'none'; cardRef.current.style.opacity = '1' } }}
                         style={{ background: 'none', border: '1.5px solid #eee', padding: '10px', borderRadius: '12px', fontSize: '13px', color: '#aaa', cursor: 'pointer', marginTop: '4px' }}>
                         Back to task
                       </button>
                     </>
                   )}
-                  {hintType !== 'choose' && (() => {
-                    const content = hintContent[hintType as 'simplifier' | 'toolDrop' | 'permissionSlip']
-                    return (
-                      <>
-                        <div style={{ background: '#fffbf0', borderLeft: '3px solid #F5A623', borderRadius: '0 10px 10px 0', padding: '10px 12px' }}>
-                          <div style={{ fontSize: '8px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', marginBottom: '4px' }}>Dash</div>
-                          <p style={{ fontSize: '12px', color: '#444', lineHeight: 1.5, margin: 0 }}>{content.dash}</p>
-                        </div>
-                        <div style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a2e', lineHeight: 1.5 }}>{content.task}</div>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#f5f5f7', borderRadius: '20px', padding: '4px 10px', fontSize: '11px', color: '#888', fontWeight: 600, alignSelf: 'flex-start' }}>⏱ ~5 minutes</div>
-                        <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                          <button onClick={() => setHintType('choose')}
-                            style={{ flex: 1, background: 'none', border: '1.5px solid #eee', padding: '11px', borderRadius: '12px', fontSize: '13px', color: '#aaa', cursor: 'pointer' }}>
-                            Different hint
-                          </button>
-                          <button onClick={() => setPanel('srp')}
-                            style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '11px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>
-                            Done
-                          </button>
-                        </div>
-                      </>
-                    )
-                  })()}
+                  {hintType !== 'choose' && (
+                    <>
+                      <div style={{ background: '#fffbf0', borderLeft: '3px solid #F5A623', borderRadius: '0 10px 10px 0', padding: '10px 12px' }}>
+                        <div style={{ fontSize: '8px', fontWeight: 700, color: '#F5A623', textTransform: 'uppercase', marginBottom: '4px' }}>Dash</div>
+                        <p style={{ fontSize: '12px', color: '#444', lineHeight: 1.5, margin: 0 }}>
+                          {hintLoading ? 'Dash is working on this...' : hintApiContent?.hintMessage || ''}
+                        </p>
+                      </div>
+                      <div style={{ fontSize: '15px', fontWeight: 600, color: '#1a1a2e', lineHeight: 1.5, minHeight: '40px' }}>
+                        {hintLoading
+                          ? <span style={{ color: '#bbb', fontStyle: 'italic', fontWeight: 400, fontSize: '13px' }}>Generating your hint...</span>
+                          : hintApiContent?.hintTask || ''}
+                      </div>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#f5f5f7', borderRadius: '20px', padding: '4px 10px', fontSize: '11px', color: '#888', fontWeight: 600, alignSelf: 'flex-start' }}>⏱ ~5 minutes</div>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                        <button onClick={() => { setHintType('choose'); setHintApiContent(null) }}
+                          style={{ flex: 1, background: 'none', border: '1.5px solid #eee', padding: '11px', borderRadius: '12px', fontSize: '13px', color: '#aaa', cursor: 'pointer' }}>
+                          Different hint
+                        </button>
+                        <button onClick={() => setPanel('srp')} disabled={hintLoading}
+                          style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '11px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: hintLoading ? 'default' : 'pointer', opacity: hintLoading ? 0.5 : 1 }}>
+                          Done
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
