@@ -37,6 +37,7 @@ export default function HomePage() {
   const drag = useRef({ active: false, startX: 0, curX: 0 })
   const engagedReplyRef = useRef(false)
   const checksRanRef = useRef(false)
+  const hintCacheRef = useRef<Record<string, { hintMessage: string; hintTask: string }>>({})
 
   const checkMissedDays = (userData: any, lastActiveDate: string | null): number => {
     if (!lastActiveDate) return 0
@@ -139,6 +140,10 @@ export default function HomePage() {
     const currentTaskText = taskData?.task_text || taskData?.taskText || null
     const currentDashMessage = taskData?.dash_message || taskData?.dashMessage || null
     if (!currentTaskText) return
+    if (hintCacheRef.current[type]) {
+      setHintApiContent(hintCacheRef.current[type])
+      return
+    }
     setHintLoading(true)
     setHintApiContent(null)
     try {
@@ -148,7 +153,10 @@ export default function HomePage() {
         body: JSON.stringify({ user, taskText: currentTaskText, dashMessage: currentDashMessage, hintType: type }),
       })
       const data = await res.json()
-      if (data.hint) setHintApiContent(data.hint)
+      if (data.hint) {
+        hintCacheRef.current[type] = data.hint
+        setHintApiContent(data.hint)
+      }
     } catch (e) {
       console.error('Hint generation failed:', e)
     } finally {
@@ -257,6 +265,7 @@ export default function HomePage() {
       setTimeout(() => {
         setHintType('choose')
         setHintApiContent(null)
+        hintCacheRef.current = {}
         setPanel('hint')
         if (bgHintRef.current) bgHintRef.current.style.opacity = '0'
       }, 300)
@@ -427,6 +436,16 @@ export default function HomePage() {
     setPanel('locked')
   }
 
+  const handleBonusWall = async () => {
+    if (!user) return
+    const today = new Date().toISOString().split('T')[0]
+    try {
+      await supabase.from('daily_tasks').update({ bonus_task_status: 'blocked' })
+        .eq('user_email', user.email).eq('task_date', today)
+    } catch (err) { console.error('Bonus wall failed:', err) }
+    setPanel('locked')
+  }
+
   if (!user) return null
 
   const currentDay = (user.tasksDone || 0) + 1
@@ -439,6 +458,16 @@ export default function HomePage() {
   const calculatedPhase = (user.tasksDone || 0) >= 60 ? 3 : (user.tasksDone || 0) >= 30 ? 2 : 1
   const tasksInCurrentPhase = Math.max(0, (user.tasksDone || 0) - ((calculatedPhase - 1) * 30))
   const phaseProgress = Math.min(Math.round((tasksInCurrentPhase / 30) * 100), 100)
+
+  const proofPrompt = taskText
+    ? taskText.toLowerCase().includes('comment') || taskText.toLowerCase().includes('post') || taskText.toLowerCase().includes('send') || taskText.toLowerCase().includes('message')
+      ? 'Paste what you wrote, sent, or a link to it.'
+      : taskText.toLowerCase().includes('write') || taskText.toLowerCase().includes('draft') || taskText.toLowerCase().includes('paragraph')
+      ? 'Paste what you wrote — rough is fine.'
+      : taskText.toLowerCase().includes('list') || taskText.toLowerCase().includes('names') || taskText.toLowerCase().includes('people')
+      ? 'Paste the list or names you came up with.'
+      : 'Paste what you produced, wrote, or did — anything Dash should see.'
+    : 'Paste what you produced, wrote, or did — anything Dash should see.'
 
   if (panel === 'streakShow') {
     return (
@@ -605,7 +634,9 @@ export default function HomePage() {
                           style={{ flex: 1, background: 'none', border: '1.5px solid #eee', padding: '11px', borderRadius: '12px', fontSize: '13px', color: '#aaa', cursor: 'pointer' }}>
                           Different hint
                         </button>
-                        <button onClick={() => setPanel('srp')} disabled={hintLoading}
+                        <button
+                          onClick={() => { setPickedChip('chip2'); setShowWall(false); setPanel('srp') }}
+                          disabled={hintLoading}
                           style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '11px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: hintLoading ? 'default' : 'pointer', opacity: hintLoading ? 0.5 : 1 }}>
                           Done
                         </button>
@@ -661,14 +692,15 @@ export default function HomePage() {
                         <span style={{ fontSize: 17, width: 24, textAlign: 'center' }}>💬</span>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>Something else happened.</span>
                       </div>
-                      {(pickedChip === 'chip1' || pickedChip === 'chip2') && !showWall && (
+                      {(pickedChip === 'chip1' || pickedChip === 'chip2') && !showWall && taskText && (
                         <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                          <div style={{ fontSize: '12px', fontWeight: 600, color: '#888' }}>
-                            Anything Dash should know from today? <span style={{ fontWeight: 400 }}>(optional)</span>
+                          <div style={{ fontSize: '12px', fontWeight: 600, color: '#1a1a2e' }}>
+                            Show Dash what you did. <span style={{ fontWeight: 400, color: '#aaa' }}>(optional but makes tomorrow better)</span>
                           </div>
+                          <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '2px' }}>{proofPrompt}</div>
                           <textarea
-                            rows={2}
-                            placeholder="Paste your bio, a link, numbers, what you wrote — anything Dash should remember."
+                            rows={3}
+                            placeholder="Paste it here..."
                             value={outputNote}
                             onChange={e => setOutputNote(e.target.value)}
                             style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '8px 11px', fontSize: '12px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%', lineHeight: 1.5, background: '#fafafa' }}
@@ -715,7 +747,7 @@ export default function HomePage() {
                     {bonusError ? 'Generation failed. Tap retry to try again.' : bonusTask?.text ? bonusTask.text : taskData?.bonus_task_text ? taskData.bonus_task_text : 'Dash is generating your bonus task...'}
                   </div>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#f5f5f7', borderRadius: '20px', padding: '4px 10px', fontSize: '11px', color: '#888', fontWeight: 600, alignSelf: 'flex-start' }}>⏱ ~10 minutes</div>
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                     {bonusError ? (
                       <>
                         <button onClick={handleBonusSkip} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '12px', borderRadius: '13px', fontSize: '13px', color: '#888', cursor: 'pointer' }}>Skip</button>
@@ -723,8 +755,9 @@ export default function HomePage() {
                       </>
                     ) : (
                       <>
-                        <button onClick={handleBonusSkip} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '12px', borderRadius: '13px', fontSize: '13px', color: '#888', cursor: 'pointer' }}>Skip</button>
-                        <button onClick={handleBonusDone} style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '12px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>Done</button>
+                        <button onClick={handleBonusSkip} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '11px', borderRadius: '13px', fontSize: '12px', color: '#888', cursor: 'pointer' }}>Skip</button>
+                        <button onClick={handleBonusWall} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '11px', borderRadius: '13px', fontSize: '12px', color: '#888', cursor: 'pointer' }}>🚧 Blocked</button>
+                        <button onClick={handleBonusDone} style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '11px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>Done</button>
                       </>
                     )}
                   </div>
