@@ -30,6 +30,7 @@ export default function HomePage() {
   const [bonusTask, setBonusTask] = useState<{ text: string; dashMessage: string } | null>(null)
   const [bonusError, setBonusError] = useState(false)
   const [outputNote, setOutputNote] = useState('')
+  const [completionMessage, setCompletionMessage] = useState('')
 
   const cardRef = useRef<HTMLDivElement>(null)
   const bgDoneRef = useRef<HTMLDivElement>(null)
@@ -62,6 +63,7 @@ export default function HomePage() {
       if (todayTask) {
         setTaskData(todayTask)
         setTaskLoading(false)
+        if (todayTask.completion_message) setCompletionMessage(todayTask.completion_message)
         if (todayTask.status === 'completed' || todayTask.status === 'partial') {
           if (todayTask.bonus_task_active && todayTask.bonus_task_status === 'pending') {
             if (todayTask.bonus_task_text) {
@@ -107,12 +109,14 @@ export default function HomePage() {
         evening_reminder_incomplete: task.eveningReminderIncomplete || null,
         night_reminder: task.nightReminder || null,
         goal_achieved: task.goalAchieved || false,
+        completion_message: task.completionMessage || null,
       })
       if (insertError) { console.error('Task insert failed:', insertError); setTaskLoading(false); return }
       const { data: insertedTask } = await supabase.from('daily_tasks').select('*')
         .eq('user_email', userData.email).eq('task_date', today).single()
       setTaskData(insertedTask)
       setTaskLoading(false)
+      if (task.completionMessage) setCompletionMessage(task.completionMessage)
       if (insertedTask?.goal_achieved) { router.push('/goal-achieved'); return }
     } catch (e) { console.error('Task fetch failed:', e); setTaskLoading(false) }
   }

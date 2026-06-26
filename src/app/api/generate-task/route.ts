@@ -178,6 +178,7 @@ ${extraContext ? `\n\nSPECIAL INSTRUCTION:\n${extraContext}` : ''}
     if (task.eveningReminderComplete) task.eveningReminderComplete = sanitize(task.eveningReminderComplete)
     if (task.eveningReminderIncomplete) task.eveningReminderIncomplete = sanitize(task.eveningReminderIncomplete)
     if (task.nightReminder) task.nightReminder = sanitize(task.nightReminder)
+    if (task.completionMessage) task.completionMessage = sanitize(task.completionMessage)
 
     return NextResponse.json({ task })
 
