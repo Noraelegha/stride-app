@@ -348,6 +348,7 @@ You must respond in valid JSON only. No preamble. No explanation. Just the JSON 
   "eveningReminderIncomplete": "under 20 words, maximum 2 phone screen lines, urgent in coach style",
   "nightReminder": "under 20 words, maximum 2 phone screen lines, final call in coach style"
   "completionMessage": "The message shown when the user completes today's task. Maximum 2 sentences. Must be in the user's coach style. Must reference either the streak number, something specific from their recent history, or what completing today means for their goal. Never generic. Never a motivational poster. This is the last thing they read today — make it land.",
+"bonusInviteMessage": "The message shown in the momentum window inviting the user to take a bonus task. Maximum 1 sentence. Must be in the user's coach style. Must feel like a natural continuation of the day. No time pressure language. TOUGH example: 'Still got fuel? One more move before you close.' STRATEGIC example: 'One more action today compounds everything you just did.' FRIEND example: 'Okay overachiever, there is a bonus task if you want it. 😏' MENTOR example: 'You have momentum right now. Want to use it?'",
 }
 
 CHIP WRITING RULES

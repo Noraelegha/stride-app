@@ -31,6 +31,7 @@ export default function HomePage() {
   const [bonusError, setBonusError] = useState(false)
   const [outputNote, setOutputNote] = useState('')
   const [completionMessage, setCompletionMessage] = useState('')
+  const [bonusInviteMessage, setBonusInviteMessage] = useState('')
 
   const cardRef = useRef<HTMLDivElement>(null)
   const bgDoneRef = useRef<HTMLDivElement>(null)
@@ -64,6 +65,7 @@ export default function HomePage() {
         setTaskData(todayTask)
         setTaskLoading(false)
         if (todayTask.completion_message) setCompletionMessage(todayTask.completion_message)
+        if (todayTask.bonus_invite_message) setBonusInviteMessage(todayTask.bonus_invite_message)
         if (todayTask.status === 'completed' || todayTask.status === 'partial') {
           if (todayTask.bonus_task_active && todayTask.bonus_task_status === 'pending') {
             if (todayTask.bonus_task_text) {
@@ -110,6 +112,7 @@ export default function HomePage() {
         night_reminder: task.nightReminder || null,
         goal_achieved: task.goalAchieved || false,
         completion_message: task.completionMessage || null,
+        bonus_invite_message: task.bonusInviteMessage || null,
       })
       if (insertError) { console.error('Task insert failed:', insertError); setTaskLoading(false); return }
       const { data: insertedTask } = await supabase.from('daily_tasks').select('*')
@@ -117,6 +120,7 @@ export default function HomePage() {
       setTaskData(insertedTask)
       setTaskLoading(false)
       if (task.completionMessage) setCompletionMessage(task.completionMessage)
+      if (task.bonusInviteMessage) setBonusInviteMessage(task.bonusInviteMessage)
       if (insertedTask?.goal_achieved) { router.push('/goal-achieved'); return }
     } catch (e) { console.error('Task fetch failed:', e); setTaskLoading(false) }
   }
@@ -492,7 +496,9 @@ export default function HomePage() {
         {engagedReplyRef.current && (
           <div style={{ background: '#f9f9f9', border: '1px solid #eee', borderRadius: '16px', padding: '16px', width: '100%', maxWidth: '320px', textAlign: 'left' }}>
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a2e', marginBottom: '5px' }}>Momentum window open ⚡</div>
-            <div style={{ fontSize: '13px', color: '#777', lineHeight: 1.5, marginBottom: '14px' }}>Want to go deeper today? Bonus task expires at midnight.</div>
+            <div style={{ fontSize: '13px', color: '#777', lineHeight: 1.5, marginBottom: '14px' }}>
+              {bonusInviteMessage || 'Want to go deeper today?'}
+            </div>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button onClick={handleBonusYes} style={{ flex: 1, background: '#1a1a2e', border: 'none', padding: '12px', borderRadius: '12px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>Yes, more</button>
               <button onClick={() => setPanel('locked')} style={{ flex: 1, background: '#fff', border: '1.5px solid #eee', padding: '12px', borderRadius: '12px', fontSize: '14px', color: '#888', cursor: 'pointer' }}>Not today</button>
