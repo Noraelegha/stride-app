@@ -148,6 +148,7 @@ export default function HomePage() {
     const currentTaskText = taskData?.task_text || taskData?.taskText || null
     const currentDashMessage = taskData?.dash_message || taskData?.dashMessage || null
     if (!currentTaskText) return
+    // Serve cached version if already generated this session
     if (hintCacheRef.current[type]) {
       setHintApiContent(hintCacheRef.current[type])
       return
