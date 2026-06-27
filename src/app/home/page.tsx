@@ -782,8 +782,14 @@ export default function HomePage() {
                     <span style={{ fontSize: '22px' }}>🔥</span>
                     <span style={{ fontSize: '28px', fontWeight: 900, color: '#1a1a2e' }}>{currentStreak} {currentStreak === 1 ? 'day' : 'days'}</span>
                   </div>
-                  <p style={{ color: '#555', fontSize: '15px', margin: 0, fontWeight: 500 }}>
-                    {bonusCompleted ? 'Bonus locked. Extra mile taken today.' : 'Streak locked. The goal is moving.'}
+                  <p style={{ color: '#555', fontSize: '15px', margin: 0, fontWeight: 500, lineHeight: 1.5 }}>
+                    {bonusCompleted
+                      ? (completionMessage
+                          ? `Extra mile taken. ${completionMessage.split('.')[0]}.`
+                          : 'Bonus locked. Extra mile taken today.')
+                      : (completionMessage
+                          ? completionMessage.split('.')[0] + '.'
+                          : 'Streak locked. The goal is moving.')}
                   </p>
                 </div>
               )}
