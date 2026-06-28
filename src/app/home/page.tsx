@@ -51,6 +51,31 @@ export default function HomePage() {
     return Math.max(0, diff - 1)
   }
 
+  // Pre-fetch all three hint types in the background after task loads
+  const prefetchHints = (userData: any, loadedTask: any) => {
+    const taskText = loadedTask?.task_text || loadedTask?.taskText
+    const dashMsg = loadedTask?.dash_message || loadedTask?.dashMessage
+    if (!taskText) return
+
+    const types = ['simplifier', 'toolDrop', 'permissionSlip'] as const
+    types.forEach(async (type) => {
+      if (hintCacheRef.current[type]) return // already cached
+      try {
+        const res = await fetch('/api/generate-hint', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user: userData, taskText, dashMessage: dashMsg, hintType: type }),
+        })
+        const data = await res.json()
+        if (data.hint) {
+          hintCacheRef.current[type] = data.hint
+        }
+      } catch (e) {
+        // silent — will generate on demand if prefetch fails
+      }
+    })
+  }
+
   const fetchTodayTask = async (userData: any) => {
     try {
       setTaskLoading(true)
@@ -90,6 +115,9 @@ export default function HomePage() {
             }
             setPanel('bonus')
           } else { setPanel('locked') }
+        } else {
+          // Task exists and is pending — pre-fetch hints in background
+          prefetchHints(userData, todayTask)
         }
         return
       }
@@ -123,6 +151,8 @@ export default function HomePage() {
       if (task.completionMessage) setCompletionMessage(task.completionMessage)
       if (task.bonusInviteMessage) setBonusInviteMessage(task.bonusInviteMessage)
       if (insertedTask?.goal_achieved) { router.push('/goal-achieved'); return }
+      // Pre-fetch hints in background after new task loads
+      prefetchHints(userData, insertedTask)
     } catch (e) { console.error('Task fetch failed:', e); setTaskLoading(false) }
   }
 
@@ -149,6 +179,7 @@ export default function HomePage() {
     const currentTaskText = taskData?.task_text || taskData?.taskText || null
     const currentDashMessage = taskData?.dash_message || taskData?.dashMessage || null
     if (!currentTaskText) return
+    // Serve cached version if already prefetched or previously generated
     if (hintCacheRef.current[type]) {
       setHintApiContent(hintCacheRef.current[type])
       return
@@ -285,6 +316,19 @@ export default function HomePage() {
       }
       if (bgDoneRef.current) bgDoneRef.current.style.opacity = '0'
       if (bgHintRef.current) bgHintRef.current.style.opacity = '0'
+    }
+  }
+
+  const goBackToTask = () => {
+    setPanel('task')
+    setPickedChip('')
+    setShowWall(false)
+    setPickedWall('')
+    setWallNote('')
+    setOutputNote('')
+    if (cardRef.current) {
+      cardRef.current.style.transform = 'none'
+      cardRef.current.style.opacity = '1'
     }
   }
 
@@ -646,6 +690,16 @@ export default function HomePage() {
                 pointerEvents: panel === 'srp' ? 'auto' : 'none',
                 transition: 'opacity .3s ease', zIndex: panel === 'srp' ? 20 : 0,
               }}>
+                {/* Back arrow */}
+                <button
+                  onClick={goBackToTask}
+                  style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: '0 0 2px 0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', color: '#bbb', fontSize: '13px' }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <polyline points="10,3 5,8 10,13" stroke="#bbb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+
                 <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>Dash</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e', lineHeight: 1.3 }}>How did it go today?</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
