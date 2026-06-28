@@ -113,6 +113,7 @@ export default function HomePage() {
         goal_achieved: task.goalAchieved || false,
         completion_message: task.completionMessage || null,
         bonus_invite_message: task.bonusInviteMessage || null,
+        proof_prompt: task.proofPrompt || null,
       })
       if (insertError) { console.error('Task insert failed:', insertError); setTaskLoading(false); return }
       const { data: insertedTask } = await supabase.from('daily_tasks').select('*')
@@ -148,7 +149,6 @@ export default function HomePage() {
     const currentTaskText = taskData?.task_text || taskData?.taskText || null
     const currentDashMessage = taskData?.dash_message || taskData?.dashMessage || null
     if (!currentTaskText) return
-    // Serve cached version if already generated this session
     if (hintCacheRef.current[type]) {
       setHintApiContent(hintCacheRef.current[type])
       return
@@ -445,16 +445,6 @@ export default function HomePage() {
     setPanel('locked')
   }
 
-  const handleBonusWall = async () => {
-    if (!user) return
-    const today = new Date().toISOString().split('T')[0]
-    try {
-      await supabase.from('daily_tasks').update({ bonus_task_status: 'blocked' })
-        .eq('user_email', user.email).eq('task_date', today)
-    } catch (err) { console.error('Bonus wall failed:', err) }
-    setPanel('locked')
-  }
-
   if (!user) return null
 
   const currentDay = (user.tasksDone || 0) + 1
@@ -467,16 +457,6 @@ export default function HomePage() {
   const calculatedPhase = (user.tasksDone || 0) >= 60 ? 3 : (user.tasksDone || 0) >= 30 ? 2 : 1
   const tasksInCurrentPhase = Math.max(0, (user.tasksDone || 0) - ((calculatedPhase - 1) * 30))
   const phaseProgress = Math.min(Math.round((tasksInCurrentPhase / 30) * 100), 100)
-
-  const proofPrompt = taskText
-    ? taskText.toLowerCase().includes('comment') || taskText.toLowerCase().includes('post') || taskText.toLowerCase().includes('send') || taskText.toLowerCase().includes('message')
-      ? 'Paste what you wrote, sent, or a link to it.'
-      : taskText.toLowerCase().includes('write') || taskText.toLowerCase().includes('draft') || taskText.toLowerCase().includes('paragraph')
-      ? 'Paste what you wrote — rough is fine.'
-      : taskText.toLowerCase().includes('list') || taskText.toLowerCase().includes('names') || taskText.toLowerCase().includes('people')
-      ? 'Paste the list or names you came up with.'
-      : 'Paste what you produced, wrote, or did — anything Dash should see.'
-    : 'Paste what you produced, wrote, or did — anything Dash should see.'
 
   if (panel === 'streakShow') {
     return (
@@ -683,7 +663,7 @@ export default function HomePage() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
                           <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a2e' }}>Now tell Dash what you actually wrote.</div>
                           <div style={{ fontSize: '12px', color: '#888', lineHeight: 1.5 }}>Type or paste your answers here. This is what Dash uses to build every task from now on.</div>
-                          <textarea rows={5} placeholder="e.g. I am building a social media management service for small Nigerian businesses..." value={checkinNote} onChange={e => setCheckinNote(e.target.value)} style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '10px 12px', fontSize: '13px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%', lineHeight: 1.5 }} />
+                          <textarea rows={5} placeholder="e.g. I am building a social media management service for small Nigerian businesses..." value={checkinNote} onChange={e => setCheckinNote(e.target.value)} style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '10px 12px', fontSize: '16px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%', lineHeight: 1.5 }} />
                           {checkinNote.trim().length > 0 && checkinNote.trim().length < 15 && <div style={{ fontSize: '11px', color: '#999' }}>Keep going — Dash needs more detail to generate useful tasks.</div>}
                           {checkinNote.trim().length === 0 && <div style={{ fontSize: '11px', color: '#999' }}>The more specific you are, the better every future task will be.</div>}
                         </div>
@@ -708,13 +688,15 @@ export default function HomePage() {
                           <div style={{ fontSize: '12px', fontWeight: 600, color: '#1a1a2e' }}>
                             Show Dash what you did. <span style={{ fontWeight: 400, color: '#aaa' }}>(optional but makes tomorrow better)</span>
                           </div>
-                          <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '2px' }}>{proofPrompt}</div>
+                          <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '2px' }}>
+                            {taskData?.proof_prompt || 'Paste what you produced — anything Dash should see.'}
+                          </div>
                           <textarea
                             rows={3}
                             placeholder="Paste it here..."
                             value={outputNote}
                             onChange={e => setOutputNote(e.target.value)}
-                            style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '8px 11px', fontSize: '12px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%', lineHeight: 1.5, background: '#fafafa' }}
+                            style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '8px 11px', fontSize: '16px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%', lineHeight: 1.5, background: '#fafafa' }}
                           />
                         </div>
                       )}
@@ -733,7 +715,7 @@ export default function HomePage() {
                     </div>
                     {pickedWall && (
                       <>
-                        <textarea rows={2} placeholder={wallPlaceholders[pickedWall]} value={wallNote} onChange={e => setWallNote(e.target.value)} style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '8px 11px', fontSize: '12px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%' }} />
+                        <textarea rows={2} placeholder={wallPlaceholders[pickedWall]} value={wallNote} onChange={e => setWallNote(e.target.value)} style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '8px 11px', fontSize: '16px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%' }} />
                         {wallNote.trim().length < 5 && <div style={{ fontSize: '11px', color: '#999' }}>Please add a little more detail so Dash can adapt tomorrow better.</div>}
                       </>
                     )}
@@ -766,9 +748,8 @@ export default function HomePage() {
                       </>
                     ) : (
                       <>
-                        <button onClick={handleBonusSkip} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '11px', borderRadius: '13px', fontSize: '12px', color: '#888', cursor: 'pointer' }}>Skip</button>
-                        <button onClick={handleBonusWall} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '11px', borderRadius: '13px', fontSize: '12px', color: '#888', cursor: 'pointer' }}>🚧 Blocked</button>
-                        <button onClick={handleBonusDone} style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '11px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>Done</button>
+                        <button onClick={handleBonusSkip} style={{ flex: 1, border: '1.5px solid #eee', background: '#fff', padding: '12px', borderRadius: '13px', fontSize: '13px', color: '#888', cursor: 'pointer' }}>Skip</button>
+                        <button onClick={handleBonusDone} style={{ flex: 2, background: '#1a1a2e', border: 'none', padding: '12px', borderRadius: '13px', fontSize: '14px', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>Done</button>
                       </>
                     )}
                   </div>

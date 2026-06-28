@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     // Extract the most recent task output note if present
     const yesterday = recentTasks[recentTasks.length - 1]
-    const yesterdayOutputNote = yesterday?.hint_text && 
+    const yesterdayOutputNote = yesterday?.hint_text &&
       yesterday?.user_reply !== 'blocked' &&
       yesterday?.hint_type !== 'blocked'
         ? yesterday.hint_text.trim()
@@ -117,7 +117,7 @@ ${recentHistory}
 ${yesterdayOutputNote ? `
 USER OUTPUT FROM YESTERDAY — CRITICAL:
 The user shared this after completing yesterday's task: "${yesterdayOutputNote}"
-This is real output from their actual work — a bio they wrote, a link they created, a number they hit, something they typed out. 
+This is real output from their actual work — a bio they wrote, a link they created, a number they hit, something they typed out.
 Your job today:
 - Build tomorrow's task as the direct natural next step from what they shared. Do not start from scratch.
 - Reference what they shared naturally in the dashMessage, the way a coach would who actually saw their work. Never quote it back mechanically.
@@ -171,6 +171,7 @@ ${extraContext ? `\n\nSPECIAL INSTRUCTION:\n${extraContext}` : ''}
     if (task.dashMessage) task.dashMessage = sanitize(task.dashMessage)
     if (task.chip1) task.chip1 = sanitize(task.chip1)
     if (task.chip2) task.chip2 = sanitize(task.chip2)
+    if (task.proofPrompt) task.proofPrompt = sanitize(task.proofPrompt)
     if (task.bonusTaskText) task.bonusTaskText = sanitize(task.bonusTaskText)
     if (task.morningReminder) task.morningReminder = sanitize(task.morningReminder)
     if (task.middayReminder) task.middayReminder = sanitize(task.middayReminder)
