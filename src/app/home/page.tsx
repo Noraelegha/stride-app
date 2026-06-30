@@ -230,6 +230,16 @@ export default function HomePage() {
         await supabase.from('stride_users').update({ shields: shields - 1 }).eq('email', userData.email)
         const updated = { ...userData, shields: shields - 1 }
         localStorage.setItem('stride_user', JSON.stringify(updated))
+        if (dbUser?.onesignal_id) {
+          fetch('/api/send-notification', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: userData.email,
+              onesignal_id: dbUser.onesignal_id,
+              message: `Shield used 🛡️ You missed a day but your streak survived. ${shields - 1} ${shields - 1 === 1 ? 'shield' : 'shields'} left.`,
+            }),
+          }).catch(() => {})
+        }
         router.push('/unfreeze')
         return
       }
@@ -421,7 +431,9 @@ export default function HomePage() {
           }
         }
         const STREAK_MILESTONES = [7, 14, 21, 30, 60, 90]
+        let milestoneTriggered = false
         if (STREAK_MILESTONES.includes(newStreak)) {
+          milestoneTriggered = true
           const milestoneMsg = newStreak >= 30
             ? `${newStreak} days in a row. You are in the top 5% of Stride users. This is rare. 🏆`
             : newStreak >= 14 ? `${newStreak} days straight. Top 20% of users. The habit is real now. 🔥`
@@ -430,8 +442,8 @@ export default function HomePage() {
         }
         const justEarnedShield = newStreak % 5 === 0 && newShields > currentShields
         if (justEarnedShield) sendEventNotification(`Shield earned 🛡️ ${newStreak} consecutive days. Your streak is now protected if you ever miss a day.`)
-        const MILESTONE_STREAKS = [7, 14, 30, 60, 90]
-        if (MILESTONE_STREAKS.includes(newStreak)) { router.push('/milestone'); return }
+        if (milestoneTriggered) { router.push('/milestone'); return }
+        if (justEarnedShield) { router.push('/streak-shield'); return }
       }
       if (isBlocked) await supabase.from('stride_users').update({ last_active: new Date().toISOString() }).eq('email', user.email)
       setPanel('streakShow')

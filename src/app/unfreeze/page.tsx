@@ -91,7 +91,10 @@ export default function UnfreezePage() {
 
   const handlePhase1Tap = () => {
     setP1Out(true)
-    setTimeout(() => setP2In(true), 180)
+    setTimeout(() => {
+      setP2In(true)
+      setPhase(2)
+    }, 180)
   }
 
   const handleContinue = () => {
@@ -101,7 +104,7 @@ export default function UnfreezePage() {
 
   return (
     <div style={{ position: 'relative', flex: 1, minHeight: '100vh', overflow: 'hidden' }}>
-      <ThemeColor color={p2In ? '#ffffff' : '#29B6F6'} />
+      <ThemeColor color={phase === 1 ? '#29B6F6' : '#fff'} />
 
       <style>{`
         @keyframes shieldPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.07)} }
