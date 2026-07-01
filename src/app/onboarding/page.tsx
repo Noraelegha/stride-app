@@ -144,6 +144,18 @@ export default function OnboardingPage() {
       console.error('Supabase save failed:', e)
     }
 
+    // Send welcome email — fire and forget, don't block navigation
+    fetch('/api/send-welcome-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: data.name,
+        email: data.email,
+        goal: data.goal,
+        coachStyle: data.coachStyle,
+      }),
+    }).catch(e => console.error('Welcome email failed:', e))
+
     router.push('/lockedin')
   }
 
