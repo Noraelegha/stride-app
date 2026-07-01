@@ -16,20 +16,27 @@ export default function UnfreezePage() {
   const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
   useEffect(() => {
-    setPhase(1)
-    setP1Out(false)
-    setP2In(false)
-
     const stored = localStorage.getItem('stride_user')
     if (!stored) { router.push('/onboarding'); return }
     const userData = JSON.parse(stored)
-
-    // Streak is maintained when shield activates — read directly from localStorage
     setActualStreak(userData.streak || 0)
+
+    // If ?reveal=true, skip Phase 1 entirely — user already did their task
+    const params = new URLSearchParams(window.location.search)
+    const isReveal = params.get('reveal') === 'true'
+
+    if (isReveal) {
+      setPhase(2)
+      setP1Out(true)
+      setP2In(true)
+    } else {
+      setPhase(1)
+      setP1Out(false)
+      setP2In(false)
+    }
 
     const loadWeekData = async () => {
       try {
-        // Get the dates for this week (Sun to Sat)
         const today = new Date()
         const todayIdx = today.getDay()
         const weekStart = new Date(today)
@@ -42,7 +49,6 @@ export default function UnfreezePage() {
           return d.toISOString().split('T')[0]
         })
 
-        // Fetch this week's tasks from Supabase
         const { data: tasks } = await supabase
           .from('daily_tasks')
           .select('task_date, status')
@@ -58,24 +64,26 @@ export default function UnfreezePage() {
         const todayStr = today.toISOString().split('T')[0]
 
         const data: Array<'done' | 'missed' | 'today' | 'future'> = weekDates.map((dateStr, i) => {
-          if (dateStr === todayStr) return 'today'
-          if (dateStr === yesterdayStr) return 'missed' // This is the shielded day
+          if (dateStr === todayStr) {
+            // On reveal, today is done — show as completed
+            if (isReveal) return 'done'
+            return 'today'
+          }
+          if (dateStr === yesterdayStr) return 'missed'
           if (i > todayIdx) return 'future'
-          // For past days this week — check actual DB status
           const status = taskMap[dateStr]
           if (status === 'completed' || status === 'partial') return 'done'
-          if (dateStr < todayStr && dateStr < yesterdayStr) return 'done' // Part of active streak before missed day
+          if (dateStr < todayStr && dateStr < yesterdayStr) return 'done'
           return 'future'
         })
 
         setWeekData(data)
       } catch (e) {
         console.error('Failed to load week data:', e)
-        // Fallback — mark all past days as done, yesterday as missed, today as today
         const today = new Date()
         const todayIdx = today.getDay()
         const fallback: Array<'done' | 'missed' | 'today' | 'future'> = weekDays.map((_, i) => {
-          if (i === todayIdx) return 'today'
+          if (i === todayIdx) return isReveal ? 'done' : 'today'
           if (i === todayIdx - 1) return 'missed'
           if (i < todayIdx) return 'done'
           return 'future'
@@ -89,16 +97,17 @@ export default function UnfreezePage() {
     loadWeekData()
   }, [])
 
+  // Phase 1 tap — go to home so user can do today's task
+  // Phase 2 plays AFTER they complete it (triggered by ?reveal=true)
   const handlePhase1Tap = () => {
     setP1Out(true)
     setTimeout(() => {
-      setP2In(true)
-      setPhase(2)
-    }, 180)
+      router.push('/home')
+    }, 350)
   }
 
+  // Phase 2 continue — task is done, streak is restored, go home
   const handleContinue = () => {
-    localStorage.setItem('stride_day_locked', 'true')
     router.push('/home')
   }
 
@@ -112,7 +121,7 @@ export default function UnfreezePage() {
         @keyframes clap { 0%{transform:rotate(-18deg)} 50%{transform:rotate(8deg)} 100%{transform:rotate(-18deg)} }
       `}</style>
 
-      {/* PHASE 1 — Blue shield screen */}
+      {/* PHASE 1 — Blue shield screen — only shown when NOT reveal */}
       <div
         onClick={handlePhase1Tap}
         style={{
@@ -129,7 +138,6 @@ export default function UnfreezePage() {
         }}
       >
         <div style={{ position: 'relative', width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {/* Sunrays */}
           <svg width="220" height="220" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', opacity: 0.28, zIndex: 0 }} viewBox="0 0 220 220">
             <g stroke="white" strokeWidth="3" strokeLinecap="round">
               <line x1="178" y1="110" x2="210" y2="110" />
@@ -146,7 +154,6 @@ export default function UnfreezePage() {
               <line x1="168.9" y1="76" x2="196.6" y2="60" />
             </g>
           </svg>
-          {/* Shield */}
           <div style={{ width: 130, height: 130, position: 'relative', zIndex: 1, animation: 'shieldPulse 2.2s ease-in-out infinite', filter: 'drop-shadow(0 0 18px rgba(255,255,255,0.45))' }}>
             <svg width="130" height="130" viewBox="0 0 120 130" fill="none">
               <defs>
@@ -176,10 +183,9 @@ export default function UnfreezePage() {
         <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', margin: 0, animation: 'tapFade 1.6s ease-in-out infinite' }}>
           Tap anywhere to continue
         </p>
-
       </div>
 
-      {/* PHASE 2 — White streak reveal with real data */}
+      {/* PHASE 2 — White streak reveal — shown after task completion */}
       <div style={{
         position: 'absolute', inset: 0,
         background: '#fff',
@@ -192,20 +198,17 @@ export default function UnfreezePage() {
         pointerEvents: p2In ? 'auto' : 'none',
         zIndex: p2In ? 2 : 1,
       }}>
-        {/* Clapping hands — animated */}
         <div style={{ fontSize: '90px', lineHeight: 1, animation: 'clap 0.8s ease-in-out infinite', transformOrigin: 'bottom center', userSelect: 'none', marginBottom: '20px' }}>
           👏
         </div>
 
-        {/* Real streak number from localStorage */}
         <div style={{ fontSize: '96px', fontWeight: 900, color: '#FF9500', lineHeight: 1, marginBottom: '4px' }}>
           {actualStreak}
         </div>
         <div style={{ fontSize: '22px', fontWeight: 700, color: '#FF9500', marginBottom: '28px' }}>
-          {actualStreak === 1 ? 'day streak' : 'day streak'}
+          day streak
         </div>
 
-        {/* Real week data dots */}
         {!loading && weekData.length === 7 && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', marginBottom: '36px' }}>
             {weekDays.map((d, i) => {
@@ -213,7 +216,6 @@ export default function UnfreezePage() {
               const isDone = status === 'done'
               const isMissed = status === 'missed'
               const isToday = status === 'today'
-              const isFuture = status === 'future'
 
               return (
                 <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
@@ -238,7 +240,6 @@ export default function UnfreezePage() {
           </div>
         )}
 
-        {/* Loading state for dots */}
         {loading && (
           <div style={{ display: 'flex', gap: '8px', marginBottom: '36px' }}>
             {weekDays.map((_, i) => (

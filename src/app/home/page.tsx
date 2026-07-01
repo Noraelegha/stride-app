@@ -32,6 +32,7 @@ export default function HomePage() {
   const [outputNote, setOutputNote] = useState('')
   const [completionMessage, setCompletionMessage] = useState('')
   const [bonusInviteMessage, setBonusInviteMessage] = useState('')
+  const [proPromptHint, setProPromptHint] = useState<'toolDrop' | 'permissionSlip' | null>(null)
 
   const cardRef = useRef<HTMLDivElement>(null)
   const bgDoneRef = useRef<HTMLDivElement>(null)
@@ -51,15 +52,16 @@ export default function HomePage() {
     return Math.max(0, diff - 1)
   }
 
-  // Pre-fetch all three hint types in the background after task loads
   const prefetchHints = (userData: any, loadedTask: any) => {
     const taskText = loadedTask?.task_text || loadedTask?.taskText
     const dashMsg = loadedTask?.dash_message || loadedTask?.dashMessage
     if (!taskText) return
-
-    const types = ['simplifier', 'toolDrop', 'permissionSlip'] as const
+    const isPro = userData?.isPro || userData?.is_pro || false
+    const types = isPro
+      ? (['simplifier', 'toolDrop', 'permissionSlip'] as const)
+      : (['simplifier'] as const)
     types.forEach(async (type) => {
-      if (hintCacheRef.current[type]) return // already cached
+      if (hintCacheRef.current[type]) return
       try {
         const res = await fetch('/api/generate-hint', {
           method: 'POST',
@@ -67,12 +69,8 @@ export default function HomePage() {
           body: JSON.stringify({ user: userData, taskText, dashMessage: dashMsg, hintType: type }),
         })
         const data = await res.json()
-        if (data.hint) {
-          hintCacheRef.current[type] = data.hint
-        }
-      } catch (e) {
-        // silent — will generate on demand if prefetch fails
-      }
+        if (data.hint) hintCacheRef.current[type] = data.hint
+      } catch (e) {}
     })
   }
 
@@ -116,7 +114,6 @@ export default function HomePage() {
             setPanel('bonus')
           } else { setPanel('locked') }
         } else {
-          // Task exists and is pending — pre-fetch hints in background
           prefetchHints(userData, todayTask)
         }
         return
@@ -151,7 +148,6 @@ export default function HomePage() {
       if (task.completionMessage) setCompletionMessage(task.completionMessage)
       if (task.bonusInviteMessage) setBonusInviteMessage(task.bonusInviteMessage)
       if (insertedTask?.goal_achieved) { router.push('/goal-achieved'); return }
-      // Pre-fetch hints in background after new task loads
       prefetchHints(userData, insertedTask)
     } catch (e) { console.error('Task fetch failed:', e); setTaskLoading(false) }
   }
@@ -179,7 +175,6 @@ export default function HomePage() {
     const currentTaskText = taskData?.task_text || taskData?.taskText || null
     const currentDashMessage = taskData?.dash_message || taskData?.dashMessage || null
     if (!currentTaskText) return
-    // Serve cached version if already prefetched or previously generated
     if (hintCacheRef.current[type]) {
       setHintApiContent(hintCacheRef.current[type])
       return
@@ -221,15 +216,28 @@ export default function HomePage() {
         return
       }
       const { data: dbUser } = await supabase.from('stride_users')
-        .select('last_active, shields, onesignal_id').eq('email', userData.email).single()
+        .select('last_active, shields, onesignal_id, is_pro').eq('email', userData.email).single()
+      // Sync Pro status from DB to localStorage
+      const isPro = dbUser?.is_pro || false
+      if (isPro !== userData.isPro) {
+        const synced = { ...userData, isPro }
+        localStorage.setItem('stride_user', JSON.stringify(synced))
+        userData.isPro = isPro
+      }
       const missedDays = checkMissedDays(userData, dbUser?.last_active)
       const shields = dbUser?.shields ?? userData.shields ?? 0
       if (missedDays >= 3) { router.push('/return'); return }
       if (missedDays === 2) { router.push('/recovery'); return }
       if (missedDays === 1 && shields > 0) {
-        await supabase.from('stride_users').update({ shields: shields - 1 }).eq('email', userData.email)
+        // BUG FIX: update last_active HERE to prevent double-deduction on remount
+        await supabase.from('stride_users').update({
+          shields: shields - 1,
+          last_active: new Date().toISOString(),
+        }).eq('email', userData.email)
         const updated = { ...userData, shields: shields - 1 }
         localStorage.setItem('stride_user', JSON.stringify(updated))
+        // Flag so handleSubmit knows to show unfreeze Phase 2 after task completion
+        localStorage.setItem('stride_shield_used_today', 'true')
         if (dbUser?.onesignal_id) {
           fetch('/api/send-notification', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -244,7 +252,7 @@ export default function HomePage() {
         return
       }
       if (missedDays === 1 && shields === 0) {
-        await supabase.from('stride_users').update({ streak: 0 }).eq('email', userData.email)
+        await supabase.from('stride_users').update({ streak: 0, last_active: new Date().toISOString() }).eq('email', userData.email)
         const updated = { ...userData, streak: 0 }
         localStorage.setItem('stride_user', JSON.stringify(updated))
         setUser(updated)
@@ -315,6 +323,7 @@ export default function HomePage() {
       setTimeout(() => {
         setHintType('choose')
         setHintApiContent(null)
+        setProPromptHint(null)
         hintCacheRef.current = {}
         setPanel('hint')
         if (bgHintRef.current) bgHintRef.current.style.opacity = '0'
@@ -352,6 +361,8 @@ export default function HomePage() {
   const canSubmit = !!pickedChip &&
     (!showWall || (!!pickedWall && wallNote.trim().length >= 5)) &&
     (chipType !== 'checkin' || checkinNote.trim().length >= 15)
+
+  const isPro = user?.isPro || user?.is_pro || false
 
   const sendEventNotification = async (message: string) => {
     if (!user?.onesignal_id) return
@@ -430,20 +441,40 @@ export default function HomePage() {
             setUser(sprintUser)
           }
         }
+
+        // Notification stacking fix
         const STREAK_MILESTONES = [7, 14, 21, 30, 60, 90]
         let milestoneTriggered = false
+        const justEarnedShield = newStreak % 5 === 0 && newShields > currentShields
+
         if (STREAK_MILESTONES.includes(newStreak)) {
           milestoneTriggered = true
-          const milestoneMsg = newStreak >= 30
-            ? `${newStreak} days in a row. You are in the top 5% of Stride users. This is rare. 🏆`
-            : newStreak >= 14 ? `${newStreak} days straight. Top 20% of users. The habit is real now. 🔥`
-            : `${newStreak} days in a row. The habit is forming. Keep showing up. 🔥`
-          sendEventNotification(milestoneMsg)
+          if (justEarnedShield) {
+            const combinedMsg = newStreak >= 30
+              ? `${newStreak} days in a row. Top 5% of Stride users. And you just earned a new shield. 🏆🛡️`
+              : `${newStreak} days in a row. The habit is real. Plus a new shield earned. 🔥🛡️`
+            sendEventNotification(combinedMsg)
+          } else {
+            const milestoneMsg = newStreak >= 30
+              ? `${newStreak} days in a row. You are in the top 5% of Stride users. This is rare. 🏆`
+              : newStreak >= 14 ? `${newStreak} days straight. Top 20% of users. The habit is real now. 🔥`
+              : `${newStreak} days in a row. The habit is forming. Keep showing up. 🔥`
+            sendEventNotification(milestoneMsg)
+          }
         }
-        const justEarnedShield = newStreak % 5 === 0 && newShields > currentShields
-        if (justEarnedShield) sendEventNotification(`Shield earned 🛡️ ${newStreak} consecutive days. Your streak is now protected if you ever miss a day.`)
+        if (justEarnedShield && !milestoneTriggered) {
+          sendEventNotification(`Shield earned 🛡️ ${newStreak} consecutive days. Your streak is now protected if you ever miss a day.`)
+        }
         if (milestoneTriggered) { router.push('/milestone'); return }
         if (justEarnedShield) { router.push('/streak-shield'); return }
+
+        // Shield used today — show Phase 2 of unfreeze as the post-task celebration
+        const shieldUsedToday = localStorage.getItem('stride_shield_used_today')
+        if (shieldUsedToday) {
+          localStorage.removeItem('stride_shield_used_today')
+          router.push('/unfreeze?reveal=true')
+          return
+        }
       }
       if (isBlocked) await supabase.from('stride_users').update({ last_active: new Date().toISOString() }).eq('email', user.email)
       setPanel('streakShow')
@@ -513,6 +544,11 @@ export default function HomePage() {
   const calculatedPhase = (user.tasksDone || 0) >= 60 ? 3 : (user.tasksDone || 0) >= 30 ? 2 : 1
   const tasksInCurrentPhase = Math.max(0, (user.tasksDone || 0) - ((calculatedPhase - 1) * 30))
   const phaseProgress = Math.min(Math.round((tasksInCurrentPhase / 30) * 100), 100)
+
+  const proHintLabels: Record<string, string> = {
+    toolDrop: "I don't know where to start",
+    permissionSlip: 'I am overthinking it',
+  }
 
   if (panel === 'streakShow') {
     return (
@@ -638,30 +674,71 @@ export default function HomePage() {
               {panel === 'hint' && (
                 <div style={{ position: 'relative', background: '#fff', borderRadius: '20px', border: '1.5px solid #F5A623', padding: '16px 18px 20px', display: 'flex', flexDirection: 'column', gap: '12px', zIndex: 5 }}>
                   <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>Hint from Dash 💡</div>
-                  {hintType === 'choose' && (
+
+                  {hintType === 'choose' && !proPromptHint && (
                     <>
                       <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a2e' }}>What is getting in the way?</div>
                       <div style={{ fontSize: '12px', color: '#888', marginTop: '-4px' }}>Pick the one that fits and Dash will adjust.</div>
-                      {[
-                        { type: 'simplifier' as const, icon: '🔽', label: 'It feels too big', sub: 'Make the task smaller' },
-                        { type: 'toolDrop' as const, icon: '🔧', label: "I don't know where to start", sub: 'Get an exact starting point' },
-                        { type: 'permissionSlip' as const, icon: '✅', label: 'I am overthinking it', sub: 'Permission to do it imperfectly' },
-                      ].map(opt => (
-                        <div key={opt.type} onClick={() => { setHintType(opt.type); fetchHint(opt.type) }}
-                          style={{ border: '1.5px solid #eee', borderRadius: '13px', padding: '11px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', background: '#fafafa' }}>
-                          <span style={{ fontSize: '20px' }}>{opt.icon}</span>
-                          <div>
-                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>{opt.label}</div>
-                            <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>{opt.sub}</div>
-                          </div>
+
+                      <div onClick={() => { setHintType('simplifier'); fetchHint('simplifier') }}
+                        style={{ border: '1.5px solid #eee', borderRadius: '13px', padding: '11px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', background: '#fafafa' }}>
+                        <span style={{ fontSize: '20px' }}>🔽</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>It feels too big</div>
+                          <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>Make the task smaller</div>
                         </div>
-                      ))}
-                      <button onClick={() => { setHintType('choose'); setHintApiContent(null); setPanel('task'); if (cardRef.current) { cardRef.current.style.transform = 'none'; cardRef.current.style.opacity = '1' } }}
+                      </div>
+
+                      <div
+                        onClick={() => isPro ? (setHintType('toolDrop'), fetchHint('toolDrop')) : setProPromptHint('toolDrop')}
+                        style={{ border: '1.5px solid #eee', borderRadius: '13px', padding: '11px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', background: '#fafafa', opacity: isPro ? 1 : 0.75 }}>
+                        <span style={{ fontSize: '20px' }}>🔧</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>I don&apos;t know where to start</div>
+                            {!isPro && <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', background: 'rgba(245,166,35,0.12)', border: '1px solid rgba(245,166,35,0.3)', borderRadius: '6px', padding: '1px 6px', letterSpacing: '0.04em' }}>PRO</div>}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>Get an exact starting point</div>
+                        </div>
+                      </div>
+
+                      <div
+                        onClick={() => isPro ? (setHintType('permissionSlip'), fetchHint('permissionSlip')) : setProPromptHint('permissionSlip')}
+                        style={{ border: '1.5px solid #eee', borderRadius: '13px', padding: '11px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', background: '#fafafa', opacity: isPro ? 1 : 0.75 }}>
+                        <span style={{ fontSize: '20px' }}>✅</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a2e' }}>I am overthinking it</div>
+                            {!isPro && <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', background: 'rgba(245,166,35,0.12)', border: '1px solid rgba(245,166,35,0.3)', borderRadius: '6px', padding: '1px 6px', letterSpacing: '0.04em' }}>PRO</div>}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>Permission to do it imperfectly</div>
+                        </div>
+                      </div>
+
+                      <button onClick={() => { setHintType('choose'); setHintApiContent(null); setProPromptHint(null); setPanel('task'); if (cardRef.current) { cardRef.current.style.transform = 'none'; cardRef.current.style.opacity = '1' } }}
                         style={{ background: 'none', border: '1.5px solid #eee', padding: '10px', borderRadius: '12px', fontSize: '13px', color: '#aaa', cursor: 'pointer', marginTop: '4px' }}>
                         Back to task
                       </button>
                     </>
                   )}
+
+                  {hintType === 'choose' && proPromptHint && (
+                    <>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a2e' }}>{proHintLabels[proPromptHint]}</div>
+                      <div style={{ background: 'rgba(245,166,35,0.08)', border: '1.5px solid rgba(245,166,35,0.3)', borderRadius: '13px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#F5A623' }}>Stride Pro feature</div>
+                        <div style={{ fontSize: '13px', color: '#555', lineHeight: 1.55 }}>
+                          {proPromptHint === 'toolDrop'
+                            ? 'Dash gives you the exact first step to take — no figuring out where to begin. Available on Stride Pro.'
+                            : 'Dash gives you direct permission to move imperfectly and stop waiting for the right moment. Available on Stride Pro.'}
+                        </div>
+                      </div>
+                      <button onClick={() => setProPromptHint(null)} style={{ background: 'none', border: '1.5px solid #eee', padding: '10px', borderRadius: '12px', fontSize: '13px', color: '#aaa', cursor: 'pointer' }}>
+                        Back to hints
+                      </button>
+                    </>
+                  )}
+
                   {hintType !== 'choose' && (
                     <>
                       <div style={{ background: '#fffbf0', borderLeft: '3px solid #F5A623', borderRadius: '0 10px 10px 0', padding: '10px 12px' }}>
@@ -677,7 +754,7 @@ export default function HomePage() {
                       </div>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#f5f5f7', borderRadius: '20px', padding: '4px 10px', fontSize: '11px', color: '#888', fontWeight: 600, alignSelf: 'flex-start' }}>⏱ ~5 minutes</div>
                       <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                        <button onClick={() => { setHintType('choose'); setHintApiContent(null) }}
+                        <button onClick={() => { setHintType('choose'); setHintApiContent(null); setProPromptHint(null) }}
                           style={{ flex: 1, background: 'none', border: '1.5px solid #eee', padding: '11px', borderRadius: '12px', fontSize: '13px', color: '#aaa', cursor: 'pointer' }}>
                           Different hint
                         </button>
@@ -702,16 +779,11 @@ export default function HomePage() {
                 pointerEvents: panel === 'srp' ? 'auto' : 'none',
                 transition: 'opacity .3s ease', zIndex: panel === 'srp' ? 20 : 0,
               }}>
-                {/* Back arrow */}
-                <button
-                  onClick={goBackToTask}
-                  style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: '0 0 2px 0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', color: '#bbb', fontSize: '13px' }}
-                >
+                <button onClick={goBackToTask} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: '0 0 2px 0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', color: '#bbb', fontSize: '13px' }}>
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <polyline points="10,3 5,8 10,13" stroke="#bbb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </button>
-
                 <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>Dash</div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e', lineHeight: 1.3 }}>How did it go today?</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -757,13 +829,8 @@ export default function HomePage() {
                           <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '2px' }}>
                             {taskData?.proof_prompt || 'Paste what you produced — anything Dash should see.'}
                           </div>
-                          <textarea
-                            rows={3}
-                            placeholder="Paste it here..."
-                            value={outputNote}
-                            onChange={e => setOutputNote(e.target.value)}
-                            style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '8px 11px', fontSize: '16px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%', lineHeight: 1.5, background: '#fafafa' }}
-                          />
+                          <textarea rows={3} placeholder="Paste it here..." value={outputNote} onChange={e => setOutputNote(e.target.value)}
+                            style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '8px 11px', fontSize: '16px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%', lineHeight: 1.5, background: '#fafafa' }} />
                         </div>
                       )}
                     </>
@@ -831,12 +898,8 @@ export default function HomePage() {
                   </div>
                   <p style={{ color: '#555', fontSize: '15px', margin: 0, fontWeight: 500, lineHeight: 1.5 }}>
                     {bonusCompleted
-                      ? (completionMessage
-                          ? `Extra mile taken. ${completionMessage.split('.')[0]}.`
-                          : 'Bonus locked. Extra mile taken today.')
-                      : (completionMessage
-                          ? completionMessage.split('.')[0] + '.'
-                          : 'Streak locked. The goal is moving.')}
+                      ? (completionMessage ? `Extra mile taken. ${completionMessage.split('.')[0]}.` : 'Bonus locked. Extra mile taken today.')
+                      : (completionMessage ? completionMessage.split('.')[0] + '.' : 'Streak locked. The goal is moving.')}
                   </p>
                 </div>
               )}
