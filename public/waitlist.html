@@ -581,7 +581,6 @@
       <p class="persona-fix">Stride gives you one task. You can rest after.</p>
     </div>
   </div>
-
 </div>
 
 <!-- FINAL CTA -->
@@ -620,11 +619,6 @@
 </footer>
 
 <script>
-var GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfQXAW8ZQ8DdweRsz8_FPCY7ironeA8cfgEScXfcs5HOc2KBA/formResponse';
-var ENTRY_NAME  = 'entry.1837281532';
-var ENTRY_EMAIL = 'entry.1150471511';
-var ENTRY_GOAL  = 'entry.1632672492';
-
 function handleSubmit(e, successId, wrapId) {
   e.preventDefault();
   var form = e.target;
@@ -642,23 +636,29 @@ function handleSubmit(e, successId, wrapId) {
   btn.classList.add('btn-loading');
   btn.disabled = true;
 
-  var body = ENTRY_NAME + '=' + encodeURIComponent(name) +
-             '&' + ENTRY_EMAIL + '=' + encodeURIComponent(email) +
-             '&' + ENTRY_GOAL + '=' + encodeURIComponent(goal);
-
-  fetch(GOOGLE_FORM_URL, {
+  fetch('/api/waitlist', {
     method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body
-  }).catch(function() {});
-
-  setTimeout(function() {
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, email: email, goal: goal }),
+  })
+  .then(function(res) {
+    return res.json();
+  })
+  .then(function() {
     var wrap = document.getElementById(wrapId);
     var success = document.getElementById(successId);
     if (wrap) wrap.style.display = 'none';
-    if (success) { success.style.display = 'flex'; }
-  }, 1000);
+    if (success) success.style.display = 'flex';
+  })
+  .catch(function() {
+    // Show success anyway — don't punish user for network blip
+    var wrap = document.getElementById(wrapId);
+    var success = document.getElementById(successId);
+    if (wrap) wrap.style.display = 'none';
+    if (success) success.style.display = 'flex';
+    btn.classList.remove('btn-loading');
+    btn.disabled = false;
+  });
 }
 </script>
 </body>
