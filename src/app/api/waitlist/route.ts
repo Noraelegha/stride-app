@@ -37,13 +37,13 @@ export async function POST(req: NextRequest) {
           LASTNAME: name.trim().split(' ').slice(1).join(' ') || '',
           GOAL: goal?.trim() || '',
         },
-        listIds: [3], // your waitlist list ID in Brevo — update if different
+        listIds: [3],
         updateEnabled: true,
       }),
     })
 
     // Send waitlist welcome email
-    await fetch('https://api.brevo.com/v3/smtp/email', {
+    const emailRes = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -57,7 +57,11 @@ export async function POST(req: NextRequest) {
       }),
     })
 
+    const emailResult = await emailRes.json()
+    console.log('Brevo email result:', JSON.stringify(emailResult))
+
     return NextResponse.json({ success: true })
+
   } catch (error) {
     console.error('Waitlist error:', error)
     return NextResponse.json({ error: 'Failed to join waitlist' }, { status: 500 })
@@ -70,7 +74,6 @@ function waitlistEmailHTML(firstName: string, goal: string): string {
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
 <body style="margin:0;padding:0;background-color:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 <div style="max-width:600px;margin:0 auto;padding:40px 20px;">
-
   <!-- Header -->
   <div style="background:#1a1a2e;border-radius:20px;padding:40px 32px;text-align:center;margin-bottom:24px;">
     <div style="font-size:36px;margin-bottom:12px;">⚡</div>
@@ -82,7 +85,6 @@ function waitlistEmailHTML(firstName: string, goal: string): string {
       Dash has your briefing. You will hear from us before anyone else.
     </p>
   </div>
-
   <!-- Main -->
   <div style="background:#ffffff;border-radius:20px;padding:32px;margin-bottom:16px;">
     <p style="color:#1a1a2e;font-size:16px;font-weight:700;margin:0 0 12px 0;">Here is what just happened.</p>
@@ -97,7 +99,6 @@ function waitlistEmailHTML(firstName: string, goal: string): string {
       When Stride opens early access, you are first in. Dash will be ready with your first task on day one.
     </p>
   </div>
-
   <!-- What to expect -->
   <div style="background:#ffffff;border-radius:20px;padding:32px;margin-bottom:16px;">
     <p style="color:#1a1a2e;font-size:15px;font-weight:700;margin:0 0 16px 0;">What happens next</p>
@@ -114,7 +115,6 @@ function waitlistEmailHTML(firstName: string, goal: string): string {
       </div>
     </div>`).join('')}
   </div>
-
   <!-- Community CTA -->
   <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:20px;padding:24px 32px;margin-bottom:24px;text-align:center;">
     <p style="color:#1a1a2e;font-size:15px;font-weight:700;margin:0 0 8px 0;">Don't wait alone.</p>
@@ -123,7 +123,6 @@ function waitlistEmailHTML(firstName: string, goal: string): string {
       💬 Join the community
     </a>
   </div>
-
   <!-- Footer -->
   <div style="background:#ffffff;border-radius:20px;padding:24px 32px;text-align:center;">
     <p style="color:#888;font-size:13px;line-height:1.7;margin:0 0 8px 0;">
@@ -131,7 +130,6 @@ function waitlistEmailHTML(firstName: string, goal: string): string {
     </p>
     <p style="color:#F5A623;font-size:13px;font-weight:700;margin:0;">Dash is watching the clock. ⚡</p>
   </div>
-
 </div>
 </body>
 </html>`
