@@ -1,221 +1,250 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ThemeColor from '@/components/ThemeColor'
 
 export default function GoalAchievedPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
-  const [phase, setPhase] = useState(0)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [visible, setVisible] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('stride_user')
     if (stored) setUser(JSON.parse(stored))
-    setTimeout(() => setPhase(1), 100)
-    setTimeout(() => setPhase(2), 800)
-    setTimeout(() => setPhase(3), 1400)
-    launchConfetti()
+    setTimeout(() => setVisible(true), 80)
   }, [])
 
-  const launchConfetti = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    canvas.width = window.innerWidth
-    canvas.height = window.innerHeight
+  const shareText = user
+    ? `I just achieved my goal on Stride: "${user.goal}". ${user.tasksDone || 0} tasks. ${user.streak || 0} day streak. One step at a time. ⚡`
+    : 'I just achieved my goal on Stride. One step at a time. ⚡'
+  const shareUrl = 'https://stride-app-one.vercel.app'
 
-    const pieces = Array.from({ length: 80 }, () => ({
-      x: Math.random() * canvas.width,
-      y: -20,
-      r: Math.random() * 6 + 3,
-      d: Math.random() * 20 + 5,
-      color: ['#F5A623', '#fff', '#4CAF50', '#29B6F6', '#FF9500'][Math.floor(Math.random() * 5)],
-      tilt: Math.random() * 10 - 5,
-      tiltAngle: 0,
-      tiltAngleIncrement: Math.random() * 0.07 + 0.05,
-    }))
-
-    let frame = 0
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      pieces.forEach(p => {
-        p.tiltAngle += p.tiltAngleIncrement
-        p.y += (Math.cos(frame / 20) + p.d / 10)
-        p.x += Math.sin(frame / 40) * 0.8
-        p.tilt = Math.sin(p.tiltAngle) * 12
-        ctx.beginPath()
-        ctx.lineWidth = p.r
-        ctx.strokeStyle = p.color
-        ctx.moveTo(p.x + p.tilt + p.r / 2, p.y)
-        ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2)
-        ctx.stroke()
-      })
-      frame++
-      if (frame < 180) requestAnimationFrame(animate)
-      else ctx.clearRect(0, 0, canvas.width, canvas.height)
+  const handleShare = async () => {
+    if (navigator.share) {
+      try { await navigator.share({ text: shareText, url: shareUrl }) } catch (e) {}
+    } else {
+      try { await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`) } catch (e) {}
     }
-    requestAnimationFrame(animate)
   }
 
-  const dayCount = user?.tasksDone || 0
-  const goalText = user?.goalShort || user?.goal || 'your goal'
-  const prizeText = user?.prizeShort || user?.bigPrize || 'your big prize'
+  const getCoachMessage = (coachStyle: string, goal: string) => {
+    const style = coachStyle || 'mentor'
+    const messages: Record<string, string> = {
+      friend:    `${(goal || '').split(' ').slice(0, 4).join(' ')}… done. I cannot believe you actually pulled this off. Respect.`,
+      tough:     `Goal reached. No celebration yet — you know what comes next. Set the bar higher.`,
+      strategic: `Objective achieved. Every task, every day — that is how it compounds. You have the proof now.`,
+      mentor:    `You did it. Not by accident. By showing up, one day at a time, until it became real.`,
+    }
+    return messages[style] || messages['mentor']
+  }
+
+  const shapes = [
+    { c: '#F5A623', s: 9,  t: '9%',  l: '8%',  r: 12,  d: '0s',    dur: '2.7s', sq: true  },
+    { c: '#fff',    s: 6,  t: '14%', l: '87%', r: 0,   d: '0.4s',  dur: '3s',   sq: false },
+    { c: '#F5A623', s: 8,  t: '6%',  l: '55%', r: -9,  d: '0.7s',  dur: '2.5s', sq: true  },
+    { c: '#4CAF50', s: 5,  t: '22%', l: '20%', r: 0,   d: '0.2s',  dur: '3.2s', sq: false },
+    { c: '#fff',    s: 7,  t: '74%', l: '8%',  r: 20,  d: '0.6s',  dur: '2.9s', sq: true  },
+    { c: '#F5A623', s: 6,  t: '70%', l: '87%', r: 0,   d: '1s',    dur: '2.6s', sq: false },
+    { c: '#4CAF50', s: 9,  t: '82%', l: '55%', r: -16, d: '0.3s',  dur: '3s',   sq: true  },
+    { c: '#fff',    s: 6,  t: '86%', l: '25%', r: 0,   d: '0.7s',  dur: '3.3s', sq: false },
+    { c: '#F5A623', s: 7,  t: '36%', l: '92%', r: 10,  d: '0.5s',  dur: '2.8s', sq: true  },
+    { c: '#4CAF50', s: 5,  t: '52%', l: '4%',  r: 0,   d: '0.8s',  dur: '2.7s', sq: false },
+  ]
+
+  if (!user) return null
+
+  const tasksDone = user.tasksDone || 0
+  const streak = user.streak || 0
+  const bonusTasks = user.bonusTasks || 0
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#0f0f1a',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      padding: '40px 24px', position: 'relative', overflow: 'hidden',
+      minHeight: '100dvh',
+      background: '#0f1623',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '48px 28px 44px',
+      position: 'relative',
+      overflow: 'hidden',
+      opacity: visible ? 1 : 0,
+      transition: 'opacity 0.4s ease',
     }}>
-      <ThemeColor color="#0f0f1a" />
+      <ThemeColor color="#0f1623" />
 
-      <canvas ref={canvasRef} style={{
-        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 10,
-      }} />
+      <style>{`
+        @keyframes gaFloat {
+          0%,100%{transform:translateY(0) rotate(var(--ga-r,0deg));opacity:0.4}
+          50%{transform:translateY(-12px) rotate(calc(var(--ga-r,0deg)+8deg));opacity:0.65}
+        }
+        @keyframes gaOrbit {
+          0%{transform:rotate(0deg) translateX(52px) rotate(0deg)}
+          100%{transform:rotate(360deg) translateX(52px) rotate(-360deg)}
+        }
+        @keyframes gaOrbit2 {
+          0%{transform:rotate(180deg) translateX(52px) rotate(-180deg)}
+          100%{transform:rotate(540deg) translateX(52px) rotate(-540deg)}
+        }
+        @keyframes gaOrbit3 {
+          0%{transform:rotate(90deg) translateX(52px) rotate(-90deg)}
+          100%{transform:rotate(450deg) translateX(52px) rotate(-450deg)}
+        }
+        @keyframes gaIconIn {
+          0%{transform:scale(0.4) rotate(-10deg);opacity:0}
+          60%{transform:scale(1.12) rotate(4deg);opacity:1}
+          100%{transform:scale(1) rotate(0deg);opacity:1}
+        }
+        @keyframes gaGlow {
+          0%,100%{box-shadow:0 0 30px 8px rgba(245,166,35,0.25),0 0 60px 18px rgba(245,166,35,0.08)}
+          50%{box-shadow:0 0 48px 14px rgba(245,166,35,0.45),0 0 80px 28px rgba(245,166,35,0.15)}
+        }
+        @keyframes gaNumPop {
+          0%{transform:scale(0.4);opacity:0}
+          65%{transform:scale(1.08);opacity:1}
+          100%{transform:scale(1);opacity:1}
+        }
+        @keyframes gaFadeUp {
+          from{opacity:0;transform:translateY(11px)}
+          to{opacity:1;transform:translateY(0)}
+        }
+        @keyframes gaCardIn {
+          0%{transform:scale(0.88);opacity:0}
+          70%{transform:scale(1.02);opacity:1}
+          100%{transform:scale(1);opacity:1}
+        }
+      `}</style>
 
-      {/* Glow orb behind everything */}
+      {shapes.map((s, i) => (
+        <div key={i} style={{
+          position: 'absolute',
+          top: s.t, left: s.l,
+          width: s.s, height: s.s,
+          background: s.c,
+          borderRadius: s.sq ? '2px' : '50%',
+          opacity: 0.4,
+          animation: `gaFloat ${s.dur} ease-in-out infinite`,
+          animationDelay: s.d,
+          ['--ga-r' as any]: `${s.r}deg`,
+          pointerEvents: 'none',
+        }} />
+      ))}
+
+      {/* Orbiting icon zone */}
       <div style={{
-        position: 'absolute', width: '300px', height: '300px',
-        background: 'radial-gradient(circle, rgba(245,166,35,0.15) 0%, transparent 70%)',
-        borderRadius: '50%', top: '50%', left: '50%',
-        transform: 'translate(-50%, -60%)', pointerEvents: 'none',
-      }} />
-
-      {/* Trophy */}
-      <div style={{
-        fontSize: '72px', marginBottom: '8px',
-        opacity: phase >= 1 ? 1 : 0,
-        transform: phase >= 1 ? 'scale(1) translateY(0)' : 'scale(0.5) translateY(20px)',
-        transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
-        filter: 'drop-shadow(0 0 24px rgba(245,166,35,0.6))',
-        position: 'relative', zIndex: 20,
-      }}>🏆</div>
-
-      {/* Main heading */}
-      <div style={{
-        opacity: phase >= 2 ? 1 : 0,
-        transform: phase >= 2 ? 'translateY(0)' : 'translateY(16px)',
-        transition: 'all 0.5s ease',
-        textAlign: 'center', marginBottom: '6px',
-        position: 'relative', zIndex: 20,
+        position: 'relative',
+        width: 120, height: 120,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginBottom: 22,
       }}>
+        <div style={{ position: 'absolute', width: 8, height: 8, borderRadius: '50%', background: '#F5A623', top: '50%', left: '50%', marginTop: -4, marginLeft: -4, animation: 'gaOrbit 5s linear infinite' }} />
+        <div style={{ position: 'absolute', width: 6, height: 6, borderRadius: '50%', background: '#fff', opacity: 0.6, top: '50%', left: '50%', marginTop: -3, marginLeft: -3, animation: 'gaOrbit2 5s linear infinite' }} />
+        <div style={{ position: 'absolute', width: 5, height: 5, borderRadius: '50%', background: '#4CAF50', opacity: 0.8, top: '50%', left: '50%', marginTop: -2.5, marginLeft: -2.5, animation: 'gaOrbit3 7s linear infinite' }} />
         <div style={{
-          fontSize: '13px', fontWeight: 700, letterSpacing: '0.15em',
-          color: '#F5A623', textTransform: 'uppercase', marginBottom: '10px',
+          width: 90, height: 90, borderRadius: '50%',
+          background: 'linear-gradient(135deg, rgba(245,166,35,0.18), rgba(245,166,35,0.04))',
+          border: '2px solid rgba(245,166,35,0.4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          animation: 'gaIconIn 0.6s cubic-bezier(.34,1.56,.64,1) both, gaGlow 2.4s ease-in-out 0.6s infinite',
         }}>
-          Goal achieved
-        </div>
-        <div style={{
-          fontSize: '32px', fontWeight: 900, color: '#fff',
-          lineHeight: 1.15, maxWidth: '320px',
-        }}>
-          You actually did it.
+          <span style={{ fontSize: 42, lineHeight: 1 }}>🌟</span>
         </div>
       </div>
 
-      {/* Stats strip */}
+      {/* You made it label */}
       <div style={{
-        opacity: phase >= 3 ? 1 : 0,
-        transform: phase >= 3 ? 'translateY(0)' : 'translateY(16px)',
-        transition: 'all 0.5s ease 0.1s',
-        display: 'flex', gap: '10px', margin: '20px 0', width: '100%', maxWidth: '360px',
-        position: 'relative', zIndex: 20,
+        fontSize: 12, fontWeight: 700,
+        color: 'rgba(245,166,35,0.65)',
+        letterSpacing: '0.14em', textTransform: 'uppercase',
+        marginBottom: 10,
+        animation: 'gaFadeUp 0.4s ease 0.3s both',
       }}>
-        {[
-          { num: dayCount, label: 'Days in' },
-          { num: user?.streak || 0, label: 'Streak' },
-          { num: `${user?.score || 0}%`, label: 'Score' },
-        ].map((s, i) => (
-          <div key={i} style={{
-            flex: 1, background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(245,166,35,0.2)',
-            borderRadius: '16px', padding: '14px 8px', textAlign: 'center',
-          }}>
-            <div style={{ fontSize: '22px', fontWeight: 900, color: '#F5A623' }}>{s.num}</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>{s.label}</div>
+        You made it.
+      </div>
+
+      {/* Goal text */}
+      <div style={{
+        fontSize: 20, fontWeight: 800, color: '#fff',
+        textAlign: 'center', lineHeight: 1.4,
+        maxWidth: 270, marginBottom: 24,
+        animation: 'gaFadeUp 0.4s ease 0.45s both',
+      }}>
+        {user.goal || user.bigPrize || 'Goal achieved.'}
+      </div>
+
+      {/* Journey stats card */}
+      <div style={{
+        background: 'rgba(255,255,255,0.05)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 16, padding: '16px 20px',
+        width: '100%', maxWidth: 300,
+        marginBottom: 22,
+        animation: 'gaCardIn 0.5s cubic-bezier(.34,1.56,.64,1) 0.6s both',
+      }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
+          Your journey
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, textAlign: 'center' }}>
+          <div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: '#F5A623' }}>{tasksDone}</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginTop: 2 }}>tasks done</div>
           </div>
-        ))}
-      </div>
-
-      {/* Goal card */}
-      <div style={{
-        opacity: phase >= 3 ? 1 : 0,
-        transform: phase >= 3 ? 'translateY(0)' : 'translateY(16px)',
-        transition: 'all 0.5s ease 0.2s',
-        background: 'linear-gradient(135deg, rgba(245,166,35,0.12) 0%, rgba(245,166,35,0.04) 100%)',
-        border: '1px solid rgba(245,166,35,0.25)',
-        borderRadius: '20px', padding: '20px',
-        width: '100%', maxWidth: '360px',
-        marginBottom: '20px',
-        position: 'relative', zIndex: 20,
-      }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px' }}>
-          What you set out to do
-        </div>
-        <div style={{ fontSize: '16px', fontWeight: 700, color: '#fff', lineHeight: 1.4, marginBottom: '12px' }}>
-          {goalText}
-        </div>
-        <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', marginBottom: '12px' }} />
-        <div style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px' }}>
-          The prize you claimed
-        </div>
-        <div style={{ fontSize: '16px', fontWeight: 700, color: '#F5A623', lineHeight: 1.4 }}>
-          {prizeText}
+          <div style={{ borderLeft: '1px solid rgba(255,255,255,0.07)', borderRight: '1px solid rgba(255,255,255,0.07)' }}>
+            <div style={{ fontSize: 24, fontWeight: 900, color: '#F5A623' }}>{streak}</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginTop: 2 }}>day streak</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: '#F5A623' }}>{bonusTasks}</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', marginTop: 2 }}>bonus tasks</div>
+          </div>
         </div>
       </div>
 
-      {/* Dash message */}
+      {/* Coach-styled closing message */}
       <div style={{
-        opacity: phase >= 3 ? 1 : 0,
-        transition: 'all 0.5s ease 0.3s',
-        fontSize: '14px', color: 'rgba(255,255,255,0.6)',
-        lineHeight: 1.6, textAlign: 'center',
-        maxWidth: '300px', marginBottom: '28px',
-        position: 'relative', zIndex: 20,
+        fontSize: 15, color: 'rgba(255,255,255,0.65)',
+        textAlign: 'center', lineHeight: 1.7,
+        fontStyle: 'italic', fontWeight: 500,
+        maxWidth: 265, marginBottom: 40,
+        animation: 'gaFadeUp 0.4s ease 0.78s both',
       }}>
-        Most people never finish what they start. You are not most people.
+        {getCoachMessage(user.coachStyle, user.goal)}
       </div>
 
       {/* Buttons */}
       <div style={{
-        opacity: phase >= 3 ? 1 : 0,
-        transition: 'all 0.5s ease 0.4s',
-        display: 'flex', flexDirection: 'column', gap: '10px',
-        width: '100%', maxWidth: '360px',
-        position: 'relative', zIndex: 20,
+        width: '100%', maxWidth: 320,
+        display: 'flex', flexDirection: 'column', gap: 10,
+        animation: 'gaFadeUp 0.4s ease 0.92s both',
       }}>
+        <button
+          onClick={handleShare}
+          style={{
+            width: '100%', background: '#F5A623',
+            border: 'none', borderRadius: 16,
+            padding: '17px', fontSize: 16, fontWeight: 700,
+            color: '#1a1a2e', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}
+        >
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1a1a2e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+          Share this 🌟
+        </button>
         <button
           onClick={() => router.push('/home')}
           style={{
-            background: '#F5A623', color: '#0f0f1a', border: 'none',
-            borderRadius: '14px', padding: '16px',
-            fontSize: '15px', fontWeight: 800, cursor: 'pointer',
-            letterSpacing: '0.02em',
-          }}
-        >
-          What is next? ⚡
-        </button>
-        <button
-          onClick={() => {
-            const text = `I just hit my goal on Stride after ${dayCount} days. No excuses. Just steps. ⚡ stride-app-one.vercel.app`
-            if (navigator.share) {
-              navigator.share({ text })
-            } else {
-              navigator.clipboard.writeText(text)
-            }
-          }}
-          style={{
-            background: 'rgba(255,255,255,0.06)',
+            width: '100%',
+            background: 'rgba(255,255,255,0.07)',
             border: '1px solid rgba(255,255,255,0.12)',
-            color: 'rgba(255,255,255,0.7)',
-            borderRadius: '14px', padding: '14px',
-            fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+            borderRadius: 16, padding: '15px',
+            fontSize: 15, fontWeight: 600,
+            color: '#fff', cursor: 'pointer',
           }}
         >
-          Share the win 🏆
+          What&apos;s next? →
         </button>
       </div>
     </div>

@@ -61,9 +61,6 @@ export async function POST(req: NextRequest) {
         to: [{ email: email.toLowerCase().trim(), name: properName }],
         subject: `${firstName}, your journey with Stride starts now 🎉`,
         htmlContent: waitlistEmailHTML(firstName, goal?.trim() || ''),
-        headers: {
-          'X-Preheader': "You're locked in! 🔒",
-        },
       }),
     })
 
@@ -78,6 +75,7 @@ export async function POST(req: NextRequest) {
 }
 
 function waitlistEmailHTML(firstName: string, goal: string): string {
+  const preheaderPadding = '&nbsp;&zwj;'.repeat(60)
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -87,9 +85,8 @@ function waitlistEmailHTML(firstName: string, goal: string): string {
 </head>
 <body style="margin:0;padding:0;background-color:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 
-  <!-- Preheader text (hidden but shows in inbox preview) -->
   <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
-    You're locked in! 🔒 Dash is ready. Early access is coming.
+    You're locked in! 🔒 Dash is ready. Early access is coming.${preheaderPadding}
   </div>
 
   <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
