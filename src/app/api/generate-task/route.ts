@@ -37,7 +37,6 @@ export async function POST(req: NextRequest) {
         }).join('\n')
       : 'No tasks yet. This is Day 1.'
 
-    // Extract the most recent task output note if present
     const yesterday = recentTasks[recentTasks.length - 1]
     const yesterdayOutputNote = yesterday?.hint_text &&
       yesterday?.user_reply !== 'blocked' &&
@@ -142,11 +141,18 @@ ${extraContext ? `\n\nSPECIAL INSTRUCTION:\n${extraContext}` : ''}
         'Content-Type': 'application/json',
         'x-api-key': process.env.ANTHROPIC_API_KEY!,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'prompt-caching-2024-07-31',
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: 1500,
-        system: DASH_SYSTEM_PROMPT,
+        system: [
+          {
+            type: 'text',
+            text: DASH_SYSTEM_PROMPT,
+            cache_control: { type: 'ephemeral' },
+          }
+        ],
         messages: [{ role: 'user', content: userContext }],
       }),
     })
@@ -165,7 +171,6 @@ ${extraContext ? `\n\nSPECIAL INSTRUCTION:\n${extraContext}` : ''}
 
     const task = JSON.parse(jsonMatch[0])
 
-    // Strip em dashes from all text fields
     const sanitize = (str: string) => str?.replace(/—/g, ' ') || str
     if (task.taskText) task.taskText = sanitize(task.taskText)
     if (task.dashMessage) task.dashMessage = sanitize(task.dashMessage)
