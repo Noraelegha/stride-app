@@ -229,10 +229,36 @@ export default function HomePage() {
       if (missedDays >= 3) { router.push('/return'); return }
       if (missedDays === 2) { router.push('/recovery'); return }
       if (missedDays === 1 && shields > 0) {
-        // BUG FIX: update last_active HERE to prevent double-deduction on remount
+        // Chaining fix — verify this is truly an isolated single-day miss.
+        // If the day before yesterday was also missed, this is day 2 of a chain.
+        // Skip the shield entirely and go straight to recovery.
+        const twoDaysAgo = new Date()
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
+        const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0]
+        const { data: twoDaysTask } = await supabase
+          .from('daily_tasks')
+          .select('status')
+          .eq('user_email', userData.email)
+          .eq('task_date', twoDaysAgoStr)
+          .maybeSingle()
+        const wasChained = twoDaysTask &&
+          twoDaysTask.status !== 'completed' &&
+          twoDaysTask.status !== 'partial'
+        if (wasChained) {
+          // Day 2+ of a miss chain — bypass shield, go to recovery
+          router.push('/recovery')
+          return
+        }
+        // Genuine single-day miss — use shield.
+        // Set last_active to yesterday at 23:59, not today.
+        // Prevents double-deduction on same-day remounts while allowing
+        // subsequent missed days to register correctly.
+        const shieldProtectedDate = new Date()
+        shieldProtectedDate.setDate(shieldProtectedDate.getDate() - 1)
+        shieldProtectedDate.setHours(23, 59, 59, 0)
         await supabase.from('stride_users').update({
           shields: shields - 1,
-          last_active: new Date().toISOString(),
+          last_active: shieldProtectedDate.toISOString(),
         }).eq('email', userData.email)
         const updated = { ...userData, shields: shields - 1 }
         localStorage.setItem('stride_user', JSON.stringify(updated))
@@ -404,7 +430,7 @@ export default function HomePage() {
         const completedCount = allTasksData?.filter((t: any) => t.status === 'completed' || t.status === 'partial').length || newTasksDone
         const newScore = Math.min(Math.round((completedCount / totalRecorded) * 100), 100)
         const currentShields = user.shields || 0
-        const newShields = newStreak % 5 === 0 && currentShields < 2 ? currentShields + 1 : currentShields
+        const newShields = newStreak % 10 === 0 && currentShields < 2 ? currentShields + 1 : currentShields
         const { error: userUpdateError } = await supabase.from('stride_users').update({
           tasks_done: newTasksDone, streak: newStreak, score: newScore, shields: newShields,
           last_active: new Date().toISOString(),
