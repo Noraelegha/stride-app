@@ -113,8 +113,6 @@ export default function HomePage() {
             }
             setPanel('bonus')
           } else { setPanel('locked') }
-        } else {
-          prefetchHints(userData, todayTask)
         }
         return
       }
