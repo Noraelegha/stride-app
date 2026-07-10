@@ -146,7 +146,6 @@ export default function HomePage() {
       if (task.completionMessage) setCompletionMessage(task.completionMessage)
       if (task.bonusInviteMessage) setBonusInviteMessage(task.bonusInviteMessage)
       if (insertedTask?.goal_achieved) { router.push('/goal-achieved'); return }
-      prefetchHints(userData, insertedTask)
     } catch (e) { console.error('Task fetch failed:', e); setTaskLoading(false) }
   }
 
