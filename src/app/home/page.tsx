@@ -260,7 +260,7 @@ export default function HomePage() {
         const updated = { ...userData, shields: shields - 1 }
         localStorage.setItem('stride_user', JSON.stringify(updated))
         // Flag so handleSubmit knows to show unfreeze Phase 2 after task completion
-        localStorage.setItem('stride_shield_used_today', 'true')
+        localStorage.setItem('stride_shield_used_today', new Date().toDateString())
         if (dbUser?.onesignal_id) {
           fetch('/api/send-notification', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
