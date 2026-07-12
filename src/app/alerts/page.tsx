@@ -4,139 +4,78 @@ import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import ThemeColor from '@/components/ThemeColor'
 
-type Alert = {
-  ico: string
-  bg: string
-  title: string
-  body: string
-  time: string
-  unread: boolean
+type LogEntry = {
+  tier: string
+  message: string
+  sent_at: string
+}
+
+const getTierMeta = (tier: string, message: string) => {
+  if (tier === 'event') {
+    if (message.includes('🏆') || message.includes('days in a row') || message.includes('streak')) {
+      return { ico: '🔥', bg: '#fff4ec' }
+    }
+    if (message.includes('Shield earned') || message.includes('shield') || message.includes('🛡')) {
+      return { ico: '🛡️', bg: '#eef4ff' }
+    }
+    return { ico: '⚡', bg: '#f3eeff' }
+  }
+  if (tier === 'morning') return { ico: '🌅', bg: '#fff8ec' }
+  if (tier === 'midday') return { ico: '☀️', bg: '#fffbec' }
+  if (tier === 'afternoon') return { ico: '⏳', bg: '#fff4ec' }
+  if (tier === 'evening') return { ico: '🌙', bg: '#eef4ff' }
+  if (tier === 'night') return { ico: '🔔', bg: '#f5f5f7' }
+  return { ico: '⚡', bg: '#f3eeff' }
+}
+
+const formatTime = (sent_at: string) => {
+  const date = new Date(sent_at)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays === 0) {
+    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  }
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7) return `${diffDays} days ago`
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+
+const isSignificant = (entry: LogEntry) => {
+  // Always show event notifications
+  if (entry.tier === 'event') return true
+  // Show escalated reminders — these signal something meaningful happened
+  const msg = entry.message.toLowerCase()
+  if (msg.includes('days') && (msg.includes('consecutive') || msg.includes('pattern') || msg.includes('quiet'))) return true
+  if (msg.includes('final call')) return true
+  if (msg.includes('shield')) return true
+  return false
 }
 
 export default function AlertsPage() {
-  const [alerts, setAlerts] = useState<Alert[]>([])
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [allLogs, setAllLogs] = useState<LogEntry[]>([])
   const [loaded, setLoaded] = useState(false)
+  const [showAll, setShowAll] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('stride_user')
     if (!stored) { setLoaded(true); return }
     const localUser = JSON.parse(stored)
 
-    const generateAlerts = async () => {
+    const fetchLogs = async () => {
       try {
-        const { data: dbUser } = await supabase
-          .from('stride_users')
-          .select('streak, tasks_done, score, shields, bonus_tasks')
-          .eq('email', localUser.email)
-          .single()
-
-        const streak = dbUser?.streak ?? localUser.streak ?? 0
-        const tasksDone = dbUser?.tasks_done ?? localUser.tasksDone ?? 0
-        const score = dbUser?.score ?? localUser.score ?? 0
-        const shields = dbUser?.shields ?? localUser.shields ?? 0
-        const bonusTasks = dbUser?.bonus_tasks ?? localUser.bonusTasks ?? 0
-
-        const today = new Date().toISOString().split('T')[0]
-        const { data: todayTask } = await supabase
-          .from('daily_tasks')
-          .select('status, task_text')
+        const { data } = await supabase
+          .from('notification_logs')
+          .select('tier, message, sent_at')
           .eq('user_email', localUser.email)
-          .eq('task_date', today)
-          .maybeSingle()
+          .order('sent_at', { ascending: false })
+          .limit(100)
 
-        const generated: Alert[] = []
-
-        if (!todayTask || todayTask.status === 'pending') {
-          generated.push({
-            ico: '⚡', bg: '#f3eeff',
-            title: 'Dash has your task ready',
-            body: `Your Day ${tasksDone + 1} task is waiting. Let's make it count.`,
-            time: '8:00 AM',
-            unread: true,
-          })
-        }
-
-        if (shields > 0 && streak > 0 && streak % 5 === 0) {
-          generated.push({
-            ico: '🛡️', bg: '#eef4ff',
-            title: 'Streak shield earned!',
-            body: `${streak} consecutive days. You earned a shield. It will protect your streak if you ever miss a day.`,
-            time: 'Today',
-            unread: true,
-          })
-        } else if (shields > 0) {
-          generated.push({
-            ico: '🛡️', bg: '#eef4ff',
-            title: `You have ${shields} streak shield${shields > 1 ? 's' : ''}`,
-            body: `Your shield${shields > 1 ? 's' : ''} will automatically protect your streak if you miss a day.`,
-            time: `Day ${streak - (streak % 5)} milestone`,
-            unread: false,
-          })
-        }
-
-        const milestones = [3, 7, 14, 21, 30, 60, 90]
-        const hitMilestone = milestones.filter(m => streak >= m).pop()
-        if (hitMilestone && streak > 0) {
-          generated.push({
-            ico: '🔥', bg: '#fff4ec',
-            title: `${streak}-day streak!`,
-            body: streak >= 30
-              ? `${streak} days in a row. You are in the top 5% of Stride users. This is rare. 🏆`
-              : streak >= 7
-              ? `${streak} days in a row. Top 20% of Stride users.${shields > 0 ? ' Shield earned. 🛡' : ''}`
-              : `${streak} days in. The habit is forming. Keep showing up.`,
-            time: streak % 7 === 0 ? 'Just now' : 'Today',
-            unread: streak % 7 === 0,
-          })
-        }
-
-        if (tasksDone >= 7) {
-          generated.push({
-            ico: '📊', bg: '#edfaf3',
-            title: 'Weekly report ready',
-            body: `${tasksDone} tasks completed. ${score}% score. You are in the top tier of consistency.`,
-            time: 'Yesterday, 7 PM',
-            unread: false,
-          })
-        }
-
-        if (bonusTasks >= 3) {
-          generated.push({
-            ico: '💪', bg: '#fffbec',
-            title: `${bonusTasks} bonus tasks completed`,
-            body: `You went the extra mile ${bonusTasks} times. That is the kind of energy that wins.`,
-            time: '2 days ago',
-            unread: false,
-          })
-        } else if (bonusTasks > 0) {
-          generated.push({
-            ico: '💪', bg: '#fffbec',
-            title: 'Bonus task completed',
-            body: 'You went the extra mile. That is the kind of energy that wins.',
-            time: '2 days ago',
-            unread: false,
-          })
-        }
-
-        const { data: recentTasks } = await supabase
-          .from('daily_tasks')
-          .select('task_date, status')
-          .eq('user_email', localUser.email)
-          .order('task_date', { ascending: false })
-          .limit(7)
-
-        const hadMissedDay = recentTasks?.some((t: any) => t.status === 'missed' || t.status === 'blocked')
-        if (hadMissedDay && shields > 0) {
-          generated.push({
-            ico: '🛡️', bg: '#e8f4fd',
-            title: 'Shield used — streak protected',
-            body: 'You missed a day recently. Your shield kicked in automatically. Streak intact. 🔒',
-            time: 'Recently',
-            unread: false,
-          })
-        }
-
-        setAlerts(generated)
+        const entries = data || []
+        setAllLogs(entries)
+        setLogs(entries.filter(isSignificant))
       } catch (e) {
         console.error('Alerts fetch failed:', e)
       } finally {
@@ -144,33 +83,34 @@ export default function AlertsPage() {
       }
     }
 
-    generateAlerts()
+    fetchLogs()
   }, [])
+
+  const displayedLogs = showAll ? allLogs : logs
 
   return (
     <div className="screen" style={{ background: '#f5f5f7' }}>
       <ThemeColor color="#1a1a2e" />
-
-      {/* Header — stays fixed */}
       <div style={{ background: '#1a1a2e', padding: '52px 22px 22px', flexShrink: 0 }}>
-        <h1 style={{ fontSize: '26px', fontWeight: 900, color: '#fff', margin: 0 }}>Alerts</h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h1 style={{ fontSize: '26px', fontWeight: 900, color: '#fff', margin: 0 }}>Alerts</h1>
+          {allLogs.length > 0 && (
+            <button
+              onClick={() => setShowAll(v => !v)}
+              style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '20px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}
+            >
+              {showAll ? 'Highlights' : 'All'}
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Scrollable content — white background fills the rest */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        background: '#f5f5f7',
-        padding: '14px 16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px',
-      }}>
+      <div style={{ flex: 1, overflowY: 'auto', background: '#f5f5f7', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {!loaded ? (
           <div style={{ padding: '40px', textAlign: 'center' }}>
             <p style={{ color: '#aaa', fontSize: '14px', margin: 0 }}>Loading...</p>
           </div>
-        ) : alerts.length === 0 ? (
+        ) : displayedLogs.length === 0 ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 28px', textAlign: 'center', gap: '12px' }}>
             <div style={{ fontSize: '40px' }}>🔔</div>
             <div style={{ fontSize: '16px', fontWeight: 700, color: '#1a1a2e' }}>No alerts yet</div>
@@ -179,39 +119,49 @@ export default function AlertsPage() {
             </p>
           </div>
         ) : (
-          alerts.map((a, i) => (
-            <div key={i} style={{
-              background: '#fff', borderRadius: '16px', padding: '14px 16px',
-              display: 'flex', gap: '13px', alignItems: 'flex-start',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.06)', position: 'relative',
-            }}>
-              <div style={{
-                width: 42, height: 42, background: a.bg, borderRadius: '50%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '19px', flexShrink: 0,
-              }}>
-                {a.ico}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e', lineHeight: 1.3, marginBottom: '4px', paddingRight: a.unread ? '14px' : '0' }}>
-                  {a.title}
+          <>
+            {displayedLogs.map((entry, i) => {
+              const { ico, bg } = getTierMeta(entry.tier, entry.message)
+              const isEvent = entry.tier === 'event'
+              return (
+                <div key={i} style={{
+                  background: '#fff', borderRadius: '16px', padding: '14px 16px',
+                  display: 'flex', gap: '13px', alignItems: 'flex-start',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                  borderLeft: isEvent ? '3px solid #F5A623' : 'none',
+                }}>
+                  <div style={{
+                    width: 42, height: 42, background: bg, borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '19px', flexShrink: 0,
+                  }}>
+                    {ico}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', color: '#1a1a2e', lineHeight: 1.55, marginBottom: '5px' }}>
+                      {entry.message}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#bbb' }}>
+                      {formatTime(entry.sent_at)}
+                      {entry.tier !== 'event' && (
+                        <span style={{ marginLeft: '6px', color: '#ddd' }}>· {entry.tier}</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: '12px', color: '#666', lineHeight: 1.55, marginBottom: '6px' }}>
-                  {a.body}
-                </div>
-                <div style={{ fontSize: '11px', color: '#bbb' }}>{a.time}</div>
-              </div>
-              {a.unread && (
-                <div style={{
-                  position: 'absolute', top: '14px', right: '14px',
-                  width: '8px', height: '8px', background: '#1a1a2e', borderRadius: '50%',
-                }} />
-              )}
-            </div>
-          ))
+              )
+            })}
+            {!showAll && allLogs.length > logs.length && (
+              <button
+                onClick={() => setShowAll(true)}
+                style={{ background: '#fff', border: '1.5px solid #eee', borderRadius: '14px', padding: '13px', fontSize: '13px', fontWeight: 600, color: '#888', cursor: 'pointer', width: '100%' }}
+              >
+                Show all {allLogs.length} notifications
+              </button>
+            )}
+          </>
         )}
       </div>
-
       <BottomNav />
     </div>
   )

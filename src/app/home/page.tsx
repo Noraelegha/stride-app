@@ -52,27 +52,6 @@ export default function HomePage() {
     return Math.max(0, diff - 1)
   }
 
-  const prefetchHints = (userData: any, loadedTask: any) => {
-    const taskText = loadedTask?.task_text || loadedTask?.taskText
-    const dashMsg = loadedTask?.dash_message || loadedTask?.dashMessage
-    if (!taskText) return
-    const isPro = userData?.isPro || userData?.is_pro || false
-    const types = isPro
-      ? (['simplifier', 'toolDrop', 'permissionSlip'] as const)
-      : (['simplifier'] as const)
-    types.forEach(async (type) => {
-      if (hintCacheRef.current[type]) return
-      try {
-        const res = await fetch('/api/generate-hint', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user: userData, taskText, dashMessage: dashMsg, hintType: type }),
-        })
-        const data = await res.json()
-        if (data.hint) hintCacheRef.current[type] = data.hint
-      } catch (e) {}
-    })
-  }
 
   const fetchTodayTask = async (userData: any) => {
     try {
@@ -260,7 +239,7 @@ export default function HomePage() {
         const updated = { ...userData, shields: shields - 1 }
         localStorage.setItem('stride_user', JSON.stringify(updated))
         // Flag so handleSubmit knows to show unfreeze Phase 2 after task completion
-        localStorage.setItem('stride_shield_used_today', new Date().toDateString())
+        localStorage.setItem('stride_shield_used_today', 'true')
         if (dbUser?.onesignal_id) {
           fetch('/api/send-notification', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -468,7 +447,7 @@ export default function HomePage() {
         // Notification stacking fix
         const STREAK_MILESTONES = [7, 14, 21, 30, 60, 90]
         let milestoneTriggered = false
-        const justEarnedShield = newStreak % 5 === 0 && newShields > currentShields
+        const justEarnedShield = newStreak % 10 === 0 && newShields > currentShields
 
         if (STREAK_MILESTONES.includes(newStreak)) {
           milestoneTriggered = true
@@ -493,10 +472,15 @@ export default function HomePage() {
 
         // Shield used today — show Phase 2 of unfreeze as the post-task celebration
         const shieldUsedToday = localStorage.getItem('stride_shield_used_today')
-        if (shieldUsedToday) {
+        const shieldFlagIsToday = shieldUsedToday === new Date().toDateString()
+        if (shieldFlagIsToday) {
           localStorage.removeItem('stride_shield_used_today')
           router.push('/unfreeze?reveal=true')
           return
+        }
+        if (shieldUsedToday && !shieldFlagIsToday) {
+          // Stale flag from a previous day — clear it silently, don’t route
+          localStorage.removeItem('stride_shield_used_today')
         }
       }
       if (isBlocked) await supabase.from('stride_users').update({ last_active: new Date().toISOString() }).eq('email', user.email)

@@ -117,7 +117,7 @@ export default function OnboardingPage() {
     localStorage.setItem('stride_user', JSON.stringify(userData))
 
     try {
-      await supabase.from('stride_users').insert({
+      await supabase.from('stride_users').upsert({
         email: data.email.toLowerCase().trim(),
         name: data.name,
         persona: data.persona,
