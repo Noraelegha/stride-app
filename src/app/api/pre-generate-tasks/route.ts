@@ -19,7 +19,6 @@ export async function GET(req: NextRequest) {
     const tomorrowStr = tomorrow.toLocaleDateString('en-CA', { timeZone: 'Africa/Lagos' })
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Lagos' })
 
-    // Only pre-generate for users active in the last 7 days
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
@@ -105,7 +104,6 @@ export async function GET(req: NextRequest) {
           ? `MISSED DAY CONTEXT: This user did not complete today's task. They have missed ${consecutiveMissed} consecutive day(s). The reminders generated must reflect this — morning_reminder through night_reminder should be missed-day recovery messages, not task delivery messages. Reference their Big Prize and Personal Why directly. Match their coach style exactly. Escalate urgency progressively across the five tiers. Do not mention the task as if it is new — acknowledge the gap and call them back.`
           : ''
 
-        // Build the same prompt generate-task uses
         const allTasks = history || []
         const recentTasks = allTasks.slice(-7)
         const olderTasks = allTasks.slice(0, Math.max(0, allTasks.length - 7))
@@ -155,7 +153,6 @@ Personal Why: ${userData.personalWhy}
 Domain/Niche: ${userData.domain || 'not specified'}
 Coach Style: ${coachDescriptions[userData.coachStyle] || userData.coachStyle}
 Daily Time Available: ${userData.dailyTime}
-
 CURRENT STATUS:
 Today is Day ${(userData.tasksDone || 0) + 1} for ${userData.name}
 Current Streak: ${userData.streak} days
@@ -163,12 +160,10 @@ Phase: ${userData.phase}
 Completion Score: ${userData.score}%
 Shields Available: ${userData.shields}
 Consecutive Missed Days: ${consecutiveMissed}
-
 TODAY'S CONTEXT:
 Date: ${localDateStr}
 Time: ${localTimeStr}
 Weekend: ${isWeekend ? 'YES — avoid tasks requiring going out or calls' : 'No'}
-
 TASK HISTORY:
 ${compactHistory ? `Full history: ${compactHistory}\n\n` : ''}Recent detail (last 7 days):
 ${recentHistory}
@@ -176,11 +171,9 @@ ${yesterdayOutputNote ? `
 USER OUTPUT FROM YESTERDAY — CRITICAL:
 The user shared this after completing yesterday's task: "${yesterdayOutputNote}"
 Build tomorrow's task as the direct natural next step from what they shared.` : ''}
-
 Generate today's task. Return valid JSON only.
 ${extraContext ? `\nSPECIAL INSTRUCTION:\n${extraContext}` : ''}`
 
-        // Use Haiku for pre-generation — cheaper, runs at midnight when user isn't watching
         const response = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: {
@@ -205,12 +198,12 @@ ${extraContext ? `\nSPECIAL INSTRUCTION:\n${extraContext}` : ''}`
 
         const task = JSON.parse(jsonMatch[0])
 
-        // Sanitize em dashes
         const sanitize = (str: string) => str?.replace(/—/g, ' ') || str
         if (task.taskText) task.taskText = sanitize(task.taskText)
         if (task.dashMessage) task.dashMessage = sanitize(task.dashMessage)
         if (task.chip1) task.chip1 = sanitize(task.chip1)
         if (task.chip2) task.chip2 = sanitize(task.chip2)
+        if (task.proofPrompt) task.proofPrompt = sanitize(task.proofPrompt)
         if (task.morningReminder) task.morningReminder = sanitize(task.morningReminder)
         if (task.middayReminder) task.middayReminder = sanitize(task.middayReminder)
         if (task.afternoonReminder) task.afternoonReminder = sanitize(task.afternoonReminder)
@@ -241,6 +234,7 @@ ${extraContext ? `\nSPECIAL INSTRUCTION:\n${extraContext}` : ''}`
           goal_protection_flagged: task.goalProtectionFlagged || false,
           completion_message: task.completionMessage || null,
           bonus_invite_message: task.bonusInviteMessage || null,
+          proof_prompt: task.proofPrompt || null,
         })
 
         if (todayMissed) {

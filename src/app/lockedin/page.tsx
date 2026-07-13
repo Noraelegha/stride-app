@@ -15,24 +15,19 @@ export default function LockedInPage() {
 
   const handleAllowNotifications = async () => {
     setNotifRequesting(true)
-
     const timeout = setTimeout(() => {
       router.push('/home')
     }, 6000)
-
     try {
       const OneSignal = (await import('react-onesignal')).default
-
       await OneSignal.init({
         appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
         allowLocalhostAsSecureOrigin: true,
       })
-
       const permission = OneSignal.Notifications.permission
       if (!permission) {
         await OneSignal.Notifications.requestPermission()
       }
-
       const stored = localStorage.getItem('stride_user')
       if (stored) {
         const userData = JSON.parse(stored)
@@ -50,7 +45,6 @@ export default function LockedInPage() {
     } catch (e) {
       console.error('Notification setup failed:', e)
     }
-
     clearTimeout(timeout)
     router.push('/home')
   }
@@ -73,20 +67,18 @@ export default function LockedInPage() {
       }}
     >
       <ThemeColor color="#4CAF50" />
-
       <div style={{
         background: '#fff', borderRadius: '20px', padding: '7px 18px',
         fontSize: '13px', fontWeight: 800, color: '#4CAF50', display: 'inline-block',
       }}>GOOD JOB! 🎉</div>
-
       <div style={{ position: 'relative', width: '100px', height: '100px' }}>
         {[
-          { bg: '#F5A623', left: '4%',  top: '20%', delay: '0s', size: 7 },
-          { bg: '#fff',    left: '85%', top: '10%', delay: '.3s', size: 5 },
-          { bg: '#fff',    left: '18%', top: '5%',  delay: '.6s', size: 9 },
-          { bg: '#F5A623', left: '75%', top: '30%', delay: '.9s', size: 5 },
+          { bg: '#F5A623', left: '4%',  top: '20%', delay: '0s',   size: 7 },
+          { bg: '#fff',    left: '85%', top: '10%', delay: '.3s',  size: 5 },
+          { bg: '#fff',    left: '18%', top: '5%',  delay: '.6s',  size: 9 },
+          { bg: '#F5A623', left: '75%', top: '30%', delay: '.9s',  size: 5 },
           { bg: '#fff',    left: '50%', top: '2%',  delay: '.45s', size: 7 },
-          { bg: '#F5A623', left: '30%', top: '80%', delay: '1s', size: 5 },
+          { bg: '#F5A623', left: '30%', top: '80%', delay: '1s',   size: 5 },
           { bg: '#fff',    left: '70%', top: '75%', delay: '.75s', size: 9 },
         ].map((c, i) => (
           <div key={i} className="cd" style={{
@@ -126,7 +118,7 @@ export default function LockedInPage() {
         {[
           { icon: '🕐', text: 'Your first task is waiting on the home screen' },
           { icon: '✓',  text: 'Complete it and your streak starts' },
-          { icon: '⚡', text: 'Dash checks in at 8 AM and 8 PM' },
+          { icon: '⚡', text: 'Dash checks in throughout the day to keep you on track' },
         ].map((item, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: i < 2 ? '9px' : 0 }}>
             <span style={{ fontSize: '14px', width: '18px', textAlign: 'center', color: '#fff', fontWeight: item.icon === '✓' ? 700 : 400 }}>{item.icon}</span>
@@ -160,7 +152,7 @@ export default function LockedInPage() {
           One last thing.
         </div>
         <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, marginBottom: '14px' }}>
-          Dash shows up daily at 8am with your task. Allow notifications so you never miss it.
+          Dash checks in throughout the day with your task and reminders. Allow notifications so you never miss a beat.
         </div>
         <button
           onClick={handleAllowNotifications}
@@ -175,7 +167,6 @@ export default function LockedInPage() {
           {notifRequesting ? 'Setting up...' : 'Allow notifications ⚡'}
         </button>
       </div>
-
     </div>
   )
 }
