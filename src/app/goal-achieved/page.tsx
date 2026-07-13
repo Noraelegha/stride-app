@@ -2,14 +2,11 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ThemeColor from '@/components/ThemeColor'
-import { supabase } from '@/lib/supabase'
 
 export default function GoalAchievedPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [visible, setVisible] = useState(false)
-  const [phase, setPhase] = useState<'celebrate' | 'next'>('celebrate')
-  const [resetting, setResetting] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('stride_user')
@@ -30,74 +27,13 @@ export default function GoalAchievedPage() {
     }
   }
 
-  const handleStartNewGoal = async () => {
-    if (!user || resetting) return
-    setResetting(true)
-
-    try {
-      // Reset goal and phase fields only — preserve task history and stats
-      await supabase.from('stride_users').update({
-        goal: null,
-        goal_short: null,
-        big_prize: null,
-        prize_short: null,
-        personal_why: null,
-        phase: 1,
-        streak: 0,
-        score: 0,
-        sprint_theme: null,
-        sprint_day: null,
-        sprint_start_date: null,
-        has_deadline: null,
-        deadline: null,
-      }).eq('email', user.email)
-
-      // Clear goal fields from localStorage but keep identity and history stats
-      const updated = {
-        ...user,
-        goal: null,
-        goalShort: null,
-        bigPrize: null,
-        prizeShort: null,
-        personalWhy: null,
-        phase: 1,
-        streak: 0,
-        score: 0,
-        sprintTheme: null,
-        sprintDay: null,
-        sprintStartDate: null,
-        hasDeadline: null,
-        deadline: null,
-      }
-      localStorage.setItem('stride_user', JSON.stringify(updated))
-
-      // Push to onboarding — they'll fill in a new goal
-      // tasksDone and daily_tasks history are preserved
-      router.push('/onboarding')
-    } catch (e) {
-      console.error('Goal reset failed:', e)
-      setResetting(false)
-    }
-  }
-
   const getCoachMessage = (coachStyle: string, goal: string) => {
     const style = coachStyle || 'mentor'
     const messages: Record<string, string> = {
       friend:    `${(goal || '').split(' ').slice(0, 4).join(' ')}… done. I cannot believe you actually pulled this off. Respect.`,
-      tough:     `Goal reached. No celebration yet — you know what comes next. Set the bar higher.`,
-      strategic: `Objective achieved. Every task, every day — that is how it compounds. You have the proof now.`,
+      tough:     `Goal reached. No celebration yet. You know what comes next. Set the bar higher.`,
+      strategic: `Objective achieved. Every task, every day. That is how it compounds. You have the proof now.`,
       mentor:    `You did it. Not by accident. By showing up, one day at a time, until it became real.`,
-    }
-    return messages[style] || messages['mentor']
-  }
-
-  const getNextChapterMessage = (coachStyle: string, tasksDone: number) => {
-    const style = coachStyle || 'mentor'
-    const messages: Record<string, string> = {
-      friend:    `Okay so you actually did it. ${tasksDone} tasks. Wild. So what's the next thing we're going to make you do? 😏`,
-      tough:     `${tasksDone} tasks completed. That is your baseline now. The next goal needs to be bigger. What is it?`,
-      strategic: `You have ${tasksDone} completed tasks as proof of concept. The system works. What is the next objective?`,
-      mentor:    `${tasksDone} tasks. That is not a small thing. You have built something real here. What does the next chapter look like?`,
     }
     return messages[style] || messages['mentor']
   }
@@ -121,110 +57,6 @@ export default function GoalAchievedPage() {
   const streak = user.streak || 0
   const bonusTasks = user.bonusTasks || 0
 
-  // PHASE 2 — What's next screen
-  if (phase === 'next') {
-    return (
-      <div style={{
-        minHeight: '100dvh',
-        background: '#0f1623',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '48px 28px 44px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        <ThemeColor color="#0f1623" />
-
-        {shapes.map((s, i) => (
-          <div key={i} style={{
-            position: 'absolute',
-            top: s.t, left: s.l,
-            width: s.s, height: s.s,
-            background: s.c,
-            borderRadius: s.sq ? '2px' : '50%',
-            opacity: 0.25,
-            pointerEvents: 'none',
-          }} />
-        ))}
-
-        {/* Dash avatar */}
-        <div style={{
-          width: 64, height: 64,
-          background: '#F5A623',
-          borderRadius: 18,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 32, marginBottom: 24,
-        }}>
-          ⚡
-        </div>
-
-        {/* Dash label */}
-        <div style={{
-          fontSize: 11, fontWeight: 700,
-          color: 'rgba(245,166,35,0.65)',
-          letterSpacing: '0.14em', textTransform: 'uppercase',
-          marginBottom: 16,
-        }}>
-          Dash
-        </div>
-
-        {/* Message */}
-        <div style={{
-          fontSize: 18, fontWeight: 700, color: '#fff',
-          textAlign: 'center', lineHeight: 1.6,
-          maxWidth: 290, marginBottom: 12,
-        }}>
-          {getNextChapterMessage(user.coachStyle, tasksDone)}
-        </div>
-
-        {/* Proof line */}
-        <div style={{
-          fontSize: 13, color: 'rgba(255,255,255,0.4)',
-          textAlign: 'center', lineHeight: 1.6,
-          maxWidth: 260, marginBottom: 48,
-        }}>
-          Your {tasksDone} completed tasks stay on record. Dash remembers everything.
-        </div>
-
-        {/* Buttons */}
-        <div style={{
-          width: '100%', maxWidth: 320,
-          display: 'flex', flexDirection: 'column', gap: 10,
-        }}>
-          <button
-            onClick={handleStartNewGoal}
-            disabled={resetting}
-            style={{
-              width: '100%', background: '#F5A623',
-              border: 'none', borderRadius: 16,
-              padding: '17px', fontSize: 16, fontWeight: 700,
-              color: '#1a1a2e', cursor: resetting ? 'default' : 'pointer',
-              opacity: resetting ? 0.6 : 1,
-            }}
-          >
-            {resetting ? 'Setting up...' : 'Set my next goal ⚡'}
-          </button>
-          <button
-            onClick={() => router.push('/home')}
-            style={{
-              width: '100%',
-              background: 'rgba(255,255,255,0.07)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 16, padding: '15px',
-              fontSize: 15, fontWeight: 600,
-              color: '#fff', cursor: 'pointer',
-            }}
-          >
-            Back to home
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // PHASE 1 — Celebration screen (your existing design, untouched)
   return (
     <div style={{
       minHeight: '100dvh',
@@ -298,6 +130,7 @@ export default function GoalAchievedPage() {
         }} />
       ))}
 
+      {/* Orbiting icon zone */}
       <div style={{
         position: 'relative',
         width: 120, height: 120,
@@ -318,6 +151,7 @@ export default function GoalAchievedPage() {
         </div>
       </div>
 
+      {/* You made it label */}
       <div style={{
         fontSize: 12, fontWeight: 700,
         color: 'rgba(245,166,35,0.65)',
@@ -328,6 +162,7 @@ export default function GoalAchievedPage() {
         You made it.
       </div>
 
+      {/* Goal text */}
       <div style={{
         fontSize: 20, fontWeight: 800, color: '#fff',
         textAlign: 'center', lineHeight: 1.4,
@@ -337,6 +172,7 @@ export default function GoalAchievedPage() {
         {user.goal || user.bigPrize || 'Goal achieved.'}
       </div>
 
+      {/* Journey stats card */}
       <div style={{
         background: 'rgba(255,255,255,0.05)',
         border: '1px solid rgba(255,255,255,0.08)',
@@ -364,6 +200,7 @@ export default function GoalAchievedPage() {
         </div>
       </div>
 
+      {/* Coach-styled closing message */}
       <div style={{
         fontSize: 15, color: 'rgba(255,255,255,0.65)',
         textAlign: 'center', lineHeight: 1.7,
@@ -374,6 +211,7 @@ export default function GoalAchievedPage() {
         {getCoachMessage(user.coachStyle, user.goal)}
       </div>
 
+      {/* Buttons */}
       <div style={{
         width: '100%', maxWidth: 320,
         display: 'flex', flexDirection: 'column', gap: 10,
@@ -396,7 +234,7 @@ export default function GoalAchievedPage() {
           Share this 🌟
         </button>
         <button
-          onClick={() => setPhase('next')}
+          onClick={() => router.push('/home')}
           style={{
             width: '100%',
             background: 'rgba(255,255,255,0.07)',

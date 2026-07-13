@@ -115,7 +115,7 @@ export default function AlertsPage() {
             <div style={{ fontSize: '40px' }}>🔔</div>
             <div style={{ fontSize: '16px', fontWeight: 700, color: '#1a1a2e' }}>No alerts yet</div>
             <p style={{ fontSize: '13px', color: '#aaa', lineHeight: 1.6, margin: 0, maxWidth: '240px' }}>
-              Complete tasks, hit streaks, and earn shields — your milestones will show up here.
+              Complete tasks, hit streaks, and earn shields. Your milestones will show up here.
             </p>
           </div>
         ) : (

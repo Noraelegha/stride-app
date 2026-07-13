@@ -736,7 +736,7 @@ export default function HomePage() {
                         <div style={{ fontSize: '12px', fontWeight: 700, color: '#F5A623' }}>Stride Pro feature</div>
                         <div style={{ fontSize: '13px', color: '#555', lineHeight: 1.55 }}>
                           {proPromptHint === 'toolDrop'
-                            ? 'Dash gives you the exact first step to take — no figuring out where to begin. Available on Stride Pro.'
+                            ? 'Dash gives you the exact first step to take. No figuring out where to begin. Available on Stride Pro.'
                             : 'Dash gives you direct permission to move imperfectly and stop waiting for the right moment. Available on Stride Pro.'}
                         </div>
                       </div>
@@ -809,7 +809,7 @@ export default function HomePage() {
                           <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a1a2e' }}>Now tell Dash what you actually wrote.</div>
                           <div style={{ fontSize: '12px', color: '#888', lineHeight: 1.5 }}>Type or paste your answers here. This is what Dash uses to build every task from now on.</div>
                           <textarea rows={5} placeholder="e.g. I am building a social media management service for small Nigerian businesses..." value={checkinNote} onChange={e => setCheckinNote(e.target.value)} style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '10px 12px', fontSize: '16px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%', lineHeight: 1.5 }} />
-                          {checkinNote.trim().length > 0 && checkinNote.trim().length < 15 && <div style={{ fontSize: '11px', color: '#999' }}>Keep going — Dash needs more detail to generate useful tasks.</div>}
+                          {checkinNote.trim().length > 0 && checkinNote.trim().length < 15 && <div style={{ fontSize: '11px', color: '#999' }}>Keep going. Dash needs more detail to generate useful tasks.</div>}
                           {checkinNote.trim().length === 0 && <div style={{ fontSize: '11px', color: '#999' }}>The more specific you are, the better every future task will be.</div>}
                         </div>
                       )}
@@ -834,7 +834,7 @@ export default function HomePage() {
                             Show Dash what you did. <span style={{ fontWeight: 400, color: '#aaa' }}>(optional but makes tomorrow better)</span>
                           </div>
                           <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '2px' }}>
-                            {taskData?.proof_prompt || 'Paste what you produced — anything Dash should see.'}
+                            {taskData?.proof_prompt || 'Paste what you produced. Anything Dash should see.'}
                           </div>
                           <textarea rows={3} placeholder="Paste it here..." value={outputNote} onChange={e => setOutputNote(e.target.value)}
                             style={{ border: '1.5px solid #eee', borderRadius: '10px', padding: '8px 11px', fontSize: '16px', color: '#1a1a2e', outline: 'none', fontFamily: 'inherit', resize: 'none', width: '100%', lineHeight: 1.5, background: '#fafafa' }} />

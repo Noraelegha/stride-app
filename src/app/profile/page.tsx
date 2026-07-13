@@ -188,8 +188,8 @@ export default function ProfilePage() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a2e' }}>Notifications</div>
-              <div style={{ fontSize: '11px', color: '#888', marginTop: '2px', lineHeight: 1.5 }}>
-                Dash checks in at 8am, 12pm, 3pm, 7pm and 10pm daily. Urgency increases if your task is still open.
+              <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+                Dash checks in throughout the day to keep you on track.
               </div>
             </div>
           </div>
@@ -203,7 +203,7 @@ export default function ProfilePage() {
           <div style={{ padding: '12px 16px', borderTop: '1px solid #f5f5f5' }}>
             <div style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Email</div>
             <div style={{ fontSize: '14px', color: '#1a1a2e' }}>
-              {user?.email || '—'}
+              {user?.email || '–'}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 16px', borderTop: '1px solid #f5f5f5' }}>
