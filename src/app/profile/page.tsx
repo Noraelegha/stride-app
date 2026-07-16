@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronRight, ChevronDown } from 'lucide-react'
 import BottomNav from '@/components/BottomNav'
+import { supabase } from '@/lib/supabase'
 
 const COACH_OPTIONS = [
   { id: 'tough',     emoji: '💪', label: 'No-nonsense coach',     sub: 'Direct. Unfiltered. Pure execution.' },
@@ -13,11 +14,22 @@ const COACH_OPTIONS = [
   { id: 'mentor',    emoji: '🧘', label: 'Gentle mentor',         sub: 'Encouragement first.' },
 ]
 
+const FEEDBACK_CATEGORIES = [
+  { id: 'bug',        emoji: '🐛', label: 'Bug report' },
+  { id: 'suggestion', emoji: '💡', label: 'Suggestion' },
+  { id: 'other',      emoji: '💬', label: 'Other' },
+]
+
 export default function ProfilePage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [editCoach, setEditCoach] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [feedbackCategory, setFeedbackCategory] = useState('')
+  const [feedbackMessage, setFeedbackMessage] = useState('')
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false)
+  const [feedbackDone, setFeedbackDone] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('stride_user')
@@ -49,6 +61,30 @@ export default function ProfilePage() {
     }
     localStorage.removeItem('stride_user')
     router.push('/')
+  }
+
+  const handleFeedbackSubmit = async () => {
+    if (!feedbackCategory || feedbackMessage.trim().length < 5) return
+    setFeedbackSubmitting(true)
+    try {
+      await supabase.from('feedback').insert({
+        user_email: user?.email || 'unknown',
+        user_name: user?.name || null,
+        category: feedbackCategory,
+        message: feedbackMessage.trim(),
+      })
+      setFeedbackDone(true)
+      setFeedbackMessage('')
+      setFeedbackCategory('')
+      setTimeout(() => {
+        setFeedbackDone(false)
+        setShowFeedback(false)
+      }, 2000)
+    } catch (e) {
+      console.error('Feedback submit failed:', e)
+    } finally {
+      setFeedbackSubmitting(false)
+    }
   }
 
   const coachLabel = COACH_OPTIONS.find(c => c.id === user?.coachStyle)
@@ -181,7 +217,7 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* Notification schedule — informational only */}
+          {/* Notifications */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 16px', borderTop: '1px solid #f5f5f5' }}>
             <div style={{ width: 34, height: 34, background: '#f0f6ff', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>
               🔔
@@ -202,9 +238,7 @@ export default function ProfilePage() {
           </div>
           <div style={{ padding: '12px 16px', borderTop: '1px solid #f5f5f5' }}>
             <div style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Email</div>
-            <div style={{ fontSize: '14px', color: '#1a1a2e' }}>
-              {user?.email || '–'}
-            </div>
+            <div style={{ fontSize: '14px', color: '#1a1a2e' }}>{user?.email || '–'}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 16px', borderTop: '1px solid #f5f5f5' }}>
             <div style={{ width: 34, height: 34, background: '#1a1a2e', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>⚡</div>
@@ -216,12 +250,97 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* Feedback */}
+        <div style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', marginBottom: '12px' }}>
+          <div
+            onClick={() => { setShowFeedback(!showFeedback); setFeedbackDone(false) }}
+            style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 16px', cursor: 'pointer' }}
+          >
+            <div style={{ width: 34, height: 34, background: '#f5f0ff', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>
+              💬
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a1a2e' }}>Send feedback</div>
+              <div style={{ fontSize: '11px', color: '#888' }}>Bugs, suggestions, anything on your mind</div>
+            </div>
+            {showFeedback
+              ? <ChevronDown size={14} color="#ccc" />
+              : <ChevronRight size={14} color="#ccc" />
+            }
+          </div>
+
+          {showFeedback && (
+            <div style={{ padding: '0 16px 16px', borderTop: '1px solid #f5f5f5' }}
+              onClick={e => e.stopPropagation()}>
+
+              {feedbackDone ? (
+                <div style={{ textAlign: 'center', padding: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ fontSize: '32px' }}>✅</div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e' }}>Got it. Thanks.</div>
+                  <div style={{ fontSize: '12px', color: '#888' }}>Dash will make note of this.</div>
+                </div>
+              ) : (
+                <>
+                  {/* Category picker */}
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px', marginBottom: '12px' }}>
+                    {FEEDBACK_CATEGORIES.map(cat => (
+                      <div
+                        key={cat.id}
+                        onClick={() => setFeedbackCategory(cat.id)}
+                        style={{
+                          flex: 1, border: `1.5px solid ${feedbackCategory === cat.id ? '#1a1a2e' : '#eee'}`,
+                          borderRadius: '10px', padding: '8px 6px', cursor: 'pointer',
+                          textAlign: 'center', background: feedbackCategory === cat.id ? '#f5f5fa' : '#fff',
+                          transition: 'all .15s',
+                        }}
+                      >
+                        <div style={{ fontSize: '18px', marginBottom: '3px' }}>{cat.emoji}</div>
+                        <div style={{ fontSize: '11px', fontWeight: 600, color: feedbackCategory === cat.id ? '#1a1a2e' : '#888' }}>{cat.label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Message */}
+                  <textarea
+                    rows={3}
+                    placeholder="Tell us what's on your mind..."
+                    value={feedbackMessage}
+                    onChange={e => setFeedbackMessage(e.target.value)}
+                    style={{
+                      width: '100%', border: '1.5px solid #eee', borderRadius: '10px',
+                      padding: '10px 12px', fontSize: '13px', color: '#1a1a2e',
+                      outline: 'none', fontFamily: 'inherit', resize: 'none',
+                      lineHeight: 1.5, marginBottom: '10px',
+                    }}
+                  />
+
+                  <button
+                    onClick={handleFeedbackSubmit}
+                    disabled={!feedbackCategory || feedbackMessage.trim().length < 5 || feedbackSubmitting}
+                    style={{
+                      width: '100%', background: '#1a1a2e', border: 'none',
+                      borderRadius: '10px', padding: '11px', fontSize: '14px',
+                      fontWeight: 700, color: '#fff',
+                      cursor: (!feedbackCategory || feedbackMessage.trim().length < 5 || feedbackSubmitting) ? 'default' : 'pointer',
+                      opacity: (!feedbackCategory || feedbackMessage.trim().length < 5 || feedbackSubmitting) ? 0.3 : 1,
+                      transition: 'opacity .2s',
+                    }}
+                  >
+                    {feedbackSubmitting ? 'Sending...' : 'Send feedback'}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
         <button
           onClick={handleSignOut}
           style={{ background: 'none', border: 'none', color: '#f44', fontSize: '14px', cursor: 'pointer', padding: '8px 0', textAlign: 'left' }}
         >
           Sign out
         </button>
+
       </div>
       <BottomNav />
     </div>
