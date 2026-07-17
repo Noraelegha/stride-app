@@ -179,6 +179,13 @@ export default function HomePage() {
     const stored = localStorage.getItem('stride_user')
     if (!stored) { router.push('/onboarding'); return }
     const userData = JSON.parse(stored)
+    // Show tutorial for first 3 opens only
+    const tutorialCount = parseInt(localStorage.getItem('stride_tutorial_count') || '0')
+    if (tutorialCount >= 3) {
+      setShowTut(false)
+    } else {
+      localStorage.setItem('stride_tutorial_count', String(tutorialCount + 1))
+    }
     const runChecks = async () => {
       if (checksRanRef.current) return
       checksRanRef.current = true
@@ -597,6 +604,16 @@ export default function HomePage() {
   return (
     <div className="screen" style={{ background: '#f5f5f7' }}>
       <ThemeColor color="#1a1a2e" />
+      <style>{`
+        @keyframes tutArrowRight {
+          0%,100%{transform:translateX(0);opacity:1}
+          60%{transform:translateX(-12px);opacity:0.3}
+        }
+        @keyframes tutArrowLeft {
+          0%,100%{transform:translateX(0);opacity:1}
+          60%{transform:translateX(12px);opacity:0.3}
+        }
+      `}</style>
       <div style={{ background: '#1a1a2e', padding: '52px 22px 18px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '11px' }}>
           <div>
@@ -636,7 +653,7 @@ export default function HomePage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '9px' }}>
               <div style={{ fontSize: '14px', fontWeight: 700, color: '#1a1a2e' }}>Today&apos;s task</div>
-              <div style={{ fontSize: '12px', color: '#888' }}>See all</div>
+              <div onClick={() => router.push('/journey')} style={{ fontSize: '12px', color: '#888', cursor: 'pointer' }}>See all</div>
             </div>
             <div style={{ position: 'relative', borderRadius: '20px', minHeight: '220px' }}>
               <div ref={bgDoneRef} style={{ position: 'absolute', inset: 0, background: '#4CAF50', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: '26px', opacity: 0, zIndex: 1, pointerEvents: 'none' }}>
@@ -656,7 +673,7 @@ export default function HomePage() {
                   onTouchStart={e => startDrag(e.touches[0].clientX)}
                   onTouchMove={e => moveDrag(e.touches[0].clientX)}
                   onTouchEnd={endDrag}
-                  style={{ position: 'relative', background: '#fff', borderRadius: '20px', border: '1.5px solid #1a1a2e', padding: '16px 18px 20px', cursor: 'grab', userSelect: 'none', zIndex: 2, display: 'flex', flexDirection: 'column', gap: '10px', overflow: 'hidden', willChange: 'transform' }}
+                  style={{ position: 'relative', background: '#fff', borderRadius: '20px', border: '1.5px solid #1a1a2e', padding: '16px 18px 20px', cursor: 'grab', userSelect: 'none', zIndex: 2, display: 'flex', flexDirection: 'column', gap: '10px', overflow: 'hidden', willChange: 'transform', filter: showTut ? 'blur(2.5px)' : 'none', transition: 'filter 0.2s' }}
                 >
                   <div style={{ fontSize: '9px', fontWeight: 700, color: '#F5A623', letterSpacing: '.1em', textTransform: 'uppercase' }}>Day {currentDay} ⚡</div>
                   <div style={{ background: '#f9f9f9', borderRadius: '9px', borderBottomLeftRadius: '2px', padding: '8px 10px' }}>
@@ -912,17 +929,28 @@ export default function HomePage() {
               )}
 
               {showTut && panel === 'task' && (
-                <div onClick={() => setShowTut(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(26,26,46,.88)', borderRadius: '20px', zIndex: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '22px', color: '#F5A623' }}>←</span>
-                    <span style={{ color: '#fff', fontSize: '14px', fontWeight: 500 }}>Swipe left for help</span>
+                <div onClick={() => setShowTut(false)} style={{ position: 'absolute', inset: 0, borderRadius: '20px', zIndex: 30, cursor: 'pointer', overflow: 'hidden', display: 'flex' }}>
+
+                  {/* Left half — swipe right to mark done */}
+                  <div style={{ flex: 1, background: 'rgba(26,26,46,0.9)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '16px' }}>
+                    <div style={{ width: 40, height: 40, background: 'rgba(76,175,80,0.15)', border: '1.5px solid rgba(76,175,80,0.45)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>✅</div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>Task done</div>
+                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>swipe right</div>
+                    <div style={{ fontSize: '24px', color: '#4CAF50', animation: 'tutArrowRight 1.8s ease-in-out infinite' }}>←</div>
                   </div>
-                  <div style={{ width: '40px', height: '1.5px', background: 'rgba(255,255,255,.2)' }} />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ color: '#fff', fontSize: '14px', fontWeight: 500 }}>Swipe right for done</span>
-                    <span style={{ fontSize: '22px', color: '#F5A623' }}>→</span>
+
+                  {/* Right half — swipe left for help */}
+                  <div style={{ flex: 1, background: 'rgba(26,26,46,0.9)', borderLeft: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '16px' }}>
+                    <div style={{ width: 40, height: 40, background: 'rgba(245,166,35,0.15)', border: '1.5px solid rgba(245,166,35,0.45)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>💡</div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>Need help</div>
+                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>swipe left</div>
+                    <div style={{ fontSize: '24px', color: '#F5A623', animation: 'tutArrowLeft 1.8s ease-in-out infinite 0.9s' }}>→</div>
                   </div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.4)', marginTop: '6px' }}>Tap anywhere to dismiss</div>
+
+                  {/* Tap to dismiss */}
+                  <div style={{ position: 'absolute', bottom: 13, left: 0, right: 0, textAlign: 'center' }}>
+                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)' }}>Tap to continue</div>
+                  </div>
                 </div>
               )}
             </div>
