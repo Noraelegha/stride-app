@@ -45,6 +45,18 @@ export default function ProfilePage() {
     localStorage.setItem('stride_user', JSON.stringify(updated))
     setSavedMsg('Saved')
     setTimeout(() => setSavedMsg(''), 1800)
+
+    if (updates.coachStyle) {
+      ;(async () => {
+        try {
+          await supabase.from('stride_users')
+            .update({ coach_style: updates.coachStyle })
+            .eq('email', user.email)
+        } catch (e) {
+          console.error('Coach style save failed:', e)
+        }
+      })()
+    }
   }
 
   const handleCoachSelect = (id: string) => {
@@ -272,7 +284,6 @@ export default function ProfilePage() {
           {showFeedback && (
             <div style={{ padding: '0 16px 16px', borderTop: '1px solid #f5f5f5' }}
               onClick={e => e.stopPropagation()}>
-
               {feedbackDone ? (
                 <div style={{ textAlign: 'center', padding: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                   <div style={{ fontSize: '32px' }}>✅</div>
@@ -281,7 +292,6 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <>
-                  {/* Category picker */}
                   <div style={{ display: 'flex', gap: '8px', marginTop: '12px', marginBottom: '12px' }}>
                     {FEEDBACK_CATEGORIES.map(cat => (
                       <div
@@ -299,8 +309,6 @@ export default function ProfilePage() {
                       </div>
                     ))}
                   </div>
-
-                  {/* Message */}
                   <textarea
                     rows={3}
                     placeholder="Tell us what's on your mind..."
@@ -313,7 +321,6 @@ export default function ProfilePage() {
                       lineHeight: 1.5, marginBottom: '10px',
                     }}
                   />
-
                   <button
                     onClick={handleFeedbackSubmit}
                     disabled={!feedbackCategory || feedbackMessage.trim().length < 5 || feedbackSubmitting}
