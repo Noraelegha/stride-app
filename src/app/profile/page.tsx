@@ -316,7 +316,7 @@ export default function ProfilePage() {
                     onChange={e => setFeedbackMessage(e.target.value)}
                     style={{
                       width: '100%', border: '1.5px solid #eee', borderRadius: '10px',
-                      padding: '10px 12px', fontSize: '13px', color: '#1a1a2e',
+                      padding: '10px 12px', fontSize: '16px', color: '#1a1a2e',
                       outline: 'none', fontFamily: 'inherit', resize: 'none',
                       lineHeight: 1.5, marginBottom: '10px',
                     }}
