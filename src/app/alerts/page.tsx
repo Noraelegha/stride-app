@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import BottomNav from '@/components/BottomNav'
 import ThemeColor from '@/components/ThemeColor'
 
@@ -66,13 +65,12 @@ export default function AlertsPage() {
 
     const fetchLogs = async () => {
       try {
-        const { data } = await supabase
-          .from('notification_logs')
-          .select('tier, message, sent_at')
-          .eq('user_email', localUser.email)
-          .order('sent_at', { ascending: false })
-          .limit(100)
-
+        const res = await fetch('/api/notifications/get', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: localUser.email, limit: 100 }),
+        })
+        const { data } = await res.json()
         const entries = data || []
         setAllLogs(entries)
         setLogs(entries.filter(isSignificant))

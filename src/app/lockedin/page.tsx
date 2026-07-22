@@ -15,19 +15,12 @@ export default function LockedInPage() {
 
   const handleAllowNotifications = async () => {
     setNotifRequesting(true)
-    const timeout = setTimeout(() => {
-      router.push('/home')
-    }, 6000)
+    const timeout = setTimeout(() => { router.push('/home') }, 6000)
     try {
       const OneSignal = (await import('react-onesignal')).default
-      await OneSignal.init({
-        appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
-        allowLocalhostAsSecureOrigin: true,
-      })
+      await OneSignal.init({ appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!, allowLocalhostAsSecureOrigin: true })
       const permission = OneSignal.Notifications.permission
-      if (!permission) {
-        await OneSignal.Notifications.requestPermission()
-      }
+      if (!permission) await OneSignal.Notifications.requestPermission()
       const stored = localStorage.getItem('stride_user')
       if (stored) {
         const userData = JSON.parse(stored)
@@ -35,11 +28,11 @@ export default function LockedInPage() {
         await new Promise(resolve => setTimeout(resolve, 1500))
         const subscriptionId = OneSignal.User.PushSubscription.id
         if (subscriptionId) {
-          const { supabase } = await import('@/lib/supabase')
-          await supabase
-            .from('stride_users')
-            .update({ onesignal_id: subscriptionId })
-            .eq('email', userData.email)
+          await fetch('/api/user/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: userData.email, updates: { onesignal_id: subscriptionId } }),
+          })
         }
       }
     } catch (e) {
@@ -50,27 +43,9 @@ export default function LockedInPage() {
   }
 
   return (
-    <div
-      style={{
-        flex: 1,
-        minHeight: '100dvh',
-        background: '#4CAF50',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: '32px 24px',
-        paddingBottom: 'calc(40px + env(safe-area-inset-bottom))',
-        textAlign: 'center',
-        gap: '18px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
+    <div style={{ flex: 1, minHeight: '100dvh', background: '#4CAF50', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 24px', paddingBottom: 'calc(40px + env(safe-area-inset-bottom))', textAlign: 'center', gap: '18px', position: 'relative', overflow: 'hidden' }}>
       <ThemeColor color="#4CAF50" />
-      <div style={{
-        background: '#fff', borderRadius: '20px', padding: '7px 18px',
-        fontSize: '13px', fontWeight: 800, color: '#4CAF50', display: 'inline-block',
-      }}>GOOD JOB! 🎉</div>
+      <div style={{ background: '#fff', borderRadius: '20px', padding: '7px 18px', fontSize: '13px', fontWeight: 800, color: '#4CAF50', display: 'inline-block' }}>GOOD JOB! 🎉</div>
       <div style={{ position: 'relative', width: '100px', height: '100px' }}>
         {[
           { bg: '#F5A623', left: '4%',  top: '20%', delay: '0s',   size: 7 },
@@ -81,40 +56,16 @@ export default function LockedInPage() {
           { bg: '#F5A623', left: '30%', top: '80%', delay: '1s',   size: 5 },
           { bg: '#fff',    left: '70%', top: '75%', delay: '.75s', size: 9 },
         ].map((c, i) => (
-          <div key={i} className="cd" style={{
-            background: c.bg, left: c.left, top: c.top,
-            animationDelay: c.delay, width: c.size, height: c.size,
-            borderRadius: i === 2 || i === 6 ? '2px' : '50%',
-          }} />
+          <div key={i} className="cd" style={{ background: c.bg, left: c.left, top: c.top, animationDelay: c.delay, width: c.size, height: c.size, borderRadius: i === 2 || i === 6 ? '2px' : '50%' }} />
         ))}
-        <div style={{
-          width: '96px', height: '96px',
-          background: 'rgba(255,255,255,0.25)',
-          borderRadius: '50%',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          animation: 'cel .5s ease-in-out infinite alternate',
-        }}>
-          <svg viewBox="0 0 24 24" fill="white" width="44" height="44">
-            <polygon points="13,2 3,14 12,14 11,22 21,10 12,10" />
-          </svg>
+        <div style={{ width: '96px', height: '96px', background: 'rgba(255,255,255,0.25)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'cel .5s ease-in-out infinite alternate' }}>
+          <svg viewBox="0 0 24 24" fill="white" width="44" height="44"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10" /></svg>
         </div>
       </div>
-
-      <div style={{ fontSize: '28px', fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>
-        You are locked in. 🔒
-      </div>
-      <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, maxWidth: '300px' }}>
-        Dash has your full briefing. The trail is set. Your first task is ready now.
-      </div>
-
-      <div style={{
-        background: 'rgba(255,255,255,0.18)', borderRadius: '16px',
-        padding: '16px', width: '100%', textAlign: 'left',
-        border: '1px solid rgba(255,255,255,0.25)',
-      }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
-          What happens next
-        </div>
+      <div style={{ fontSize: '28px', fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>You are locked in. 🔒</div>
+      <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, maxWidth: '300px' }}>Dash has your full briefing. The trail is set. Your first task is ready now.</div>
+      <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: '16px', padding: '16px', width: '100%', textAlign: 'left', border: '1px solid rgba(255,255,255,0.25)' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>What happens next</div>
         {[
           { icon: '🕐', text: 'Your first task is waiting on the home screen' },
           { icon: '✓',  text: 'Complete it and your streak starts' },
@@ -126,12 +77,7 @@ export default function LockedInPage() {
           </div>
         ))}
       </div>
-
-      <div style={{
-        background: 'rgba(255,255,255,0.18)', borderRadius: '16px',
-        padding: '15px', width: '100%', textAlign: 'left',
-        border: '1px solid rgba(255,255,255,0.25)',
-      }}>
+      <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: '16px', padding: '15px', width: '100%', textAlign: 'left', border: '1px solid rgba(255,255,255,0.25)' }}>
         <div style={{ marginBottom: '10px' }}>
           <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '3px' }}>Your goal</div>
           <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>{user?.goal || 'Your goal'}</div>
@@ -141,29 +87,11 @@ export default function LockedInPage() {
           <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>{user?.bigPrize || 'Your big prize'}</div>
         </div>
       </div>
-
-      <div style={{
-        background: 'rgba(255,255,255,0.18)', borderRadius: '16px',
-        padding: '16px', width: '100%', textAlign: 'left',
-        border: '1px solid rgba(255,255,255,0.25)',
-      }}>
+      <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: '16px', padding: '16px', width: '100%', textAlign: 'left', border: '1px solid rgba(255,255,255,0.25)' }}>
         <div style={{ fontSize: '22px', marginBottom: '8px' }}>🔔</div>
-        <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginBottom: '5px' }}>
-          One last thing.
-        </div>
-        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, marginBottom: '14px' }}>
-          Dash checks in throughout the day with your task and reminders. Allow notifications so you never miss a beat.
-        </div>
-        <button
-          onClick={handleAllowNotifications}
-          disabled={notifRequesting}
-          style={{
-            width: '100%', background: '#fff', color: '#4CAF50',
-            border: 'none', borderRadius: '12px', padding: '14px',
-            fontSize: '15px', fontWeight: 700, cursor: notifRequesting ? 'default' : 'pointer',
-            opacity: notifRequesting ? 0.8 : 1,
-          }}
-        >
+        <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginBottom: '5px' }}>One last thing.</div>
+        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, marginBottom: '14px' }}>Dash checks in throughout the day with your task and reminders. Allow notifications so you never miss a beat.</div>
+        <button onClick={handleAllowNotifications} disabled={notifRequesting} style={{ width: '100%', background: '#fff', color: '#4CAF50', border: 'none', borderRadius: '12px', padding: '14px', fontSize: '15px', fontWeight: 700, cursor: notifRequesting ? 'default' : 'pointer', opacity: notifRequesting ? 0.8 : 1 }}>
           {notifRequesting ? 'Setting up...' : 'Allow notifications ⚡'}
         </button>
       </div>

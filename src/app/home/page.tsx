@@ -2,12 +2,21 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import BottomNav from '@/components/BottomNav'
-import { supabase } from '@/lib/supabase'
 import { initAndSaveOneSignalId } from '@/lib/onesignal'
 import ThemeColor from '@/components/ThemeColor'
 
 type Panel = 'task' | 'hint' | 'srp' | 'streakShow' | 'bonus' | 'locked'
 type HintType = 'choose' | 'simplifier' | 'toolDrop' | 'permissionSlip'
+
+// API helpers — all Supabase access goes through server-side routes
+const apiGet = async (route: string, body: object) => {
+  const res = await fetch(route, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  return res.json()
+}
+const apiUserGet    = (email: string, fields?: string) => apiGet('/api/user/get',    { email, fields })
+const apiUserUpdate = (email: string, updates: object) => apiGet('/api/user/update', { email, updates })
+const apiTasksGet   = (email: string, opts: object = {}) => apiGet('/api/tasks/get',    { email, ...opts })
+const apiTasksUpdate = (email: string, updates: object, opts: object = {}) => apiGet('/api/tasks/update', { email, updates, ...opts })
 
 export default function HomePage() {
   const router = useRouter()
@@ -56,11 +65,7 @@ export default function HomePage() {
   const fetchTodayTask = async (userData: any) => {
     try {
       setTaskLoading(true)
-      const { data: history } = await supabase
-        .from('daily_tasks')
-        .select('*')
-        .eq('user_email', userData.email)
-        .order('task_date', { ascending: true })
+      const { data: history } = await apiTasksGet(userData.email, { fields: '*', order: { column: 'task_date', ascending: true } })
       const today = new Date().toISOString().split('T')[0]
       const todayTask = history?.find((t: any) => t.task_date === today)
       if (todayTask) {
@@ -84,8 +89,7 @@ export default function HomePage() {
                 const bonusData = await bonusRes.json()
                 const bonus = bonusData.bonus
                 if (bonus?.bonusTaskText) {
-                  await supabase.from('daily_tasks').update({ bonus_task_text: bonus.bonusTaskText })
-                    .eq('user_email', userData.email).eq('task_date', today)
+                  await apiTasksUpdate(userData.email, { bonus_task_text: bonus.bonusTaskText }, { filters: { task_date: today } })
                   setBonusTask({ text: bonus.bonusTaskText, dashMessage: bonus.dashMessage || '' })
                 } else { setBonusError(true) }
               } catch (e) { console.error('Bonus regeneration failed:', e); setBonusError(true) }
@@ -101,8 +105,8 @@ export default function HomePage() {
       })
       const { task } = await res.json()
       if (!task) { setTaskLoading(false); return }
-      const { error: insertError } = await supabase.from('daily_tasks').insert({
-        user_email: userData.email, day_number: (history?.length || 0) + 1,
+      const { error: insertError } = await apiTasksUpdate(userData.email, {
+        day_number: (history?.length || 0) + 1,
         task_text: task.taskText, dash_message: task.dashMessage,
         task_date: today, status: 'pending',
         chip1: task.chip1, chip2: task.chip2, chip_type: task.chipType || 'standard',
@@ -116,10 +120,9 @@ export default function HomePage() {
         completion_message: task.completionMessage || null,
         bonus_invite_message: task.bonusInviteMessage || null,
         proof_prompt: task.proofPrompt || null,
-      })
+      }, { insert: true })
       if (insertError) { console.error('Task insert failed:', insertError); setTaskLoading(false); return }
-      const { data: insertedTask } = await supabase.from('daily_tasks').select('*')
-        .eq('user_email', userData.email).eq('task_date', today).single()
+      const { data: insertedTask } = await apiTasksGet(userData.email, { fields: '*', filters: { task_date: today }, single: true })
       setTaskData(insertedTask)
       setTaskLoading(false)
       if (task.completionMessage) setCompletionMessage(task.completionMessage)
@@ -138,7 +141,7 @@ export default function HomePage() {
       await new Promise(r => setTimeout(r, 1500))
       const id = OneSignal.User.PushSubscription.id
       if (id) {
-        await supabase.from('stride_users').update({ onesignal_id: id }).eq('email', userData.email)
+        await apiUserUpdate(userData.email, { onesignal_id: id })
         const updated = { ...userData, onesignal_id: id }
         localStorage.setItem('stride_user', JSON.stringify(updated))
         setUser(updated)
@@ -198,8 +201,7 @@ export default function HomePage() {
         fetchTodayTask(userData)
         return
       }
-      const { data: dbUser } = await supabase.from('stride_users')
-        .select('last_active, shields, onesignal_id, is_pro').eq('email', userData.email).single()
+      const { data: dbUser } = await apiUserGet(userData.email, 'last_active, shields, onesignal_id, is_pro')
       // Sync Pro status from DB to localStorage
       const isPro = dbUser?.is_pro || false
       if (isPro !== userData.isPro) {
@@ -218,12 +220,7 @@ export default function HomePage() {
         const twoDaysAgo = new Date()
         twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
         const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0]
-        const { data: twoDaysTask } = await supabase
-          .from('daily_tasks')
-          .select('status')
-          .eq('user_email', userData.email)
-          .eq('task_date', twoDaysAgoStr)
-          .maybeSingle()
+        const { data: twoDaysTask } = await apiTasksGet(userData.email, { fields: 'status', filters: { task_date: twoDaysAgoStr }, single: true })
         const wasChained = twoDaysTask &&
           twoDaysTask.status !== 'completed' &&
           twoDaysTask.status !== 'partial'
@@ -239,10 +236,7 @@ export default function HomePage() {
         const shieldProtectedDate = new Date()
         shieldProtectedDate.setDate(shieldProtectedDate.getDate() - 1)
         shieldProtectedDate.setHours(23, 59, 59, 0)
-        await supabase.from('stride_users').update({
-          shields: shields - 1,
-          last_active: shieldProtectedDate.toISOString(),
-        }).eq('email', userData.email)
+        await apiUserUpdate(userData.email, { shields: shields - 1, last_active: shieldProtectedDate.toISOString() })
         const updated = { ...userData, shields: shields - 1 }
         localStorage.setItem('stride_user', JSON.stringify(updated))
         // Flag so handleSubmit knows to show unfreeze Phase 2 after task completion
@@ -261,7 +255,7 @@ export default function HomePage() {
         return
       }
       if (missedDays === 1 && shields === 0) {
-        await supabase.from('stride_users').update({ streak: 0, last_active: new Date().toISOString() }).eq('email', userData.email)
+        await apiUserUpdate(userData.email, { streak: 0, last_active: new Date().toISOString() })
         const updated = { ...userData, streak: 0 }
         localStorage.setItem('stride_user', JSON.stringify(updated))
         setUser(updated)
@@ -395,33 +389,33 @@ export default function HomePage() {
       const status = isCompleted ? 'completed' : isPartial ? 'partial' : isBlocked ? 'blocked' : 'partial'
       engagedReplyRef.current = isCompleted
       if (user && taskData) {
-        const { error: dailyTaskError } = await supabase.from('daily_tasks').update({
+        const { error: dailyTaskError } = await apiTasksUpdate(user.email, {
           status,
           completed_at: isCompleted ? new Date().toISOString() : null,
           swipe_direction: panel === 'hint' ? 'left' : 'right',
           user_reply: pickedWall || pickedChip,
           hint_type: pickedWall || null,
           hint_text: chipType === 'checkin' ? checkinNote.trim() : (wallNote.trim() || outputNote.trim() || null),
-        }).eq('user_email', user.email).eq('task_date', today)
+        }, { filters: { task_date: today } })
         if (dailyTaskError) { setSubmitError('Something went wrong saving your response. Please try again.'); return }
       }
       if (user && (isCompleted || isPartial)) {
         const newTasksDone = (user.tasksDone || 0) + 1
         const newStreak = (user.streak || 0) + 1
-        const { data: allTasksData } = await supabase.from('daily_tasks').select('status').eq('user_email', user.email)
+        const { data: allTasksData } = await apiTasksGet(user.email, { fields: 'status' })
         const totalRecorded = allTasksData?.length || newTasksDone
         const completedCount = allTasksData?.filter((t: any) => t.status === 'completed' || t.status === 'partial').length || newTasksDone
         const newScore = Math.min(Math.round((completedCount / totalRecorded) * 100), 100)
         const currentShields = user.shields || 0
         const newShields = newStreak % 10 === 0 && currentShields < 2 ? currentShields + 1 : currentShields
-        const { error: userUpdateError } = await supabase.from('stride_users').update({
+        const { error: userUpdateError } = await apiUserUpdate(user.email, {
           tasks_done: newTasksDone, streak: newStreak, score: newScore, shields: newShields,
           last_active: new Date().toISOString(),
-        }).eq('email', user.email)
+        })
         if (userUpdateError) { setSubmitError('Something went wrong updating your stats. Please try again.'); return }
         const updatedUser = { ...user, tasksDone: newTasksDone, streak: newStreak, score: newScore, shields: newShields }
         if (chipType === 'checkin' && checkinNote.trim().length >= 15) {
-          await supabase.from('stride_users').update({ prior_detail: checkinNote.trim() }).eq('email', user.email)
+          await apiUserUpdate(user.email, { prior_detail: checkinNote.trim() })
           const enriched = { ...updatedUser, priorDetail: checkinNote.trim() }
           localStorage.setItem('stride_user', JSON.stringify(enriched))
           setUser(enriched)
@@ -430,7 +424,7 @@ export default function HomePage() {
           const updatedDetail = existingDetail
             ? `${existingDetail}\n\n[${new Date().toLocaleDateString()}] ${outputNote.trim()}`
             : outputNote.trim()
-          await supabase.from('stride_users').update({ prior_detail: updatedDetail }).eq('email', user.email)
+          await apiUserUpdate(user.email, { prior_detail: updatedDetail })
           const enriched = { ...updatedUser, priorDetail: updatedDetail }
           localStorage.setItem('stride_user', JSON.stringify(enriched))
           setUser(enriched)
@@ -441,9 +435,9 @@ export default function HomePage() {
         if (pickedChip === 'chip1' && chipType === 'checkin') {
           const sprintStartDate = new Date().toISOString().split('T')[0]
           const nextSprintTheme = 'Convert your first warm lead into a paying client'
-          const { error: sprintError } = await supabase.from('stride_users').update({
+          const { error: sprintError } = await apiUserUpdate(user.email, {
             phase: 2, sprint_theme: nextSprintTheme, sprint_day: 1, sprint_start_date: sprintStartDate,
-          }).eq('email', user.email)
+          })
           if (!sprintError) {
             const sprintUser = { ...updatedUser, phase: 2, sprintTheme: nextSprintTheme, sprintDay: 1, sprintStartDate: sprintStartDate }
             localStorage.setItem('stride_user', JSON.stringify(sprintUser))
@@ -490,7 +484,7 @@ export default function HomePage() {
           localStorage.removeItem('stride_shield_used_today')
         }
       }
-      if (isBlocked) await supabase.from('stride_users').update({ last_active: new Date().toISOString() }).eq('email', user.email)
+      if (isBlocked) await apiUserUpdate(user.email, { last_active: new Date().toISOString() })
       setPanel('streakShow')
     } catch (err) { console.error('Submit failed:', err); setSubmitError('Something went wrong. Please try again.') }
     finally { setSubmitting(false) }
@@ -510,9 +504,9 @@ export default function HomePage() {
       if (!res.ok) throw new Error(`API ${res.status}`)
       const data = await res.json()
       const bonus = data.bonus
-      await supabase.from('daily_tasks').update({
+      await apiTasksUpdate(user.email, {
         bonus_task_active: true, bonus_task_status: 'pending', bonus_task_text: bonus?.bonusTaskText || null,
-      }).eq('user_email', user.email).eq('task_date', today)
+      }, { filters: { task_date: today } })
       setTaskData((prev: any) => ({ ...prev, bonus_task_active: true, bonus_task_status: 'pending', bonus_task_text: bonus?.bonusTaskText }))
       if (bonus?.bonusTaskText) setBonusTask({ text: bonus.bonusTaskText, dashMessage: bonus.dashMessage || '' })
       else setBonusError(true)
@@ -523,10 +517,9 @@ export default function HomePage() {
     if (!user) return
     const today = new Date().toISOString().split('T')[0]
     try {
-      await supabase.from('daily_tasks').update({ bonus_task_status: 'completed', bonus_completed: true })
-        .eq('user_email', user.email).eq('task_date', today)
+      await apiTasksUpdate(user.email, { bonus_task_status: 'completed', bonus_completed: true }, { filters: { task_date: today } })
       const newBonusTasks = (user.bonusTasks || 0) + 1
-      await supabase.from('stride_users').update({ bonus_tasks: newBonusTasks }).eq('email', user.email)
+      await apiUserUpdate(user.email, { bonus_tasks: newBonusTasks })
       const updatedUser = { ...user, bonusTasks: newBonusTasks }
       localStorage.setItem('stride_user', JSON.stringify(updatedUser))
       setUser(updatedUser)
@@ -539,8 +532,7 @@ export default function HomePage() {
     if (!user) return
     const today = new Date().toISOString().split('T')[0]
     try {
-      await supabase.from('daily_tasks').update({ bonus_task_status: 'skipped' })
-        .eq('user_email', user.email).eq('task_date', today)
+      await apiTasksUpdate(user.email, { bonus_task_status: 'skipped' }, { filters: { task_date: today } })
     } catch (err) { console.error('Bonus skip failed:', err) }
     setBonusCompleted(false)
     setPanel('locked')

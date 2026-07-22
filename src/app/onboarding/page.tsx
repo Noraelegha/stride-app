@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import ThemeColor from '@/components/ThemeColor'
 
 const TIME_OPTIONS = [
@@ -37,7 +36,6 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1)
   const totalSteps = 7
   const [isFinishing, setIsFinishing] = useState(false)
-
   const [data, setData] = useState({
     name: '',
     email: '',
@@ -61,7 +59,6 @@ export default function OnboardingPage() {
   })
 
   const set = (k: string, v: string) => setData(d => ({ ...d, [k]: v }))
-
   const toggleChip = (chip: string) => {
     setData(d => ({
       ...d,
@@ -95,12 +92,10 @@ export default function OnboardingPage() {
 
   const handleFinish = async () => {
     setIsFinishing(true)
-
     const [goalShort, prizeShort] = await Promise.all([
       shortenText(data.goal, 'goal'),
       shortenText(data.bigPrize, 'prize'),
     ])
-
     const userData = {
       ...data,
       goalShort,
@@ -113,38 +108,41 @@ export default function OnboardingPage() {
       shields: 1,
       joinedAt: new Date().toISOString(),
     }
-
     localStorage.setItem('stride_user', JSON.stringify(userData))
-
     try {
-      await supabase.from('stride_users').upsert({
-        email: data.email.toLowerCase().trim(),
-        name: data.name,
-        persona: data.persona,
-        goal: data.goal,
-        goal_short: goalShort,
-        big_prize: data.bigPrize,
-        prize_short: prizeShort,
-        personal_why: data.personalWhy,
-        coach_style: data.coachStyle,
-        daily_time: data.dailyTime,
-        domain: data.domain,
-        prior: data.prior,
-        prior_detail: data.priorDetail,
-        has_deadline: data.hasDeadline,
-        deadline: data.deadline || null,
-        streak: 0,
-        phase: 1,
-        tasks_done: 0,
-        score: 0,
-        bonus_tasks: 0,
-        shields: 1,
+      await fetch('/api/user/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: data.email.toLowerCase().trim(),
+          upsert: true,
+          updates: {
+            name: data.name,
+            persona: data.persona,
+            goal: data.goal,
+            goal_short: goalShort,
+            big_prize: data.bigPrize,
+            prize_short: prizeShort,
+            personal_why: data.personalWhy,
+            coach_style: data.coachStyle,
+            daily_time: data.dailyTime,
+            domain: data.domain,
+            prior: data.prior,
+            prior_detail: data.priorDetail,
+            has_deadline: data.hasDeadline,
+            deadline: data.deadline || null,
+            streak: 0,
+            phase: 1,
+            tasks_done: 0,
+            score: 0,
+            bonus_tasks: 0,
+            shields: 1,
+          },
+        }),
       })
     } catch (e) {
-      console.error('Supabase save failed:', e)
+      console.error('User save failed:', e)
     }
-
-    // Send welcome email — fire and forget, don't block navigation
     fetch('/api/send-welcome-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -155,7 +153,6 @@ export default function OnboardingPage() {
         coachStyle: data.coachStyle,
       }),
     }).catch(e => console.error('Welcome email failed:', e))
-
     router.push('/lockedin')
   }
 
@@ -244,10 +241,9 @@ export default function OnboardingPage() {
             />
             {data.goal.trim().length > 0 && data.goal.trim().length < 40 && (
               <div style={{ fontSize: '11px', color: '#F5A623', marginTop: '2px' }}>
-                Add more detail — include your niche, a number, or a timeframe.
+                Add more detail. Include your niche, a number, or a timeframe.
               </div>
             )}
-
             {data.persona === 'builder' && (
               <>
                 <div className="ob-lbl" style={{ marginTop: '10px' }}>What space are you building in?</div>
@@ -261,7 +257,6 @@ export default function OnboardingPage() {
                 )}
               </>
             )}
-
             {data.persona === 'learner' && (
               <>
                 <div className="ob-lbl" style={{ marginTop: '10px' }}>What are you getting certified or skilled in?</div>
@@ -281,7 +276,6 @@ export default function OnboardingPage() {
                 />
               </>
             )}
-
             {data.persona === 'changer' && (
               <>
                 <div className="ob-lbl" style={{ marginTop: '10px' }}>What role or industry are you moving toward?</div>
@@ -315,7 +309,7 @@ export default function OnboardingPage() {
             <div className="ob-prog">{dots}</div>
             <div className="ob-step">Step 4 of {totalSteps}</div>
             <div className="ob-title">Where are you right now?</div>
-            <div className="ob-sub">Dash needs your starting point to build the right map.</div>
+            <div className="ob-sub">The more honest you are here, the better Dash builds from it.</div>
           </div>
           <div className="ob-body">
             {[
@@ -328,7 +322,6 @@ export default function OnboardingPage() {
                 <div><div className="ol">{opt.label}</div><div className="os">{opt.sub}</div></div>
               </div>
             ))}
-
             {data.prior === 'zero' && (
               <>
                 <div className="ob-lbl">What do you currently have in place?</div>
@@ -339,7 +332,6 @@ export default function OnboardingPage() {
                 </div>
               </>
             )}
-
             {data.prior === 'started' && (
               <>
                 <div className="ob-lbl">Tell Dash exactly where you got to</div>
@@ -351,7 +343,6 @@ export default function OnboardingPage() {
                 />
               </>
             )}
-
             {data.prior === 'reset' && (
               <>
                 <div className="ob-lbl">What has not worked so far?</div>
@@ -382,11 +373,10 @@ export default function OnboardingPage() {
           <div className="ob-body">
             <textarea
               className="ob-ta" rows={3}
-              placeholder="What changes in your life if this works?"
+              placeholder="What does your life actually look like when this is done?"
               value={data.bigPrize}
               onChange={e => set('bigPrize', e.target.value)}
             />
-
             <div className="ob-lbl" style={{ marginTop: '10px' }}>Does this goal have a deadline?</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               {[{ id: 'yes', emoji: '📅', label: 'Yes, it does' }, { id: 'no', emoji: '🔄', label: 'No, ongoing goal' }].map(opt => (
@@ -397,18 +387,16 @@ export default function OnboardingPage() {
                 </div>
               ))}
             </div>
-
             {data.hasDeadline === 'yes' && (
               <>
                 <div className="ob-lbl">When is the deadline?</div>
                 <input type="date" className="ob-ta" value={data.deadline} onChange={e => set('deadline', e.target.value)} style={{ cursor: 'pointer' }} />
               </>
             )}
-
             <div className="ob-lbl" style={{ marginTop: '10px' }}>In your own words, why does this matter?</div>
             <textarea
               className="ob-ta" rows={3}
-              placeholder="Why does this matter to you personally?"
+              placeholder="Say it plainly. Dash will use this when things get hard."
               value={data.personalWhy}
               onChange={e => set('personalWhy', e.target.value)}
             />
@@ -470,7 +458,6 @@ export default function OnboardingPage() {
           </div>
         </>
       )}
-
     </div>
   )
 }
